@@ -1,5 +1,5 @@
 name: tandea
-description: "A new Flutter project."
+description: "Aplicación de gestión de ahorro rotativo (tandas)."
 publish_to: 'none'
 version: 0.1.0+1
 
@@ -9,6 +9,18 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+
+  # Networking
+  dio: ^5.7.0
+
+  # Dependency Injection
+  get_it: ^8.0.0
+
+  # State Management
+  provider: ^6.1.2
+
+  # Value Equality for Domain Entities
+  equatable: ^2.0.5
 
 dev_dependencies:
   flutter_test:
