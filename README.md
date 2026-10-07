@@ -7,64 +7,75 @@ Aplicación móvil de gestión de ahorro rotativo (tandas) con tres roles de usu
 
 ## 📐 Arquitectura: Clean Architecture + Feature First
 
-Este proyecto sigue los principios de **Clean Architecture** organizado por **funcionalidades (features)**. Cada feature es un módulo independiente con tres capas estrictamente separadas.
+Este proyecto sigue estrictamente los principios de **Clean Architecture** organizado por **funcionalidades (features)**. Cada feature es un módulo independiente con capas estrictamente separadas.
 
-### Estructura de carpetas
+### Estructura del proyecto
 
 ```
 lib/
 ├── core/
-│   ├── errors/          ← Clases de excepción y Failure personalizados
-│   ├── network/         ← Configuración de Dio, interceptores, timeouts
-│   ├── theme/           ← ThemeData, colores, tipografía global
-│   ├── utils/           ← Helpers, formateadores de fecha/moneda, constantes
-│   └── widgets/         ← Widgets reutilizables entre features (botones, loaders)
+│   ├── constants/       ← Constantes globales (AppConstants, ApiConstants, AppColors)
+│   ├── errors/          ← Clases de Failure y Exception personalizadas
+│   ├── network/         ← Cliente DioClient, interceptores, timeouts
+│   ├── routes/          ← Configuración centralizada de go_router y RouteNames
+│   ├── theme/           ← ThemeData, esquema de colores y tipografía global
+│   ├── usecases/        ← Contrato base genérico UseCase<Type, Params>
+│   ├── utils/           ← Result<T>, helpers y formateadores
+│   └── widgets/         ← Widgets reutilizables entre features
 │
-├── injection/           ← injection.dart: registro de dependencias con get_it
+├── injection/           ← injection.dart: Service Locator con get_it
 │
 └── features/
     ├── auth/
     ├── tandas/
     ├── pagos/
-    ├── usuarios/
-    └── notificaciones/
-        │
-        ├── data/
-        │   ├── datasources/   ← *RemoteDataSource.dart  (llama a la API con Dio)
-        │   ├── models/        ← *Model.dart             (fromJson / toEntity)
-        │   └── repositories/  ← *RepositoryImpl.dart    (implementa la interfaz)
+    ├── entregas/
+    ├── notificaciones/
+    └── admin/
         │
         ├── domain/
-        │   ├── entities/      ← *.dart                  (objeto puro de negocio)
-        │   └── repositories/  ← *Repository.dart        (interfaz/contrato)
+        │   ├── entities/      ← Entidades puras de negocio (con Equatable)
+        │   ├── repositories/  ← Interfaces / contratos abstractos
+        │   └── usecases/      ← Casos de uso específicos (ej. IniciarSesionUseCase)
+        │
+        ├── data/
+        │   ├── datasources/   ← *RemoteDataSource.dart (peticiones HTTP con Dio)
+        │   ├── models/        ← *Model.dart (DTOs, fromJson, toJson, toEntity)
+        │   └── repositories/  ← *RepositoryImpl.dart (implementa el contrato de dominio)
         │
         └── presentation/
-            ├── providers/     ← *Provider.dart          (ChangeNotifier + lógica)
-            ├── screens/       ← *Screen.dart            (pantallas completas)
-            └── widgets/       ← widgets propios de la feature
+            ├── providers/     ← *Provider.dart (gestor de estado con ChangeNotifier)
+            ├── screens/       ← *Screen.dart (pantallas completas)
+            └── widgets/       ← Componentes visuales exclusivos de la feature
 ```
 
 ---
 
-## 🔄 Flujo de datos
+## 🔄 Flujo de datos en Clean Architecture
 
 ```
 Screen (UI)
   │  context.watch<PagoProvider>()
   ▼
-Provider          → orquesta la lógica, llama al repositorio
-  │  PagoRepository (interfaz del dominio)
+Provider (Presentation)
+  │  ejecuta Caso de Uso
   ▼
-RepositoryImpl    → implementa la interfaz, coordina datasources
-  │
+UseCase (Domain)
+  │  llama al contrato abstracto
   ▼
-RemoteDataSource  → hace la petición HTTP con Dio
-  │
+PagoRepository (Domain Interface)
+  │  implementado por
   ▼
-API REST (backend)
+PagoRepositoryImpl (Data Layer)
+  │  coordina
+  ▼
+RemoteDataSource (Data Layer)
+  │  petición HTTP
+  ▼
+API REST (Backend)
 ```
 
-> La dependencia **siempre apunta hacia el dominio**, nunca hacia afuera.
+> **Regla de Dependencia:** Las dependencias **siempre apuntan hacia el dominio**, nunca hacia la infraestructura ni hacia la UI.
 
 ---
 
@@ -72,10 +83,11 @@ API REST (backend)
 
 | Paquete | Versión | Uso |
 |---|---|---|
+| `go_router` | ^18.0.2 | Enrutamiento declarativo y navegación |
 | `dio` | ^5.7.0 | Cliente HTTP para consumir la API REST |
-| `get_it` | ^8.0.0 | Inyección de dependencias (Singleton) |
-| `provider` | ^6.1.2 | Gestión de estado (Observer/ChangeNotifier) |
-| `equatable` | ^2.0.5 | Comparación por valor en entidades del dominio |
+| `get_it` | ^8.0.0 | Inyección de dependencias (Service Locator) |
+| `provider` | ^6.1.2 | Gestión de estado reactivo (ChangeNotifier) |
+| `equatable` | ^2.0.5 | Comparación por valor en entidades del dominio y failures |
 
 ---
 
@@ -84,60 +96,37 @@ API REST (backend)
 ### 1. Capas y dependencias
 
 - ✅ `domain/` **NUNCA** importa `dio`, `flutter/material`, `provider` ni ningún paquete de red o UI.
-- ✅ `data/` puede importar `dio` y los modelos, pero **NUNCA** importa widgets de `presentation/`.
-- ✅ `presentation/` solo se comunica con `domain/repositories/` (la interfaz), **NUNCA** con `data/datasources/` directamente.
+- ✅ `data/` puede importar `dio` y los modelos, pero **NUNCA** importa widgets ni proveedores de `presentation/`.
+- ✅ `presentation/` se comunica a través de **Casos de Uso** o contratos de `domain/`, **NUNCA** con `data/` directamente.
 
-### 2. Cómo crear una nueva feature
+### 2. Flujo de implementación de una nueva feature
 
-Sigue este orden **siempre**:
+Sigue este orden siempre:
 
 ```
-1. domain/entities/      → Define la entidad (objeto de negocio puro)
-2. domain/repositories/  → Define el contrato (interfaz abstracta)
-3. data/models/          → Crea el Model con fromJson() y toEntity()
-4. data/datasources/     → Implementa las llamadas HTTP con Dio
-5. data/repositories/    → Implementa la interfaz del dominio
-6. injection/            → Registra todo en get_it
-7. presentation/         → Crea el Provider y las Screens
+1. domain/entities/      → Define la entidad pura del negocio (extends Equatable)
+2. domain/repositories/  → Define el contrato abstracto
+3. domain/usecases/      → Crea el caso de uso que extiende UseCase<T, Params>
+4. data/models/          → Crea el Model (DTO) con fromJson() y toEntity()
+5. data/datasources/     → Implementa llamadas remotas con DioClient
+6. data/repositories/    → Implementa el contrato capturando excepciones y retornando Result<T>
+7. injection/            → Registra DataSource, Repo, UseCase y Provider en get_it
+8. presentation/         → Crea el Provider, Screen y Widgets asociados
+9. core/routes/          → Registra la nueva ruta en AppRouter
 ```
 
-### 3. Nombrado de archivos
+### 3. Manejo de resultados y errores
 
-| Capa | Ejemplo |
-|---|---|
-| Entidad | `pago.dart` |
-| Interfaz repositorio | `pago_repository.dart` |
-| Modelo (DTO) | `pago_model.dart` |
-| DataSource | `pago_remote_data_source.dart` |
-| Implementación repo | `pago_repository_impl.dart` |
-| Provider | `pago_provider.dart` |
-| Screen | `registro_pago_screen.dart` |
+- Los `RemoteDataSource` lanzan excepciones específicas (`ServerException`, `NetworkException`).
+- Los `RepositoryImpl` capturan las excepciones y retornan `Result<T>` (`Success(data)` o `Error(failure)`).
+- Los `Provider` consumen el `Result<T>` mediante pattern matching con `.when(...)` y notifican el estado a la UI.
 
-> **Convención:** `snake_case` para archivos, `PascalCase` para clases. Sin abreviaciones.
+### 4. Lints y análisis estricto
 
-### 4. Gestión de estado (Provider)
-
-- Cada feature tiene su propio `*Provider` que extiende `ChangeNotifier`.
-- Los estados de carga se modelan con un enum interno:
-  ```dart
-  enum EstadoCarga { inicial, cargando, exito, error }
-  ```
-- Usa `context.watch<T>()` solo en el widget raíz de la pantalla.
-- Usa `context.select<T, R>()` en widgets hijos para evitar rebuilds innecesarios.
-- **PROHIBIDO** llamar `notifyListeners()` dentro del constructor del Provider.
-
-### 5. Manejo de errores
-
-- Los `RemoteDataSource` lanzan excepciones específicas (ej. `ServerException`).
-- Los `RepositoryImpl` las capturan con `try/catch` y retornan un `Failure`.
-- Los `Provider` exponen el mensaje de error via `String? errorMessage`.
-
-### 6. Inyección de dependencias (`injection.dart`)
-
-- Todo se registra en `lib/injection/injection.dart`.
-- Usa `sl.registerLazySingleton` para Dio, DataSources y Repositories.
-- Usa `sl.registerFactory` para los Providers (nueva instancia por pantalla).
-- **Nunca** instancies dependencias directamente dentro de un widget o Provider.
+El proyecto cuenta con reglas estrictas configuradas en `analysis_options.yaml`:
+- Tipado estricto habilitado (`strict-casts`, `strict-inference`, `strict-raw-types`).
+- Reglas de inmutabilidad (`prefer_const_constructors`, `prefer_final_locals`, etc.).
+- Sin `dynamic` implícito ni llamadas dinámicas inseguras.
 
 ---
 
@@ -147,19 +136,9 @@ Sigue este orden **siempre**:
 # Instalar dependencias
 flutter pub get
 
+# Verificar análisis estricto de código
+flutter analyze
+
 # Correr en modo debug
 flutter run
-
-# Correr en dispositivo específico
-flutter run -d <device_id>
 ```
-
----
-
-## 👥 Roles de usuario
-
-| Rol | Permisos |
-|---|---|
-| **Participante** | Ver su tanda, registrar pagos, confirmar pagos |
-| **Admin de Tanda** | Todo lo anterior + confirmar pagos de participantes, gestionar turnos |
-| **Admin Global** | Todo lo anterior + crear/eliminar tandas, gestionar usuarios |

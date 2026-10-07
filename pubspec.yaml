@@ -21,6 +21,7 @@ dependencies:
 
   # Value Equality for Domain Entities
   equatable: ^2.0.5
+  go_router: ^18.0.2
 
 dev_dependencies:
   flutter_test:
