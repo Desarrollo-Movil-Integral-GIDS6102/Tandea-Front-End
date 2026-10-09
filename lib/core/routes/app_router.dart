@@ -1,26 +1,81 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:tandea/core/routes/route_names.dart';
+import 'package:tandea/features/admin/presentation/screens/admin_dashboard_screen.dart';
+import 'package:tandea/features/auth/presentation/providers/auth_session_provider.dart';
+import 'package:tandea/features/tandas/presentation/screens/mis_tandas_organizador_screen.dart';
+import 'package:tandea/features/tandas/presentation/screens/mis_tandas_participante_screen.dart';
+import 'package:tandea/features/tandas/presentation/screens/tandas_navigation_screen.dart';
+import 'package:tandea/injection/injection.dart';
 
 class AppRouter {
   static final GoRouter router = GoRouter(
     initialLocation: RouteNames.initial,
+    refreshListenable: sl<AuthSessionProvider>(),
+    redirect: (context, state) {
+      final session = sl<AuthSessionProvider>();
+      final loc = state.matchedLocation;
+
+      // Si el rol es Admin Global, el flujo redirige hacia /admin
+      if (session.isAdminGlobal) {
+        if (loc == RouteNames.initial ||
+            loc == RouteNames.tandas ||
+            loc == RouteNames.tandasParticipante ||
+            loc == RouteNames.tandasOrganizador) {
+          return RouteNames.admin;
+        }
+      } else {
+        // Si es usuario normal, la ruta raíz o /tandas redirige a la pestaña de participante
+        if (loc == RouteNames.initial || loc == RouteNames.tandas) {
+          return RouteNames.tandasParticipante;
+        }
+      }
+      return null;
+    },
     routes: [
-      GoRoute(
-        path: RouteNames.initial,
-        builder: (context, state) => const _PlaceholderScreen(title: 'Inicio / Tandas'),
+      // Flujo de Tandas con BottomNavigationBar (Participante / Organizador)
+      StatefulShellRoute.indexedStack(
+        builder: (context, state, navigationShell) {
+          return TandasNavigationScreen(navigationShell: navigationShell);
+        },
+        branches: [
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: RouteNames.tandasParticipante,
+                builder: (context, state) =>
+                    const MisTandasParticipanteScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: RouteNames.tandasOrganizador,
+                builder: (context, state) =>
+                    const MisTandasOrganizadorScreen(),
+              ),
+            ],
+          ),
+        ],
       ),
+
+      // Flujo del Administrador Global
+      GoRoute(
+        path: RouteNames.admin,
+        builder: (context, state) => const AdminDashboardScreen(),
+      ),
+
+      // Rutas restantes del sistema
       GoRoute(
         path: RouteNames.login,
-        builder: (context, state) => const _PlaceholderScreen(title: 'Iniciar Sesión'),
+        builder: (context, state) =>
+            const _PlaceholderScreen(title: 'Iniciar Sesión'),
       ),
       GoRoute(
         path: RouteNames.register,
-        builder: (context, state) => const _PlaceholderScreen(title: 'Registro'),
-      ),
-      GoRoute(
-        path: RouteNames.tandas,
-        builder: (context, state) => const _PlaceholderScreen(title: 'Tandas'),
+        builder: (context, state) =>
+            const _PlaceholderScreen(title: 'Registro'),
       ),
       GoRoute(
         path: RouteNames.pagos,
@@ -28,15 +83,13 @@ class AppRouter {
       ),
       GoRoute(
         path: RouteNames.entregas,
-        builder: (context, state) => const _PlaceholderScreen(title: 'Entregas'),
+        builder: (context, state) =>
+            const _PlaceholderScreen(title: 'Entregas'),
       ),
       GoRoute(
         path: RouteNames.notificaciones,
-        builder: (context, state) => const _PlaceholderScreen(title: 'Notificaciones'),
-      ),
-      GoRoute(
-        path: RouteNames.admin,
-        builder: (context, state) => const _PlaceholderScreen(title: 'Panel Administrador'),
+        builder: (context, state) =>
+            const _PlaceholderScreen(title: 'Notificaciones'),
       ),
     ],
     errorBuilder: (context, state) => Scaffold(
