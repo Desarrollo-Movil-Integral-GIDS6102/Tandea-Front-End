@@ -4,6 +4,8 @@ class RouteNames {
   static const String register = '/register';
 
   static const String tandas = '/tandas';
+  static const String tandasParticipante = '/tandas/participante';
+  static const String tandasOrganizador = '/tandas/organizador';
   static const String tandaDetail = '/tandas/:id';
 
   static const String pagos = '/pagos';
