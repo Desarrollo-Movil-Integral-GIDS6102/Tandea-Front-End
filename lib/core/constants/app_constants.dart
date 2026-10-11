@@ -5,8 +5,7 @@ class AppConstants {
   // Almacenamiento seguro
   static const String tokenKey = 'auth_token';
 
-  // Timeouts
-  static const Duration connectionTimeout = Duration(seconds: 15);
-  static const Duration receiveTimeout = Duration(seconds: 15);
+  // Timeouts aumentados a 30 segundos por posibles cold starts en Railway
+  static const Duration connectionTimeout = Duration(seconds: 30);
+  static const Duration receiveTimeout = Duration(seconds: 30);
 }
-
