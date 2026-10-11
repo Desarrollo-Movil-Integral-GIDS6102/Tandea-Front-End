@@ -3,6 +3,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get_it/get_it.dart';
 import 'package:tandea/core/network/api_client.dart';
 import 'package:tandea/core/network/dio_client.dart';
+import 'package:tandea/core/network/server_health_service.dart';
 import 'package:tandea/features/auth/data/datasources/auth_remote_data_source.dart';
 import 'package:tandea/features/auth/data/repositories/auth_repository_impl.dart';
 import 'package:tandea/features/auth/domain/repositories/auth_repository.dart';
@@ -43,6 +44,11 @@ Future<void> initDependencies() async {
   // Compatibilidad con DioClient
   sl.registerLazySingleton<DioClient>(
     () => DioClient(apiClient: sl<ApiClient>()),
+  );
+
+  // Servicio de Health Check del servidor
+  sl.registerLazySingleton<ServerHealthService>(
+    () => ServerHealthService(dio: sl<Dio>()),
   );
 
   // ----------------------------------------------------
@@ -96,7 +102,6 @@ Future<void> initDependencies() async {
       sessionProvider: sl<AuthSessionProvider>(),
     ),
   );
-
 
   sl.registerFactory<TandasProvider>(
     () => TandasProvider(tandasRepository: sl<TandasRepository>()),
