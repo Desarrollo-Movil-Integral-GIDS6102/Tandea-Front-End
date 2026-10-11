@@ -11,19 +11,23 @@ abstract class AuthRemoteDataSource {
   });
 
   Future<UserModel> register({
-    required String nombre,
     required String email,
     required String password,
+    String? nombre,
+    String? apellido,
+    int? edad,
+    String? genero,
   });
 
   Future<UserModel> getCurrentUser();
 }
 
+/// Implementación del origen de datos remoto de autenticación utilizando Dio.
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
-  final ApiClient _apiClient;
+  final Dio _dio;
 
-  AuthRemoteDataSourceImpl({required ApiClient apiClient})
-      : _apiClient = apiClient;
+  AuthRemoteDataSourceImpl({Dio? dio, ApiClient? apiClient})
+      : _dio = dio ?? (apiClient?.dio ?? Dio(BaseOptions(baseUrl: ApiConstants.baseUrl)));
 
   @override
   Future<UserModel> login({
@@ -31,119 +35,114 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     required String password,
   }) async {
     try {
-      final response = await _apiClient.post<dynamic>(
+      final response = await _dio.post<dynamic>(
         ApiConstants.loginEndpoint,
         data: <String, dynamic>{
-          'email': email,
+          'email': email.trim(),
           'password': password,
         },
       );
 
       final rawData = response.data;
       if (rawData is Map<String, dynamic>) {
-        final userData = rawData['data'] is Map<String, dynamic>
-            ? rawData['data'] as Map<String, dynamic>
-            : rawData;
-        return UserModel.fromJson(userData);
+        return UserModel.fromJson(rawData);
       } else {
         throw const ServerException(message: 'Formato de respuesta inválido');
       }
     } on DioException catch (e) {
-      if (e.response?.statusCode == 401) {
-        throw const UnauthorizedException(
-          message: 'Credenciales inválidas. Revisa tu correo y contraseña.',
-        );
-      }
-      if (e.type == DioExceptionType.connectionTimeout ||
-          e.type == DioExceptionType.receiveTimeout ||
-          e.type == DioExceptionType.sendTimeout ||
-          e.type == DioExceptionType.connectionError) {
-        throw const NetworkException();
-      }
-      final responseData = e.response?.data;
-      final msg = responseData is Map<String, dynamic>
-          ? responseData['message']?.toString()
-          : null;
-      throw ServerException(
-        message: msg ?? e.message ?? 'Error en el servidor al autenticar.',
-        statusCode: e.response?.statusCode,
-      );
+      _handleDioException(e, fallbackMessage: 'Error al iniciar sesión');
     }
   }
 
   @override
   Future<UserModel> register({
-    required String nombre,
     required String email,
     required String password,
+    String? nombre,
+    String? apellido,
+    int? edad,
+    String? genero,
   }) async {
     try {
-      final response = await _apiClient.post<dynamic>(
+      final data = <String, dynamic>{
+        'email': email.trim(),
+        'password': password,
+        if (nombre != null && nombre.trim().isNotEmpty) 'name': nombre.trim(),
+        if (apellido != null && apellido.trim().isNotEmpty) 'lastName': apellido.trim(),
+        'age': ?edad,
+        if (genero != null && genero.trim().isNotEmpty) 'gender': genero.trim(),
+      };
+
+      final response = await _dio.post<dynamic>(
         ApiConstants.registerEndpoint,
-        data: <String, dynamic>{
-          'nombre': nombre,
-          'email': email,
-          'password': password,
-        },
+        data: data,
       );
 
       final rawData = response.data;
       if (rawData is Map<String, dynamic>) {
-        final userData = rawData['data'] is Map<String, dynamic>
-            ? rawData['data'] as Map<String, dynamic>
-            : rawData;
-        return UserModel.fromJson(userData);
+        return UserModel.fromJson(rawData);
       } else {
-        throw const ServerException(message: 'Formato de respuesta inválido');
+        throw const ServerException(message: 'Formato de respuesta inválido al registrar');
       }
     } on DioException catch (e) {
-      if (e.type == DioExceptionType.connectionTimeout ||
-          e.type == DioExceptionType.receiveTimeout ||
-          e.type == DioExceptionType.sendTimeout ||
-          e.type == DioExceptionType.connectionError) {
-        throw const NetworkException();
-      }
-      final responseData = e.response?.data;
-      final msg = responseData is Map<String, dynamic>
-          ? responseData['message']?.toString()
-          : null;
-      throw ServerException(
-        message: msg ?? e.message ?? 'Error al registrar el usuario.',
-        statusCode: e.response?.statusCode,
-      );
+      _handleDioException(e, fallbackMessage: 'Error al registrar el usuario');
     }
   }
 
   @override
   Future<UserModel> getCurrentUser() async {
     try {
-      final response = await _apiClient.get<dynamic>(
-        ApiConstants.meEndpoint,
+      final response = await _dio.get<dynamic>(
+        ApiConstants.profileEndpoint,
       );
 
       final rawData = response.data;
       if (rawData is Map<String, dynamic>) {
-        final userData = rawData['data'] is Map<String, dynamic>
-            ? rawData['data'] as Map<String, dynamic>
-            : rawData;
-        return UserModel.fromJson(userData);
+        return UserModel.fromJson(rawData);
       } else {
         throw const ServerException(message: 'Formato de respuesta inválido');
       }
     } on DioException catch (e) {
-      if (e.response?.statusCode == 401) {
-        throw const UnauthorizedException();
-      }
-      if (e.type == DioExceptionType.connectionTimeout ||
-          e.type == DioExceptionType.receiveTimeout ||
-          e.type == DioExceptionType.sendTimeout ||
-          e.type == DioExceptionType.connectionError) {
-        throw const NetworkException();
-      }
-      throw ServerException(
-        message: e.message ?? 'Error al consultar la sesión.',
-        statusCode: e.response?.statusCode,
+      _handleDioException(e, fallbackMessage: 'Error al consultar la sesión');
+    }
+  }
+
+  Never _handleDioException(DioException e, {required String fallbackMessage}) {
+    if (e.response?.statusCode == 401) {
+      throw UnauthorizedException(
+        message: _extractErrorMessage(e) ?? 'Credenciales inválidas. Revisa tu correo y contraseña.',
       );
     }
+    if (e.response?.statusCode == 409) {
+      throw ServerException(
+        message: _extractErrorMessage(e) ?? 'El correo electrónico ya está registrado.',
+        statusCode: 409,
+      );
+    }
+    if (e.type == DioExceptionType.connectionTimeout ||
+        e.type == DioExceptionType.receiveTimeout ||
+        e.type == DioExceptionType.sendTimeout ||
+        e.type == DioExceptionType.connectionError) {
+      throw const NetworkException();
+    }
+    final message = _extractErrorMessage(e) ?? e.message ?? fallbackMessage;
+    throw ServerException(
+      message: message,
+      statusCode: e.response?.statusCode,
+    );
+  }
+
+  String? _extractErrorMessage(DioException e) {
+    final data = e.response?.data;
+    if (data is Map<String, dynamic>) {
+      final message = data['message'] ?? data['error'];
+      if (message is List) {
+        return message.map((item) => item.toString()).join('\n');
+      }
+      if (message != null) {
+        return message.toString();
+      }
+    }
+    return null;
   }
 }

@@ -1,10 +1,12 @@
 class ApiConstants {
-  static const String baseUrl = 'https://api.tandea.app/api/v1';
+  static const String baseUrl = 'http://localhost:3000/api/v1';
+  //static const String baseUrl = 'https://api.tandea.app/api/v1';
 
   // Auth endpoints
   static const String loginEndpoint = '/auth/login';
   static const String registerEndpoint = '/auth/register';
-  static const String meEndpoint = '/auth/me';
+  static const String profileEndpoint = '/auth/profile';
+  static const String meEndpoint = '/auth/profile';
 
   // Tandas endpoints
   static const String tandasEndpoint = '/tandas';

@@ -9,9 +9,12 @@ abstract class AuthRepository {
   });
 
   Future<Result<UserEntity>> register({
-    required String nombre,
     required String email,
     required String password,
+    String? nombre,
+    String? apellido,
+    int? edad,
+    String? genero,
   });
 
   Future<Result<UserEntity>> getCurrentUser();
@@ -19,4 +22,7 @@ abstract class AuthRepository {
   Future<Result<void>> logout();
 
   Future<bool> isAuthenticated();
+
+  Future<String?> getToken();
 }
+

@@ -91,8 +91,12 @@ Future<void> initDependencies() async {
   );
 
   sl.registerFactory<AuthProvider>(
-    () => AuthProvider(authRepository: sl<AuthRepository>()),
+    () => AuthProvider(
+      authRepository: sl<AuthRepository>(),
+      sessionProvider: sl<AuthSessionProvider>(),
+    ),
   );
+
 
   sl.registerFactory<TandasProvider>(
     () => TandasProvider(tandasRepository: sl<TandasRepository>()),

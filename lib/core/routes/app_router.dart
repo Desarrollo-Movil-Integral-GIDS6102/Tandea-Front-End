@@ -3,6 +3,8 @@ import 'package:go_router/go_router.dart';
 import 'package:tandea/core/routes/route_names.dart';
 import 'package:tandea/features/admin/presentation/screens/admin_dashboard_screen.dart';
 import 'package:tandea/features/auth/presentation/providers/auth_session_provider.dart';
+import 'package:tandea/features/auth/presentation/screens/login_screen.dart';
+import 'package:tandea/features/auth/presentation/screens/register_screen.dart';
 import 'package:tandea/features/tandas/presentation/screens/mis_tandas_organizador_screen.dart';
 import 'package:tandea/features/tandas/presentation/screens/mis_tandas_participante_screen.dart';
 import 'package:tandea/features/tandas/presentation/screens/tandas_navigation_screen.dart';
@@ -15,6 +17,15 @@ class AppRouter {
     redirect: (context, state) {
       final session = sl<AuthSessionProvider>();
       final loc = state.matchedLocation;
+
+      // Si el usuario ya está autenticado e intenta acceder a login o registro, redirigir
+      if (session.isAuthenticated) {
+        if (loc == RouteNames.login || loc == RouteNames.register) {
+          return session.isAdminGlobal
+              ? RouteNames.admin
+              : RouteNames.tandasParticipante;
+        }
+      }
 
       // Si el rol es Admin Global, el flujo redirige hacia /admin
       if (session.isAdminGlobal) {
@@ -66,17 +77,16 @@ class AppRouter {
         builder: (context, state) => const AdminDashboardScreen(),
       ),
 
-      // Rutas restantes del sistema
+      // Rutas de Autenticación
       GoRoute(
         path: RouteNames.login,
-        builder: (context, state) =>
-            const _PlaceholderScreen(title: 'Iniciar Sesión'),
+        builder: (context, state) => const LoginScreen(),
       ),
       GoRoute(
         path: RouteNames.register,
-        builder: (context, state) =>
-            const _PlaceholderScreen(title: 'Registro'),
+        builder: (context, state) => const RegisterScreen(),
       ),
+
       GoRoute(
         path: RouteNames.pagos,
         builder: (context, state) => const _PlaceholderScreen(title: 'Pagos'),
