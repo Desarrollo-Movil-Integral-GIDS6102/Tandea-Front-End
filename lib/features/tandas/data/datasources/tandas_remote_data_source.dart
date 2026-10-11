@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:tandea/core/constants/api_constants.dart';
 import 'package:tandea/core/errors/exceptions.dart';
 import 'package:tandea/core/network/api_client.dart';
+import 'package:tandea/core/network/network_error_handler.dart';
 import 'package:tandea/features/tandas/data/models/tanda_model.dart';
 
 abstract class TandasRemoteDataSource {
@@ -34,19 +35,7 @@ class TandasRemoteDataSourceImpl implements TandasRemoteDataSource {
           .map(TandaModel.fromJson)
           .toList();
     } on DioException catch (e) {
-      if (e.response?.statusCode == 401) {
-        throw const UnauthorizedException();
-      }
-      if (e.type == DioExceptionType.connectionTimeout ||
-          e.type == DioExceptionType.receiveTimeout ||
-          e.type == DioExceptionType.sendTimeout ||
-          e.type == DioExceptionType.connectionError) {
-        throw const NetworkException();
-      }
-      throw ServerException(
-        message: e.message ?? 'Error al obtener tandas',
-        statusCode: e.response?.statusCode,
-      );
+      NetworkErrorHandler.handleDioException(e, fallbackMessage: 'Error al obtener tandas');
     }
   }
 
@@ -63,19 +52,7 @@ class TandasRemoteDataSourceImpl implements TandasRemoteDataSource {
       }
       throw const ServerException(message: 'Formato de tanda inválido');
     } on DioException catch (e) {
-      if (e.response?.statusCode == 401) {
-        throw const UnauthorizedException();
-      }
-      if (e.type == DioExceptionType.connectionTimeout ||
-          e.type == DioExceptionType.receiveTimeout ||
-          e.type == DioExceptionType.sendTimeout ||
-          e.type == DioExceptionType.connectionError) {
-        throw const NetworkException();
-      }
-      throw ServerException(
-        message: e.message ?? 'Error al obtener detalle de la tanda',
-        statusCode: e.response?.statusCode,
-      );
+      NetworkErrorHandler.handleDioException(e, fallbackMessage: 'Error al obtener detalle de la tanda');
     }
   }
 
@@ -95,19 +72,7 @@ class TandasRemoteDataSourceImpl implements TandasRemoteDataSource {
       }
       throw const ServerException(message: 'Formato de respuesta inválido al crear tanda');
     } on DioException catch (e) {
-      if (e.response?.statusCode == 401) {
-        throw const UnauthorizedException();
-      }
-      if (e.type == DioExceptionType.connectionTimeout ||
-          e.type == DioExceptionType.receiveTimeout ||
-          e.type == DioExceptionType.sendTimeout ||
-          e.type == DioExceptionType.connectionError) {
-        throw const NetworkException();
-      }
-      throw ServerException(
-        message: e.message ?? 'Error al crear tanda',
-        statusCode: e.response?.statusCode,
-      );
+      NetworkErrorHandler.handleDioException(e, fallbackMessage: 'Error al crear tanda');
     }
   }
 }
