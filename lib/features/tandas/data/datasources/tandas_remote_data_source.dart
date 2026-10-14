@@ -14,8 +14,7 @@ abstract class TandasRemoteDataSource {
 class TandasRemoteDataSourceImpl implements TandasRemoteDataSource {
   final ApiClient _apiClient;
 
-  TandasRemoteDataSourceImpl({required ApiClient apiClient})
-      : _apiClient = apiClient;
+  TandasRemoteDataSourceImpl({required this._apiClient});
 
   @override
   Future<List<TandaModel>> getTandas() async {

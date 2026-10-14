@@ -11,12 +11,10 @@ class AuthInterceptor extends Interceptor {
   final void Function()? _onUnauthorized;
 
   AuthInterceptor({
-    required FlutterSecureStorage storage,
-    String tokenKey = AppConstants.tokenKey,
-    void Function()? onUnauthorized,
-  })  : _storage = storage,
-        _tokenKey = tokenKey,
-        _onUnauthorized = onUnauthorized;
+    required this._storage,
+    this._tokenKey = AppConstants.tokenKey,
+    this._onUnauthorized,
+  });
 
   @override
   Future<void> onRequest(
@@ -58,15 +56,12 @@ class ApiClient {
   final void Function()? _onUnauthorized;
 
   ApiClient({
-    required FlutterSecureStorage storage,
+    required this._storage,
     Dio? dio,
-    String tokenKey = AppConstants.tokenKey,
-    void Function()? onUnauthorized,
+    this._tokenKey = AppConstants.tokenKey,
+    this._onUnauthorized,
     String? baseUrl,
-  })  : _storage = storage,
-        _tokenKey = tokenKey,
-        _onUnauthorized = onUnauthorized,
-        _dio = dio ??
+  })  : _dio = dio ??
             Dio(
               BaseOptions(
                 baseUrl: baseUrl ?? ApiConstants.apiBaseUrl,

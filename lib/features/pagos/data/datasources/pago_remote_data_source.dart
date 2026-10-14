@@ -18,8 +18,7 @@ abstract class PagoRemoteDataSource {
 class PagoRemoteDataSourceImpl implements PagoRemoteDataSource {
   final ApiClient _apiClient;
 
-  PagoRemoteDataSourceImpl({required ApiClient apiClient})
-      : _apiClient = apiClient;
+  PagoRemoteDataSourceImpl({required this._apiClient});
 
   @override
   Future<List<PagoModel>> getPagosByTanda(String tandaId) async {
@@ -58,7 +57,7 @@ class PagoRemoteDataSourceImpl implements PagoRemoteDataSource {
         data: <String, dynamic>{
           'tandaId': tandaId,
           'monto': monto,
-          if (comprobanteUrl != null) 'comprobanteUrl': comprobanteUrl,
+          'comprobanteUrl': ?comprobanteUrl,
         },
       );
       final rawData = response.data;

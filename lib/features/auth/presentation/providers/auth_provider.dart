@@ -26,10 +26,9 @@ class AuthProvider extends ChangeNotifier {
   String? _errorMessage;
 
   AuthProvider({
-    required AuthRepository authRepository,
-    AuthSessionProvider? sessionProvider,
-  })  : _authRepository = authRepository,
-        _sessionProvider = sessionProvider;
+    required this._authRepository,
+    this._sessionProvider,
+  });
 
   // ===================== ESTADOS SOLICITADOS =====================
 

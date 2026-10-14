@@ -9,8 +9,7 @@ import 'package:tandea/features/tandas/domain/repositories/tandas_repository.dar
 class TandasRepositoryImpl implements TandasRepository {
   final TandasRemoteDataSource _remoteDataSource;
 
-  TandasRepositoryImpl({required TandasRemoteDataSource remoteDataSource})
-      : _remoteDataSource = remoteDataSource;
+  TandasRepositoryImpl({required this._remoteDataSource});
 
   @override
   Future<Result<List<TandaEntity>>> getTandas() async {

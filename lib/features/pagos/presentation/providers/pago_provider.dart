@@ -11,8 +11,7 @@ class PagoProvider extends ChangeNotifier {
   List<PagoEntity> _pagos = const [];
   String? _errorMessage;
 
-  PagoProvider({required PagoRepository pagoRepository})
-      : _pagoRepository = pagoRepository;
+  PagoProvider({required this._pagoRepository});
 
   EstadoCarga get estado => _estado;
   List<PagoEntity> get pagos => _pagos;
