@@ -9,8 +9,7 @@ import 'package:tandea/features/pagos/domain/repositories/pago_repository.dart';
 class PagoRepositoryImpl implements PagoRepository {
   final PagoRemoteDataSource _remoteDataSource;
 
-  PagoRepositoryImpl({required PagoRemoteDataSource remoteDataSource})
-      : _remoteDataSource = remoteDataSource;
+  PagoRepositoryImpl({required this._remoteDataSource});
 
   @override
   Future<Result<List<PagoEntity>>> getPagosByTanda(String tandaId) async {

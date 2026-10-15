@@ -5,6 +5,7 @@ import 'package:tandea/features/admin/presentation/screens/admin_dashboard_scree
 import 'package:tandea/features/auth/presentation/providers/auth_session_provider.dart';
 import 'package:tandea/features/auth/presentation/screens/login_screen.dart';
 import 'package:tandea/features/auth/presentation/screens/register_screen.dart';
+import 'package:tandea/features/auth/presentation/screens/welcome_screen.dart';
 import 'package:tandea/features/tandas/presentation/screens/mis_tandas_organizador_screen.dart';
 import 'package:tandea/features/tandas/presentation/screens/mis_tandas_participante_screen.dart';
 import 'package:tandea/features/tandas/presentation/screens/tandas_navigation_screen.dart';
@@ -12,7 +13,7 @@ import 'package:tandea/injection/injection.dart';
 
 class AppRouter {
   static final GoRouter router = GoRouter(
-    initialLocation: RouteNames.initial,
+    initialLocation: RouteNames.welcome,
     refreshListenable: sl<AuthSessionProvider>(),
     redirect: (context, state) {
       final session = sl<AuthSessionProvider>();
@@ -44,6 +45,12 @@ class AppRouter {
       return null;
     },
     routes: [
+      // Ruta de Bienvenida (Ruta inicial de la aplicación)
+      GoRoute(
+        path: RouteNames.welcome,
+        builder: (context, state) => const WelcomeScreen(),
+      ),
+
       // Flujo de Tandas con BottomNavigationBar (Participante / Organizador)
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) {

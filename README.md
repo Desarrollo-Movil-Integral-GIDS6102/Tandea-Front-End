@@ -130,6 +130,26 @@ El proyecto cuenta con reglas estrictas configuradas en `analysis_options.yaml`:
 
 ---
 
+## 🌐 Conexión al backend
+
+La aplicación se conecta al backend desplegado en Railway:
+
+- **Host base:** `https://tandea-back-end-production.up.railway.app`
+- **Base URL API (v1):** `https://tandea-back-end-production.up.railway.app/api/v1`
+- **Health check:** `https://tandea-back-end-production.up.railway.app/health` (responde `{"status":"ok","timestamp":"..."}`)
+
+La URL base está parametrizada mediante `String.fromEnvironment('API_BASE_URL')` en `ApiConstants`. Para ejecutar o compilar apuntando al backend explícitamente:
+
+```bash
+# Ejecutar en modo debug con la URL del backend
+flutter run --dart-define=API_BASE_URL=https://tandea-back-end-production.up.railway.app/api/v1
+
+# Compilar APK release con la URL del backend
+flutter build apk --release --dart-define=API_BASE_URL=https://tandea-back-end-production.up.railway.app/api/v1
+```
+
+---
+
 ## 🚀 Cómo correr el proyecto
 
 ```bash
@@ -142,3 +162,4 @@ flutter analyze
 # Correr en modo debug
 flutter run
 ```
+

@@ -1,6 +1,27 @@
 class ApiConstants {
-  static const String baseUrl = 'http://localhost:3000/api/v1';
-  //static const String baseUrl = 'https://api.tandea.app/api/v1';
+  /// URL base de la API REST (versión 1).
+  ///
+  /// Por defecto apunta al entorno de producción en Railway, y puede sobreescribirse
+  /// en tiempo de compilación o ejecución mediante `--dart-define=API_BASE_URL=...`.
+  static const String apiBaseUrl = String.fromEnvironment(
+    'API_BASE_URL',
+    defaultValue: 'https://tandea-back-end-production.up.railway.app/api/v1',
+  );
+
+  /// Alias de compatibilidad hacia [apiBaseUrl].
+  static const String baseUrl = apiBaseUrl;
+
+  /// URL de comprobación de salud del backend (Health Check).
+  ///
+  /// Se ubica en la raíz del host (`/health`), fuera del prefijo `/api/v1`.
+  static String get healthUrl {
+    final uri = Uri.tryParse(apiBaseUrl);
+    if (uri != null && uri.hasScheme && uri.hasAuthority) {
+      final portSuffix = uri.hasPort ? ':${uri.port}' : '';
+      return '${uri.scheme}://${uri.host}$portSuffix/health';
+    }
+    return 'https://tandea-back-end-production.up.railway.app/health';
+  }
 
   // Auth endpoints
   static const String loginEndpoint = '/auth/login';

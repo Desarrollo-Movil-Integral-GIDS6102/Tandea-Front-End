@@ -15,12 +15,10 @@ class AuthRepositoryImpl implements AuthRepository {
   final String _tokenKey;
 
   AuthRepositoryImpl({
-    required AuthRemoteDataSource remoteDataSource,
-    required FlutterSecureStorage storage,
-    String tokenKey = AppConstants.tokenKey,
-  })  : _remoteDataSource = remoteDataSource,
-        _storage = storage,
-        _tokenKey = tokenKey;
+    required this._remoteDataSource,
+    required this._storage,
+    this._tokenKey = AppConstants.tokenKey,
+  });
 
   @override
   Future<Result<UserEntity>> login({

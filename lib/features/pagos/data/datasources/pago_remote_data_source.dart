@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:tandea/core/constants/api_constants.dart';
 import 'package:tandea/core/errors/exceptions.dart';
 import 'package:tandea/core/network/api_client.dart';
+import 'package:tandea/core/network/network_error_handler.dart';
 import 'package:tandea/features/pagos/data/models/pago_model.dart';
 
 abstract class PagoRemoteDataSource {
@@ -17,8 +18,7 @@ abstract class PagoRemoteDataSource {
 class PagoRemoteDataSourceImpl implements PagoRemoteDataSource {
   final ApiClient _apiClient;
 
-  PagoRemoteDataSourceImpl({required ApiClient apiClient})
-      : _apiClient = apiClient;
+  PagoRemoteDataSourceImpl({required this._apiClient});
 
   @override
   Future<List<PagoModel>> getPagosByTanda(String tandaId) async {
@@ -41,19 +41,7 @@ class PagoRemoteDataSourceImpl implements PagoRemoteDataSource {
           .map(PagoModel.fromJson)
           .toList();
     } on DioException catch (e) {
-      if (e.response?.statusCode == 401) {
-        throw const UnauthorizedException();
-      }
-      if (e.type == DioExceptionType.connectionTimeout ||
-          e.type == DioExceptionType.receiveTimeout ||
-          e.type == DioExceptionType.sendTimeout ||
-          e.type == DioExceptionType.connectionError) {
-        throw const NetworkException();
-      }
-      throw ServerException(
-        message: e.message ?? 'Error al consultar pagos',
-        statusCode: e.response?.statusCode,
-      );
+      NetworkErrorHandler.handleDioException(e, fallbackMessage: 'Error al consultar pagos');
     }
   }
 
@@ -69,7 +57,7 @@ class PagoRemoteDataSourceImpl implements PagoRemoteDataSource {
         data: <String, dynamic>{
           'tandaId': tandaId,
           'monto': monto,
-          if (comprobanteUrl != null) 'comprobanteUrl': comprobanteUrl,
+          'comprobanteUrl': ?comprobanteUrl,
         },
       );
       final rawData = response.data;
@@ -81,19 +69,7 @@ class PagoRemoteDataSourceImpl implements PagoRemoteDataSource {
       }
       throw const ServerException(message: 'Formato de respuesta inválido al registrar pago');
     } on DioException catch (e) {
-      if (e.response?.statusCode == 401) {
-        throw const UnauthorizedException();
-      }
-      if (e.type == DioExceptionType.connectionTimeout ||
-          e.type == DioExceptionType.receiveTimeout ||
-          e.type == DioExceptionType.sendTimeout ||
-          e.type == DioExceptionType.connectionError) {
-        throw const NetworkException();
-      }
-      throw ServerException(
-        message: e.message ?? 'Error al registrar pago',
-        statusCode: e.response?.statusCode,
-      );
+      NetworkErrorHandler.handleDioException(e, fallbackMessage: 'Error al registrar pago');
     }
   }
 }

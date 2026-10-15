@@ -1,7 +1,9 @@
 import 'package:dio/dio.dart';
 import 'package:tandea/core/constants/api_constants.dart';
+import 'package:tandea/core/constants/app_constants.dart';
 import 'package:tandea/core/errors/exceptions.dart';
 import 'package:tandea/core/network/api_client.dart';
+import 'package:tandea/core/network/network_error_handler.dart';
 import 'package:tandea/features/auth/data/models/user_model.dart';
 
 abstract class AuthRemoteDataSource {
@@ -27,7 +29,19 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   final Dio _dio;
 
   AuthRemoteDataSourceImpl({Dio? dio, ApiClient? apiClient})
-      : _dio = dio ?? (apiClient?.dio ?? Dio(BaseOptions(baseUrl: ApiConstants.baseUrl)));
+      : _dio = dio ??
+            (apiClient?.dio ??
+                Dio(
+                  BaseOptions(
+                    baseUrl: ApiConstants.apiBaseUrl,
+                    connectTimeout: AppConstants.connectionTimeout,
+                    receiveTimeout: AppConstants.receiveTimeout,
+                    headers: const <String, dynamic>{
+                      'Content-Type': 'application/json',
+                      'Accept': 'application/json',
+                    },
+                  ),
+                ));
 
   @override
   Future<UserModel> login({
@@ -63,6 +77,16 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     int? edad,
     String? genero,
   }) async {
+    // TODO(BE-AUTH): El backend desplegado en Railway aún NO tiene implementado el endpoint POST /api/v1/auth/register.
+    // Body esperado por implementar en el backend:
+    // {
+    //   "email": "correo@ejemplo.com",
+    //   "password": "PasswordSegura123!",
+    //   "name": "Nombre",
+    //   "lastName": "Apellido",
+    //   "age": 25,
+    //   "gender": "M"
+    // }
     try {
       final data = <String, dynamic>{
         'email': email.trim(),
@@ -108,41 +132,6 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   }
 
   Never _handleDioException(DioException e, {required String fallbackMessage}) {
-    if (e.response?.statusCode == 401) {
-      throw UnauthorizedException(
-        message: _extractErrorMessage(e) ?? 'Credenciales inválidas. Revisa tu correo y contraseña.',
-      );
-    }
-    if (e.response?.statusCode == 409) {
-      throw ServerException(
-        message: _extractErrorMessage(e) ?? 'El correo electrónico ya está registrado.',
-        statusCode: 409,
-      );
-    }
-    if (e.type == DioExceptionType.connectionTimeout ||
-        e.type == DioExceptionType.receiveTimeout ||
-        e.type == DioExceptionType.sendTimeout ||
-        e.type == DioExceptionType.connectionError) {
-      throw const NetworkException();
-    }
-    final message = _extractErrorMessage(e) ?? e.message ?? fallbackMessage;
-    throw ServerException(
-      message: message,
-      statusCode: e.response?.statusCode,
-    );
-  }
-
-  String? _extractErrorMessage(DioException e) {
-    final data = e.response?.data;
-    if (data is Map<String, dynamic>) {
-      final message = data['message'] ?? data['error'];
-      if (message is List) {
-        return message.map((item) => item.toString()).join('\n');
-      }
-      if (message != null) {
-        return message.toString();
-      }
-    }
-    return null;
+    NetworkErrorHandler.handleDioException(e, fallbackMessage: fallbackMessage);
   }
 }

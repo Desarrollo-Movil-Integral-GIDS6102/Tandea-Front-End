@@ -12,8 +12,7 @@ class TandasProvider extends ChangeNotifier {
   TandaEntity? _selectedTanda;
   String? _errorMessage;
 
-  TandasProvider({required TandasRepository tandasRepository})
-      : _tandasRepository = tandasRepository;
+  TandasProvider({required this._tandasRepository});
 
   EstadoCarga get estado => _estado;
   List<TandaEntity> get tandas => _tandas;
