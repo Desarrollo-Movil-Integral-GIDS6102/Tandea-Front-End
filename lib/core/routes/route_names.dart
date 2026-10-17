@@ -7,6 +7,10 @@ class RouteNames {
   static const String tandas = '/tandas';
   static const String tandasParticipante = '/tandas/participante';
   static const String tandasOrganizador = '/tandas/organizador';
+  static const String crearTanda = '/tandas/crear';
+  static const String unirseTanda = '/tandas/unirse';
+  static const String seleccionarNumero = '/tandas/seleccionar-numero';
+  static const String compartirCodigo = '/tandas/compartir';
   static const String tandaDetail = '/tandas/:id';
 
   static const String pagos = '/pagos';

@@ -31,6 +31,8 @@ class ApiConstants {
 
   // Tandas endpoints
   static const String tandasEndpoint = '/tandas';
+  static const String misTandasEndpoint = '/tandas/mias';
+
 
   // Pagos endpoints
   static const String pagosEndpoint = '/pagos';

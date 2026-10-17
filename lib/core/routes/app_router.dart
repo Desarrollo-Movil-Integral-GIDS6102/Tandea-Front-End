@@ -6,9 +6,14 @@ import 'package:tandea/features/auth/presentation/providers/auth_session_provide
 import 'package:tandea/features/auth/presentation/screens/login_screen.dart';
 import 'package:tandea/features/auth/presentation/screens/register_screen.dart';
 import 'package:tandea/features/auth/presentation/screens/welcome_screen.dart';
+import 'package:tandea/features/tandas/domain/entities/tanda_entity.dart';
+import 'package:tandea/features/tandas/presentation/screens/compartir_codigo_tanda_screen.dart';
+import 'package:tandea/features/tandas/presentation/screens/crear_tanda_screen.dart';
 import 'package:tandea/features/tandas/presentation/screens/mis_tandas_organizador_screen.dart';
 import 'package:tandea/features/tandas/presentation/screens/mis_tandas_participante_screen.dart';
+import 'package:tandea/features/tandas/presentation/screens/seleccionar_numero_screen.dart';
 import 'package:tandea/features/tandas/presentation/screens/tandas_navigation_screen.dart';
+import 'package:tandea/features/tandas/presentation/screens/unirse_tanda_screen.dart';
 import 'package:tandea/injection/injection.dart';
 
 class AppRouter {
@@ -76,6 +81,62 @@ class AppRouter {
             ],
           ),
         ],
+      ),
+
+      // Crear Tanda
+      GoRoute(
+        path: RouteNames.crearTanda,
+        builder: (context, state) => const CrearTandaScreen(),
+      ),
+
+      // Unirse a Tanda
+      GoRoute(
+        path: RouteNames.unirseTanda,
+        builder: (context, state) {
+          final code = state.uri.queryParameters['code'];
+          return UnirseTandaScreen(initialCode: code);
+        },
+      ),
+
+      // Seleccionar Número en Tanda por Elección
+      GoRoute(
+        path: RouteNames.seleccionarNumero,
+        builder: (context, state) {
+          final extra = state.extra;
+          if (extra is TandaEntity) {
+            return SeleccionarNumeroScreen(tanda: extra);
+          }
+          return const UnirseTandaScreen();
+        },
+      ),
+
+
+      // Compartir Código de Tanda
+      GoRoute(
+        path: RouteNames.compartirCodigo,
+        builder: (context, state) {
+          final extra = state.extra;
+          if (extra is TandaEntity) {
+            return CompartirCodigoTandaScreen(
+              inviteCode: extra.inviteCode ?? '',
+              tanda: extra,
+            );
+          } else if (extra is Map<String, dynamic>) {
+            return CompartirCodigoTandaScreen(
+              inviteCode: extra['inviteCode'] as String? ?? '',
+              nombreTanda: extra['nombreTanda'] as String?,
+              monto: (extra['monto'] as num?)?.toDouble(),
+              periodo: extra['periodo'] as String?,
+              totalParticipantes: (extra['totalParticipantes'] as num?)?.toInt(),
+            );
+          }
+          final code = state.uri.queryParameters['code'] ?? '';
+          final nombre = state.uri.queryParameters['nombre'];
+          return CompartirCodigoTandaScreen(
+            inviteCode: code,
+            nombreTanda: nombre,
+          );
+        },
       ),
 
       // Flujo del Administrador Global

@@ -1,48 +1,32 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:tandea/core/constants/app_colors.dart';
+import 'package:tandea/core/routes/route_names.dart';
+import 'package:tandea/features/tandas/presentation/widgets/mis_tandas_list_view.dart';
 
+/// Pantalla principal de Mis Tandas para el rol de Organizador / Administrador de tandas.
 class MisTandasOrganizadorScreen extends StatelessWidget {
   const MisTandasOrganizadorScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Scaffold(
+      backgroundColor: AppColors.backgroundLight,
       appBar: AppBar(
         title: const Text('Mis tandas (organizador)'),
         elevation: 0,
+        centerTitle: false,
       ),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.assignment_ind_outlined,
-                size: 80,
-                color: theme.colorScheme.secondary,
-              ),
-              const SizedBox(height: 20),
-              Text(
-                'Mis tandas (organizador)',
-                style: theme.textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: theme.colorScheme.onSurface,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 12),
-              Text(
-                'Aquí verás las tandas que has creado y administras, el seguimiento de pagos y control de turnos.',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
-        ),
+      floatingActionButton: FloatingActionButton.extended(
+        key: const Key('fab_nueva_tanda'),
+        onPressed: () => context.push(RouteNames.crearTanda),
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
+        icon: const Icon(Icons.add_rounded),
+        label: const Text('Nueva Tanda'),
+      ),
+      body: const MisTandasListView(
+        rol: 'organizador',
       ),
     );
   }
