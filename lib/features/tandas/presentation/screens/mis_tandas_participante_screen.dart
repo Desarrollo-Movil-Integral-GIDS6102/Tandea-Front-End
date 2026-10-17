@@ -1,48 +1,34 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:tandea/core/constants/app_colors.dart';
+import 'package:tandea/core/routes/route_names.dart';
+import 'package:tandea/features/tandas/presentation/widgets/mis_tandas_list_view.dart';
 
+/// Pantalla principal de Mis Tandas para el rol de Participante (ahorrador).
 class MisTandasParticipanteScreen extends StatelessWidget {
   const MisTandasParticipanteScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Scaffold(
+      backgroundColor: AppColors.backgroundLight,
       appBar: AppBar(
         title: const Text('Mis tandas (participante)'),
         elevation: 0,
+        centerTitle: false,
       ),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.savings_outlined,
-                size: 80,
-                color: theme.colorScheme.primary,
-              ),
-              const SizedBox(height: 20),
-              Text(
-                'Mis tandas (participante)',
-                style: theme.textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: theme.colorScheme.onSurface,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 12),
-              Text(
-                'Aquí verás las tandas en las que participas como ahorrador, tus turnos asignados y fechas de cobro.',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
-        ),
+      floatingActionButton: FloatingActionButton.extended(
+        key: const Key('fab_unirse_tanda'),
+        onPressed: () {
+          context.push(RouteNames.unirseTanda);
+        },
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
+        icon: const Icon(Icons.group_add_rounded),
+        label: const Text('Unirse a Tanda'),
+      ),
+      body: const MisTandasListView(
+        rol: 'participante',
       ),
     );
   }

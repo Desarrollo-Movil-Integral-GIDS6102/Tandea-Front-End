@@ -8,7 +8,9 @@ import 'package:tandea/core/theme/app_theme.dart';
 import 'package:tandea/features/auth/presentation/providers/auth_provider.dart';
 import 'package:tandea/features/auth/presentation/providers/auth_session_provider.dart';
 import 'package:tandea/features/pagos/presentation/providers/pago_provider.dart';
+import 'package:tandea/features/tandas/presentation/providers/crear_tanda_provider.dart';
 import 'package:tandea/features/tandas/presentation/providers/tandas_provider.dart';
+import 'package:tandea/features/tandas/presentation/providers/unirse_tanda_provider.dart';
 import 'package:tandea/injection/injection.dart';
 
 void main() async {
@@ -46,9 +48,16 @@ class MainApp extends StatelessWidget {
           create: (_) => sl<TandasProvider>(),
         ),
         ChangeNotifierProvider(
+          create: (_) => sl<CrearTandaProvider>(),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => sl<UnirseTandaProvider>(),
+        ),
+        ChangeNotifierProvider(
           create: (_) => sl<PagoProvider>(),
         ),
       ],
+
       child: MaterialApp.router(
         title: AppConstants.appName,
         debugShowCheckedModeBanner: false,
