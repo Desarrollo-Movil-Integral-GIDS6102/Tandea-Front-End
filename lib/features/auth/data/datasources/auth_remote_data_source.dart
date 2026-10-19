@@ -1,6 +1,5 @@
 import 'package:dio/dio.dart';
 import 'package:tandea/core/constants/api_constants.dart';
-import 'package:tandea/core/constants/app_constants.dart';
 import 'package:tandea/core/errors/exceptions.dart';
 import 'package:tandea/core/network/api_client.dart';
 import 'package:tandea/core/network/network_error_handler.dart';
@@ -24,24 +23,11 @@ abstract class AuthRemoteDataSource {
   Future<UserModel> getCurrentUser();
 }
 
-/// Implementación del origen de datos remoto de autenticación utilizando Dio.
+/// Implementación del origen de datos remoto de autenticación utilizando ApiClient.
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
-  final Dio _dio;
+  final ApiClient apiClient;
 
-  AuthRemoteDataSourceImpl({Dio? dio, ApiClient? apiClient})
-      : _dio = dio ??
-            (apiClient?.dio ??
-                Dio(
-                  BaseOptions(
-                    baseUrl: ApiConstants.apiBaseUrl,
-                    connectTimeout: AppConstants.connectionTimeout,
-                    receiveTimeout: AppConstants.receiveTimeout,
-                    headers: const <String, dynamic>{
-                      'Content-Type': 'application/json',
-                      'Accept': 'application/json',
-                    },
-                  ),
-                ));
+  AuthRemoteDataSourceImpl({required this.apiClient});
 
   @override
   Future<UserModel> login({
@@ -49,7 +35,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     required String password,
   }) async {
     try {
-      final response = await _dio.post<dynamic>(
+      final response = await apiClient.post<dynamic>(
         ApiConstants.loginEndpoint,
         data: <String, dynamic>{
           'email': email.trim(),
@@ -64,7 +50,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         throw const ServerException(message: 'Formato de respuesta inválido');
       }
     } on DioException catch (e) {
-      _handleDioException(e, fallbackMessage: 'Error al iniciar sesión');
+      NetworkErrorHandler.handleDioException(e, fallbackMessage: 'Error al iniciar sesión');
     }
   }
 
@@ -97,7 +83,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         if (genero != null && genero.trim().isNotEmpty) 'gender': genero.trim(),
       };
 
-      final response = await _dio.post<dynamic>(
+      final response = await apiClient.post<dynamic>(
         ApiConstants.registerEndpoint,
         data: data,
       );
@@ -109,14 +95,14 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         throw const ServerException(message: 'Formato de respuesta inválido al registrar');
       }
     } on DioException catch (e) {
-      _handleDioException(e, fallbackMessage: 'Error al registrar el usuario');
+      NetworkErrorHandler.handleDioException(e, fallbackMessage: 'Error al registrar el usuario');
     }
   }
 
   @override
   Future<UserModel> getCurrentUser() async {
     try {
-      final response = await _dio.get<dynamic>(
+      final response = await apiClient.get<dynamic>(
         ApiConstants.profileEndpoint,
       );
 
@@ -127,11 +113,8 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         throw const ServerException(message: 'Formato de respuesta inválido');
       }
     } on DioException catch (e) {
-      _handleDioException(e, fallbackMessage: 'Error al consultar la sesión');
+      NetworkErrorHandler.handleDioException(e, fallbackMessage: 'Error al consultar la sesión');
     }
   }
 
-  Never _handleDioException(DioException e, {required String fallbackMessage}) {
-    NetworkErrorHandler.handleDioException(e, fallbackMessage: fallbackMessage);
-  }
 }

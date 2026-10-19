@@ -16,14 +16,14 @@ abstract class PagoRemoteDataSource {
 }
 
 class PagoRemoteDataSourceImpl implements PagoRemoteDataSource {
-  final ApiClient _apiClient;
+  final ApiClient apiClient;
 
-  PagoRemoteDataSourceImpl({required this._apiClient});
+  PagoRemoteDataSourceImpl({required this.apiClient});
 
   @override
   Future<List<PagoModel>> getPagosByTanda(String tandaId) async {
     try {
-      final response = await _apiClient.get<dynamic>(
+      final response = await apiClient.get<dynamic>(
         ApiConstants.pagosEndpoint,
         queryParameters: <String, dynamic>{'tandaId': tandaId},
       );
@@ -52,7 +52,7 @@ class PagoRemoteDataSourceImpl implements PagoRemoteDataSource {
     String? comprobanteUrl,
   }) async {
     try {
-      final response = await _apiClient.post<dynamic>(
+      final response = await apiClient.post<dynamic>(
         ApiConstants.pagosEndpoint,
         data: <String, dynamic>{
           'tandaId': tandaId,

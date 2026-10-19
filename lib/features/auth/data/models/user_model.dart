@@ -83,4 +83,3 @@ class UserModel extends UserEntity {
         genero: genero,
       );
 }
-

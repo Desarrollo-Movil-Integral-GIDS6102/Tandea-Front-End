@@ -7,14 +7,14 @@ import 'package:tandea/features/pagos/domain/repositories/pago_repository.dart';
 
 /// Implementación del repositorio de pagos en la capa de datos.
 class PagoRepositoryImpl implements PagoRepository {
-  final PagoRemoteDataSource _remoteDataSource;
+  final PagoRemoteDataSource remoteDataSource;
 
-  PagoRepositoryImpl({required this._remoteDataSource});
+  PagoRepositoryImpl({required this.remoteDataSource});
 
   @override
   Future<Result<List<PagoEntity>>> getPagosByTanda(String tandaId) async {
     try {
-      final list = await _remoteDataSource.getPagosByTanda(tandaId);
+      final list = await remoteDataSource.getPagosByTanda(tandaId);
       return Success(list);
     } on UnauthorizedException catch (e) {
       return Error(UnauthorizedFailure(e.message));
@@ -23,7 +23,7 @@ class PagoRepositoryImpl implements PagoRepository {
     } on ServerException catch (e) {
       return Error(ServerFailure(e.message, statusCode: e.statusCode));
     } catch (e) {
-      return Error(ServerFailure('Error inesperado al consultar pagos: $e'));
+      return Error(ServerFailure('Error al consultar pagos: $e'));
     }
   }
 
@@ -34,7 +34,7 @@ class PagoRepositoryImpl implements PagoRepository {
     String? comprobanteUrl,
   }) async {
     try {
-      final pago = await _remoteDataSource.registrarPago(
+      final pago = await remoteDataSource.registrarPago(
         tandaId: tandaId,
         monto: monto,
         comprobanteUrl: comprobanteUrl,
@@ -47,7 +47,7 @@ class PagoRepositoryImpl implements PagoRepository {
     } on ServerException catch (e) {
       return Error(ServerFailure(e.message, statusCode: e.statusCode));
     } catch (e) {
-      return Error(ServerFailure('Error inesperado al registrar pago: $e'));
+      return Error(ServerFailure('Error al registrar pago: $e'));
     }
   }
 }
