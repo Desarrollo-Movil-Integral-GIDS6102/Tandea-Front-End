@@ -12,15 +12,14 @@ abstract class TandasRemoteDataSource {
 }
 
 class TandasRemoteDataSourceImpl implements TandasRemoteDataSource {
-  final ApiClient _apiClient;
+  final ApiClient apiClient;
 
-  TandasRemoteDataSourceImpl({required ApiClient apiClient})
-      : _apiClient = apiClient;
+  TandasRemoteDataSourceImpl({required this.apiClient});
 
   @override
   Future<List<TandaModel>> getTandas() async {
     try {
-      final response = await _apiClient.get<dynamic>(ApiConstants.tandasEndpoint);
+      final response = await apiClient.get<dynamic>(ApiConstants.tandasEndpoint);
       final rawData = response.data;
       final List<dynamic> list;
       if (rawData is List<dynamic>) {
@@ -42,7 +41,7 @@ class TandasRemoteDataSourceImpl implements TandasRemoteDataSource {
   @override
   Future<TandaModel> getTandaById(String id) async {
     try {
-      final response = await _apiClient.get<dynamic>('${ApiConstants.tandasEndpoint}/$id');
+      final response = await apiClient.get<dynamic>('${ApiConstants.tandasEndpoint}/$id');
       final rawData = response.data;
       if (rawData is Map<String, dynamic>) {
         final tandaData = rawData['data'] is Map<String, dynamic>
@@ -59,7 +58,7 @@ class TandasRemoteDataSourceImpl implements TandasRemoteDataSource {
   @override
   Future<TandaModel> createTanda(Map<String, dynamic> tandaData) async {
     try {
-      final response = await _apiClient.post<dynamic>(
+      final response = await apiClient.post<dynamic>(
         ApiConstants.tandasEndpoint,
         data: tandaData,
       );

@@ -127,7 +127,6 @@ El proyecto cuenta con reglas estrictas configuradas en `analysis_options.yaml`:
 - Tipado estricto habilitado (`strict-casts`, `strict-inference`, `strict-raw-types`).
 - Reglas de inmutabilidad (`prefer_const_constructors`, `prefer_final_locals`, etc.).
 - Sin `dynamic` implícito ni llamadas dinámicas inseguras.
-
 ---
 
 ## 🌐 Conexión al backend

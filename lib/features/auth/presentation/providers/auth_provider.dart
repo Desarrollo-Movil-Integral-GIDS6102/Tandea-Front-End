@@ -18,18 +18,17 @@ enum EstadoCarga { inicial, cargando, exito, error }
 
 /// Proveedor de estado para la gestión del flujo de autenticación de usuarios.
 class AuthProvider extends ChangeNotifier {
-  final AuthRepository _authRepository;
-  final AuthSessionProvider? _sessionProvider;
+  final AuthRepository authRepository;
+  final AuthSessionProvider? sessionProvider;
 
   AuthStatus _status = AuthStatus.initial;
   UserEntity? _currentUser;
   String? _errorMessage;
 
   AuthProvider({
-    required AuthRepository authRepository,
-    AuthSessionProvider? sessionProvider,
-  })  : _authRepository = authRepository,
-        _sessionProvider = sessionProvider;
+    required this.authRepository,
+    this.sessionProvider,
+  });
 
   // ===================== ESTADOS SOLICITADOS =====================
 
@@ -73,7 +72,7 @@ class AuthProvider extends ChangeNotifier {
     _errorMessage = null;
     notifyListeners();
 
-    final result = await _authRepository.login(
+    final result = await authRepository.login(
       email: email.trim(),
       password: password,
     );
@@ -112,7 +111,7 @@ class AuthProvider extends ChangeNotifier {
     _errorMessage = null;
     notifyListeners();
 
-    final result = await _authRepository.register(
+    final result = await authRepository.register(
       email: email.trim(),
       password: password,
       nombre: nombre,
@@ -143,7 +142,7 @@ class AuthProvider extends ChangeNotifier {
 
   /// Verifica si existe una sesión activa y obtiene el perfil del usuario.
   Future<void> checkAuthStatus() async {
-    final hasToken = await _authRepository.isAuthenticated();
+    final hasToken = await authRepository.isAuthenticated();
     if (!hasToken) {
       _currentUser = null;
       _status = AuthStatus.unauthenticated;
@@ -154,7 +153,7 @@ class AuthProvider extends ChangeNotifier {
     _status = AuthStatus.loading;
     notifyListeners();
 
-    final result = await _authRepository.getCurrentUser();
+    final result = await authRepository.getCurrentUser();
     result.when(
       success: (user) {
         _currentUser = user;
@@ -174,11 +173,11 @@ class AuthProvider extends ChangeNotifier {
 
   /// Cierra la sesión activa y elimina credenciales seguras.
   Future<void> logout() async {
-    await _authRepository.logout();
+    await authRepository.logout();
     _currentUser = null;
     _status = AuthStatus.unauthenticated;
     _errorMessage = null;
-    _sessionProvider?.clearSession();
+    sessionProvider?.clearSession();
     notifyListeners();
   }
 
@@ -187,7 +186,7 @@ class AuthProvider extends ChangeNotifier {
     _currentUser = null;
     _errorMessage = 'Sesión expirada. Inicia sesión nuevamente.';
     _status = AuthStatus.error;
-    _sessionProvider?.clearSession();
+    sessionProvider?.clearSession();
     notifyListeners();
   }
 
@@ -204,9 +203,9 @@ class AuthProvider extends ChangeNotifier {
 
   /// Sincroniza el rol y token con el AuthSessionProvider que escucha GoRouter.
   void _syncSession(UserEntity user) {
-    if (_sessionProvider != null) {
+    if (sessionProvider != null) {
       final role = UserRole.fromString(user.rol);
-      _sessionProvider.setSession(
+      sessionProvider!.setSession(
         token: user.token ?? '',
         role: role,
       );

@@ -5,15 +5,14 @@ import 'package:tandea/features/tandas/domain/repositories/tandas_repository.dar
 
 /// Proveedor de estado para la gestión de tandas.
 class TandasProvider extends ChangeNotifier {
-  final TandasRepository _tandasRepository;
+  final TandasRepository tandasRepository;
 
   EstadoCarga _estado = EstadoCarga.inicial;
   List<TandaEntity> _tandas = const [];
   TandaEntity? _selectedTanda;
   String? _errorMessage;
 
-  TandasProvider({required TandasRepository tandasRepository})
-      : _tandasRepository = tandasRepository;
+  TandasProvider({required this.tandasRepository});
 
   EstadoCarga get estado => _estado;
   List<TandaEntity> get tandas => _tandas;
@@ -25,7 +24,7 @@ class TandasProvider extends ChangeNotifier {
     _errorMessage = null;
     notifyListeners();
 
-    final result = await _tandasRepository.getTandas();
+    final result = await tandasRepository.getTandas();
     result.when(
       success: (data) {
         _tandas = data;
@@ -40,12 +39,12 @@ class TandasProvider extends ChangeNotifier {
     );
   }
 
-  Future<void> fetchTandaById(String id) async {
+  Future<void> selectTanda(String id) async {
     _estado = EstadoCarga.cargando;
     _errorMessage = null;
     notifyListeners();
 
-    final result = await _tandasRepository.getTandaById(id);
+    final result = await tandasRepository.getTandaById(id);
     result.when(
       success: (data) {
         _selectedTanda = data;

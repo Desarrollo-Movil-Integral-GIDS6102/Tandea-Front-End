@@ -7,15 +7,14 @@ import 'package:tandea/features/tandas/domain/repositories/tandas_repository.dar
 
 /// Implementación del repositorio de tandas en la capa de datos.
 class TandasRepositoryImpl implements TandasRepository {
-  final TandasRemoteDataSource _remoteDataSource;
+  final TandasRemoteDataSource remoteDataSource;
 
-  TandasRepositoryImpl({required TandasRemoteDataSource remoteDataSource})
-      : _remoteDataSource = remoteDataSource;
+  TandasRepositoryImpl({required this.remoteDataSource});
 
   @override
   Future<Result<List<TandaEntity>>> getTandas() async {
     try {
-      final list = await _remoteDataSource.getTandas();
+      final list = await remoteDataSource.getTandas();
       return Success(list);
     } on UnauthorizedException catch (e) {
       return Error(UnauthorizedFailure(e.message));
@@ -24,14 +23,14 @@ class TandasRepositoryImpl implements TandasRepository {
     } on ServerException catch (e) {
       return Error(ServerFailure(e.message, statusCode: e.statusCode));
     } catch (e) {
-      return Error(ServerFailure('Error inesperado al consultar tandas: $e'));
+      return Error(ServerFailure('Error al obtener tandas: $e'));
     }
   }
 
   @override
   Future<Result<TandaEntity>> getTandaById(String id) async {
     try {
-      final tanda = await _remoteDataSource.getTandaById(id);
+      final tanda = await remoteDataSource.getTandaById(id);
       return Success(tanda);
     } on UnauthorizedException catch (e) {
       return Error(UnauthorizedFailure(e.message));
@@ -40,15 +39,15 @@ class TandasRepositoryImpl implements TandasRepository {
     } on ServerException catch (e) {
       return Error(ServerFailure(e.message, statusCode: e.statusCode));
     } catch (e) {
-      return Error(ServerFailure('Error inesperado al consultar tanda: $e'));
+      return Error(ServerFailure('Error al obtener la tanda: $e'));
     }
   }
 
   @override
   Future<Result<TandaEntity>> createTanda(Map<String, dynamic> tandaData) async {
     try {
-      final tanda = await _remoteDataSource.createTanda(tandaData);
-      return Success(tanda);
+      final created = await remoteDataSource.createTanda(tandaData);
+      return Success(created);
     } on UnauthorizedException catch (e) {
       return Error(UnauthorizedFailure(e.message));
     } on NetworkException catch (e) {
@@ -56,7 +55,7 @@ class TandasRepositoryImpl implements TandasRepository {
     } on ServerException catch (e) {
       return Error(ServerFailure(e.message, statusCode: e.statusCode));
     } catch (e) {
-      return Error(ServerFailure('Error inesperado al crear tanda: $e'));
+      return Error(ServerFailure('Error al crear la tanda: $e'));
     }
   }
 }

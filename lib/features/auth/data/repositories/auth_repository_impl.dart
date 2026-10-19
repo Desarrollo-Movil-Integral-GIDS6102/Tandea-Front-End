@@ -10,17 +10,15 @@ import 'package:tandea/features/auth/domain/repositories/auth_repository.dart';
 /// Implementación del repositorio de autenticación en la capa de datos.
 /// Gestiona la persistencia segura del JWT en flutter_secure_storage.
 class AuthRepositoryImpl implements AuthRepository {
-  final AuthRemoteDataSource _remoteDataSource;
-  final FlutterSecureStorage _storage;
-  final String _tokenKey;
+  final AuthRemoteDataSource remoteDataSource;
+  final FlutterSecureStorage storage;
+  final String tokenKey;
 
   AuthRepositoryImpl({
-    required AuthRemoteDataSource remoteDataSource,
-    required FlutterSecureStorage storage,
-    String tokenKey = AppConstants.tokenKey,
-  })  : _remoteDataSource = remoteDataSource,
-        _storage = storage,
-        _tokenKey = tokenKey;
+    required this.remoteDataSource,
+    required this.storage,
+    this.tokenKey = AppConstants.tokenKey,
+  });
 
   @override
   Future<Result<UserEntity>> login({
@@ -28,14 +26,14 @@ class AuthRepositoryImpl implements AuthRepository {
     required String password,
   }) async {
     try {
-      final userModel = await _remoteDataSource.login(
+      final userModel = await remoteDataSource.login(
         email: email,
         password: password,
       );
 
       final token = userModel.token;
       if (token != null && token.isNotEmpty) {
-        await _storage.write(key: _tokenKey, value: token);
+        await storage.write(key: tokenKey, value: token);
       }
 
       return Success(userModel.toEntity());
@@ -60,7 +58,7 @@ class AuthRepositoryImpl implements AuthRepository {
     String? genero,
   }) async {
     try {
-      final userModel = await _remoteDataSource.register(
+      final userModel = await remoteDataSource.register(
         email: email,
         password: password,
         nombre: nombre,
@@ -74,20 +72,20 @@ class AuthRepositoryImpl implements AuthRepository {
       // se realiza un login automático con las credenciales registradas para persistir el JWT.
       if (token == null || token.isEmpty) {
         try {
-          final loginResult = await _remoteDataSource.login(
+          final loginResult = await remoteDataSource.login(
             email: email,
             password: password,
           );
           token = loginResult.token;
           if (token != null && token.isNotEmpty) {
-            await _storage.write(key: _tokenKey, value: token);
+            await storage.write(key: tokenKey, value: token);
             return Success(loginResult.toEntity());
           }
         } catch (_) {
           // Si el login automático falla, devolvemos el usuario recién registrado
         }
       } else {
-        await _storage.write(key: _tokenKey, value: token);
+        await storage.write(key: tokenKey, value: token);
       }
 
       return Success(userModel.toEntity());
@@ -105,10 +103,10 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<Result<UserEntity>> getCurrentUser() async {
     try {
-      final userModel = await _remoteDataSource.getCurrentUser();
+      final userModel = await remoteDataSource.getCurrentUser();
       return Success(userModel.toEntity());
     } on UnauthorizedException catch (e) {
-      await _storage.delete(key: _tokenKey);
+      await storage.delete(key: tokenKey);
       return Error(UnauthorizedFailure(e.message));
     } on NetworkException catch (e) {
       return Error(NetworkFailure(e.message));
@@ -122,7 +120,7 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<Result<void>> logout() async {
     try {
-      await _storage.delete(key: _tokenKey);
+      await storage.delete(key: tokenKey);
       return const Success(null);
     } catch (e) {
       return Error(CacheFailure('Error al cerrar sesión: $e'));
@@ -131,12 +129,12 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<bool> isAuthenticated() async {
-    final token = await _storage.read(key: _tokenKey);
+    final token = await storage.read(key: tokenKey);
     return token != null && token.isNotEmpty;
   }
 
   @override
   Future<String?> getToken() async {
-    return _storage.read(key: _tokenKey);
+    return storage.read(key: tokenKey);
   }
 }

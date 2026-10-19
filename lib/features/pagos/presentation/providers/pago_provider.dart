@@ -5,14 +5,13 @@ import 'package:tandea/features/pagos/domain/repositories/pago_repository.dart';
 
 /// Proveedor de estado para la gestión de pagos.
 class PagoProvider extends ChangeNotifier {
-  final PagoRepository _pagoRepository;
+  final PagoRepository pagoRepository;
 
   EstadoCarga _estado = EstadoCarga.inicial;
   List<PagoEntity> _pagos = const [];
   String? _errorMessage;
 
-  PagoProvider({required PagoRepository pagoRepository})
-      : _pagoRepository = pagoRepository;
+  PagoProvider({required this.pagoRepository});
 
   EstadoCarga get estado => _estado;
   List<PagoEntity> get pagos => _pagos;
@@ -23,7 +22,7 @@ class PagoProvider extends ChangeNotifier {
     _errorMessage = null;
     notifyListeners();
 
-    final result = await _pagoRepository.getPagosByTanda(tandaId);
+    final result = await pagoRepository.getPagosByTanda(tandaId);
     result.when(
       success: (data) {
         _pagos = data;
@@ -47,7 +46,7 @@ class PagoProvider extends ChangeNotifier {
     _errorMessage = null;
     notifyListeners();
 
-    final result = await _pagoRepository.registrarPago(
+    final result = await pagoRepository.registrarPago(
       tandaId: tandaId,
       monto: monto,
       comprobanteUrl: comprobanteUrl,
@@ -55,7 +54,7 @@ class PagoProvider extends ChangeNotifier {
 
     return result.when(
       success: (pago) {
-        _pagos = [pago, ..._pagos];
+        _pagos = [..._pagos, pago];
         _estado = EstadoCarga.exito;
         notifyListeners();
         return true;
