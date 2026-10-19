@@ -61,7 +61,6 @@ Future<void> initDependencies() async {
   sl.registerLazySingleton<ShareService>(
     () => ShareServiceImpl(),
   );
-
   // ----------------------------------------------------
   // 3. DataSources
   // ----------------------------------------------------

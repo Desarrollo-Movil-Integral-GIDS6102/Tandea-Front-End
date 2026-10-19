@@ -26,7 +26,9 @@ class AppRouter {
 
       // Si el usuario ya está autenticado e intenta acceder a login o registro, redirigir
       if (session.isAuthenticated) {
-        if (loc == RouteNames.login || loc == RouteNames.register) {
+        if (loc == RouteNames.welcome ||
+            loc == RouteNames.login ||
+            loc == RouteNames.register) {
           return session.isAdminGlobal
               ? RouteNames.admin
               : RouteNames.tandasParticipante;
@@ -155,6 +157,7 @@ class AppRouter {
         builder: (context, state) => const RegisterScreen(),
       ),
 
+      // Rutas restantes del sistema
       GoRoute(
         path: RouteNames.pagos,
         builder: (context, state) => const _PlaceholderScreen(title: 'Pagos'),

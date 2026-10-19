@@ -130,4 +130,7 @@ class TandasProvider extends ChangeNotifier {
       },
     );
   }
+
+  /// Alias de compatibilidad hacia [fetchTandaById].
+  Future<void> selectTanda(String id) => fetchTandaById(id);
 }
