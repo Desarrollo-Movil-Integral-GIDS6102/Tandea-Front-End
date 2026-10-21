@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:tandea/core/errors/failures.dart';
+import 'package:tandea/core/routes/route_names.dart';
 import 'package:tandea/core/utils/result.dart';
 import 'package:tandea/core/utils/uppercase_text_formatter.dart';
 import 'package:tandea/features/tandas/domain/entities/tanda_entity.dart';
@@ -25,7 +27,6 @@ class MockUnirseTandasRepository implements TandasRepository {
   @override
   Future<Result<List<TandaEntity>>> getMisTandas({required String rol}) async =>
       const Success([]);
-
 
   @override
   Future<Result<TandaEntity>> getTandaById(String id) async =>
@@ -53,7 +54,7 @@ class MockUnirseTandasRepository implements TandasRepository {
   Future<Result<TandaEntity>> getTandaByInviteCode(String inviteCode) async {
     lastQueriedCode = inviteCode;
     return getTandaResult ??
-        const Success(
+        Success(
           TandaEntity(
             id: '1',
             nombre: 'Tanda Navideña',
@@ -61,7 +62,7 @@ class MockUnirseTandasRepository implements TandasRepository {
             totalParticipantes: 5,
             periodo: 'quincenal',
             estado: 'PENDIENTE',
-            inviteCode: 'TND-7K9A',
+            inviteCode: inviteCode,
             idTandaType: 1, // Por elección
           ),
         );
@@ -109,16 +110,16 @@ void main() {
       final formatter = UpperCaseTextFormatter();
       const oldValue = TextEditingValue.empty;
       const newValue = TextEditingValue(
-        text: 'tnd-7k9a',
-        selection: TextSelection.collapsed(offset: 8),
+        text: 'tnd-7k9a2b',
+        selection: TextSelection.collapsed(offset: 10),
       );
 
       final result = formatter.formatEditUpdate(oldValue, newValue);
-      expect(result.text, equals('TND-7K9A'));
+      expect(result.text, equals('TND-7K9A2B'));
     });
   });
 
-  group('UnirseTandaProvider - Validación Regex 8 Caracteres y Errores', () {
+  group('UnirseTandaProvider - Validación y Flujo de Invitación', () {
     test('estado inicial está limpio', () {
       expect(provider.inviteCode, isEmpty);
       expect(provider.isLoading, isFalse);
@@ -127,7 +128,7 @@ void main() {
       expect(provider.foundTanda, isNull);
     });
 
-    test('validarCodigoLocal rechaza código vacío', () {
+    test('validarCodigoLocal rechaza cadena vacía', () {
       provider.setInviteCode('');
       final isValid = provider.validarCodigoLocal();
 
@@ -135,31 +136,16 @@ void main() {
       expect(provider.validationError, contains('Ingresa el código'));
     });
 
-    test('validarCodigoLocal rechaza códigos con menos de 8 caracteres', () {
-      provider.setInviteCode('TND-12');
+    test('validarCodigoLocal rechaza códigos con 7 caracteres (menos de 8)', () {
+      provider.setInviteCode('TND-123'); // 7 caracteres
       final isValid = provider.validarCodigoLocal();
 
       expect(isValid, isFalse);
-      expect(provider.validationError, contains('exactamente 8 caracteres'));
+      expect(provider.validationError, contains('entre 8 y 10 caracteres'));
     });
 
-    test('validarCodigoLocal rechaza códigos con más de 8 caracteres', () {
-      provider.setInviteCode('TND-123456');
-      final isValid = provider.validarCodigoLocal();
-
-      expect(isValid, isFalse);
-      expect(provider.validationError, contains('exactamente 8 caracteres'));
-    });
-
-    test('validarCodigoLocal rechaza caracteres no alfanuméricos fuera de guión', () {
-      provider.setInviteCode('TND*1234');
-      final isValid = provider.validarCodigoLocal();
-
-      expect(isValid, isFalse);
-      expect(provider.validationError, contains('exactamente 8 caracteres'));
-    });
-
-    test('validarCodigoLocal acepta códigos válidos de 8 caracteres alfanuméricos con o sin guión', () {
+    test('validarCodigoLocal acepta códigos válidos de 8, 9 y 10 caracteres', () {
+      // 8 caracteres
       provider.setInviteCode('TND-7K9A');
       expect(provider.validarCodigoLocal(), isTrue);
       expect(provider.validationError, isNull);
@@ -167,33 +153,102 @@ void main() {
       provider.setInviteCode('ABC12345');
       expect(provider.validarCodigoLocal(), isTrue);
       expect(provider.validationError, isNull);
+
+      // 9 caracteres
+      provider.setInviteCode('TND-7K9A2');
+      expect(provider.validarCodigoLocal(), isTrue);
+      expect(provider.validationError, isNull);
+
+      // 10 caracteres (formato estándar AP-02: TND- + 6 alfanuméricos)
+      provider.setInviteCode('TND-7K9A2B');
+      expect(provider.validarCodigoLocal(), isTrue);
+      expect(provider.validationError, isNull);
     });
 
-    test('consultarTanda NO llama al API si el regex de 8 caracteres no se cumple', () async {
-      provider.setInviteCode('CORTA');
-      final tanda = await provider.consultarTanda();
+    test('validarCodigoLocal acepta explícitamente TND-7K9A2B', () {
+      provider.setInviteCode('TND-7K9A2B');
+      expect(provider.validarCodigoLocal(), isTrue);
+      expect(provider.validationError, isNull);
+    });
 
-      expect(tanda, isNull);
+    test('validarCodigoLocal rechaza códigos con 11 caracteres (más de 10)', () {
+      provider.setInviteCode('TND-7K9A2B1'); // 11 caracteres
+      final isValid = provider.validarCodigoLocal();
+
+      expect(isValid, isFalse);
+      expect(provider.validationError, contains('entre 8 y 10 caracteres'));
+    });
+
+    test('validarCodigoLocal rechaza caracteres especiales no permitidos (@, espacios, símbolos)', () {
+      // Arroba
+      provider.setInviteCode('TND@7K9A2B');
+      expect(provider.validarCodigoLocal(), isFalse);
+      expect(provider.validationError, contains('entre 8 y 10 caracteres'));
+
+      // Espacio interno
+      provider.setInviteCode('TND 7K9A2B');
+      expect(provider.validarCodigoLocal(), isFalse);
+      expect(provider.validationError, contains('entre 8 y 10 caracteres'));
+
+      // Carácter asterisco
+      provider.setInviteCode('TND*123456');
+      expect(provider.validarCodigoLocal(), isFalse);
+      expect(provider.validationError, contains('entre 8 y 10 caracteres'));
+    });
+
+    test('regexCodigo exige mayúsculas; minúsculas sin formatear no hacen match', () {
+      expect(UnirseTandaProvider.regexCodigo.hasMatch('tnd-7k9a2b'), isFalse);
+      expect(UnirseTandaProvider.regexCodigo.hasMatch('TND-7K9A2B'), isTrue);
+      expect(UnirseTandaProvider.regexCodigo.hasMatch('abc12345'), isFalse);
+      expect(UnirseTandaProvider.regexCodigo.hasMatch('ABC12345'), isTrue);
+    });
+
+    test('normalización aplica trim y toUpperCase en setInviteCode', () {
+      provider.setInviteCode('  tnd-7k9a2b  ');
+      expect(provider.inviteCode, equals('TND-7K9A2B'));
+      expect(provider.validarCodigoLocal(), isTrue);
+    });
+
+    test('consultarTanda NO llama al API si el código tiene menos de 8 o más de 10 caracteres', () async {
+      provider.setInviteCode('CORTO');
+      final tandaCorta = await provider.consultarTanda();
+      expect(tandaCorta, isNull);
+      expect(mockRepo.lastQueriedCode, isNull);
+      expect(provider.validationError, isNotNull);
+
+      provider.setInviteCode('ESTOESTOESMUYLARGO11');
+      final tandaLarga = await provider.consultarTanda();
+      expect(tandaLarga, isNull);
       expect(mockRepo.lastQueriedCode, isNull);
       expect(provider.validationError, isNotNull);
     });
 
+    test('consultarTanda exitoso con TND-7K9A2B consulta el repositorio con código limpio', () async {
+      provider.setInviteCode('  TND-7K9A2B  ');
+      final tanda = await provider.consultarTanda();
+
+      expect(tanda, isNotNull);
+      expect(mockRepo.lastQueriedCode, equals('TND-7K9A2B'));
+      expect(provider.foundTanda, isNotNull);
+      expect(provider.backendError, isNull);
+    });
+
     test('consultarTanda muestra el error devuelto por el backend cuando la tanda no existe', () async {
-      provider.setInviteCode('TND-0000');
+      provider.setInviteCode('TND-000000');
       mockRepo.getTandaResult = const Error(
-        ServerFailure('No se encontró ninguna tanda activa con el código TND-0000', statusCode: 404),
+        ServerFailure('No se encontró ninguna tanda activa con el código TND-000000', statusCode: 404),
       );
 
       final tanda = await provider.consultarTanda();
 
       expect(tanda, isNull);
-      expect(mockRepo.lastQueriedCode, equals('TND-0000'));
-      expect(provider.backendError, equals('No se encontró ninguna tanda activa con el código TND-0000'));
+      expect(mockRepo.lastQueriedCode, equals('TND-000000'));
+      expect(provider.backendError, equals('No se encontró ninguna tanda activa con el código TND-000000'));
       expect(provider.isLoading, isFalse);
     });
 
     test('consultarTanda exitoso detecta correctamente si es por elección (idTandaType == 1)', () async {
-      provider.setInviteCode('TND-ELEC');
+      provider.setInviteCode('TND-ELEC10');
       mockRepo.getTandaResult = const Success(
         TandaEntity(
           id: '1',
@@ -202,7 +257,7 @@ void main() {
           totalParticipantes: 5,
           periodo: 'quincenal',
           estado: 'PENDIENTE',
-          inviteCode: 'TND-ELEC',
+          inviteCode: 'TND-ELEC10',
           idTandaType: 1,
         ),
       );
@@ -215,7 +270,7 @@ void main() {
     });
 
     test('consultarTanda exitoso detecta cuando es por sorteo (idTandaType == 2)', () async {
-      provider.setInviteCode('TND-SORT');
+      provider.setInviteCode('TND-SORT10');
       mockRepo.getTandaResult = const Success(
         TandaEntity(
           id: '2',
@@ -224,7 +279,7 @@ void main() {
           totalParticipantes: 10,
           periodo: 'semanal',
           estado: 'PENDIENTE',
-          inviteCode: 'TND-SORT',
+          inviteCode: 'TND-SORT10',
           idTandaType: 2,
         ),
       );
@@ -236,7 +291,7 @@ void main() {
     });
 
     test('unirse expone el error de backend si el turno seleccionado ya está ocupado', () async {
-      provider.setInviteCode('TND-7K9A');
+      provider.setInviteCode('TND-7K9A2B');
       mockRepo.joinTandaResult = const Error(
         ServerFailure('El turno número 3 ya está ocupado', statusCode: 409),
       );
@@ -248,7 +303,7 @@ void main() {
     });
 
     test('unirse completa exitosamente y almacena joinResult con número asignado', () async {
-      provider.setInviteCode('TND-7K9A');
+      provider.setInviteCode('TND-7K9A2B');
 
       final resultado = await provider.unirse(selectedNumber: 4);
 
@@ -269,39 +324,119 @@ void main() {
       );
     }
 
-    testWidgets('renderiza campo de texto de código, botón Continuar y banner informativo', (tester) async {
+    testWidgets('renderiza campo de texto, botón Continuar, etiqueta nueva y contador inicial 0/10', (tester) async {
       await tester.pumpWidget(buildTestScreen(provider));
 
       expect(find.text('Ingresa el Código de Invitación'), findsOneWidget);
+      expect(find.text('Código de invitación'), findsOneWidget);
+      expect(find.text('Código de 8 caracteres'), findsNothing);
       expect(find.byKey(const Key('input_codigo_tanda')), findsOneWidget);
       expect(find.byKey(const Key('btn_buscar_tanda')), findsOneWidget);
       expect(find.text('Continuar'), findsOneWidget);
-      expect(find.text('0/8'), findsOneWidget);
+      expect(find.text('0/10'), findsOneWidget);
+
+      final textField = tester.widget<TextField>(find.descendant(
+        of: find.byKey(const Key('input_codigo_tanda')),
+        matching: find.byType(TextField),
+      ));
+      expect(textField.decoration?.hintText, equals('TND-7K9A2B'));
     });
 
-    testWidgets('ingresar texto en minúsculas se visualiza en mayúsculas y respeta límite de 8 caracteres', (tester) async {
+    testWidgets('ingresar texto en minúsculas se visualiza en mayúsculas', (tester) async {
       await tester.pumpWidget(buildTestScreen(provider));
 
       final inputFinder = find.byKey(const Key('input_codigo_tanda'));
-      await tester.enterText(inputFinder, 'abc-1234');
+      await tester.enterText(inputFinder, 'abc-123456');
       await tester.pump();
 
-      expect(find.text('ABC-1234'), findsOneWidget);
-      expect(find.text('8/8'), findsOneWidget);
+      expect(find.text('ABC-123456'), findsOneWidget);
+      expect(find.text('10/10'), findsOneWidget);
     });
 
-
-    testWidgets('validación local muestra error si se envía código con menos de 8 caracteres sin llamar al API', (tester) async {
+    testWidgets('entrada máxima de 10 caracteres: el carácter número 11 no se incorpora', (tester) async {
       await tester.pumpWidget(buildTestScreen(provider));
 
-      await tester.enterText(find.byKey(const Key('input_codigo_tanda')), 'ABC');
+      final inputFinder = find.byKey(const Key('input_codigo_tanda'));
+      await tester.enterText(inputFinder, 'TND-7K9A2B1');
+      await tester.pump();
+
+      final editableFinder = find.descendant(
+        of: find.byKey(const Key('input_codigo_tanda')),
+        matching: find.byType(EditableText),
+      );
+      final editable = tester.widget<EditableText>(editableFinder);
+      expect(editable.controller.text, equals('TND-7K9A2B'));
+      expect(editable.controller.text.length, equals(10));
+      expect(find.text('10/10'), findsOneWidget);
+    });
+
+    testWidgets('pegar 12 caracteres deja un máximo de 10 caracteres', (tester) async {
+      await tester.pumpWidget(buildTestScreen(provider));
+
+      final inputFinder = find.byKey(const Key('input_codigo_tanda'));
+      await tester.enterText(inputFinder, 'TND-7K9A2B99');
+      await tester.pump();
+
+      final editableFinder = find.descendant(
+        of: find.byKey(const Key('input_codigo_tanda')),
+        matching: find.byType(EditableText),
+      );
+      final editable = tester.widget<EditableText>(editableFinder);
+      expect(editable.controller.text, equals('TND-7K9A2B'));
+      expect(editable.controller.text.length, equals(10));
+      expect(find.text('10/10'), findsOneWidget);
+    });
+
+    testWidgets('el contador llega a 10/10 cuando el campo tiene 10 caracteres', (tester) async {
+      await tester.pumpWidget(buildTestScreen(provider));
+
+      await tester.enterText(find.byKey(const Key('input_codigo_tanda')), 'ABC-7K9A2B');
+      await tester.pump();
+
+      expect(find.text('10/10'), findsOneWidget);
+    });
+
+    testWidgets('un código de 7 caracteres muestra error al enviar sin llamar al API', (tester) async {
+      await tester.pumpWidget(buildTestScreen(provider));
+
+      await tester.enterText(find.byKey(const Key('input_codigo_tanda')), 'TND-123'); // 7 caracteres
       await tester.pump();
 
       await tester.tap(find.byKey(const Key('btn_buscar_tanda')));
       await tester.pumpAndSettle();
 
-      expect(find.text('El código debe tener exactamente 8 caracteres'), findsOneWidget);
+      expect(find.text('El código debe tener entre 8 y 10 caracteres'), findsOneWidget);
       expect(mockRepo.lastQueriedCode, isNull);
+    });
+
+    testWidgets('TND-7K9A2B es válido y procesa la búsqueda al presionar Continuar', (tester) async {
+      final router = GoRouter(
+        initialLocation: '/',
+        routes: [
+          GoRoute(
+            path: '/',
+            builder: (context, state) => ChangeNotifierProvider<UnirseTandaProvider>.value(
+              value: provider,
+              child: const UnirseTandaScreen(),
+            ),
+          ),
+          GoRoute(
+            path: RouteNames.seleccionarNumero,
+            builder: (context, state) => const Scaffold(body: Text('Pantalla Seleccionar Numero')),
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(MaterialApp.router(routerConfig: router));
+
+      await tester.enterText(find.byKey(const Key('input_codigo_tanda')), 'TND-7K9A2B');
+      await tester.pump();
+
+      await tester.tap(find.byKey(const Key('btn_buscar_tanda')));
+      await tester.pumpAndSettle();
+
+      expect(mockRepo.lastQueriedCode, equals('TND-7K9A2B'));
+      expect(find.text('Pantalla Seleccionar Numero'), findsOneWidget);
     });
 
     testWidgets('muestra error devuelto por el backend en el banner de error', (tester) async {
@@ -330,7 +465,7 @@ void main() {
       totalParticipantes: 6,
       periodo: 'quincenal',
       estado: 'PENDIENTE',
-      inviteCode: 'TND-7K9A',
+      inviteCode: 'TND-7K9A2B',
       idTandaType: 1,
     );
 
@@ -371,7 +506,7 @@ void main() {
     });
 
     testWidgets('si el backend responde con error de turno ocupado, se muestra en el banner de error', (tester) async {
-      provider.setInviteCode('TND-7K9A');
+      provider.setInviteCode('TND-7K9A2B');
       mockRepo.joinTandaResult = const Error(
         ServerFailure('El turno número 3 ya está ocupado', statusCode: 409),
       );
@@ -390,7 +525,7 @@ void main() {
     });
 
     testWidgets('confirmar turno exitoso muestra el diálogo con el turno reservado', (tester) async {
-      provider.setInviteCode('TND-7K9A');
+      provider.setInviteCode('TND-7K9A2B');
       mockRepo.joinTandaResult = const Success(
         UnirseTandaResult(
           tanda: testTanda,
@@ -414,7 +549,5 @@ void main() {
       );
       expect(find.byKey(const Key('btn_exito_selector_ir_tandas')), findsOneWidget);
     });
-
-
   });
 }
