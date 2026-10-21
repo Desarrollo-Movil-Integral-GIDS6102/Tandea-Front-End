@@ -157,7 +157,7 @@ class _MisTandasListViewState extends State<MisTandasListView> {
                     Text(
                       isOrganizador
                           ? 'Crea tu primer grupo de ahorro, define las reglas, los montos y comparte el código de invitación.'
-                          : 'Pídele el código de 8 caracteres a tu organizador para unirte a un grupo y apartar tu turno.',
+                          : 'Pídele el código de invitación a tu organizador para unirte a un grupo y apartar tu turno.',
                       style: const TextStyle(
                         color: AppColors.textSecondaryLight,
                         fontSize: 13.5,
