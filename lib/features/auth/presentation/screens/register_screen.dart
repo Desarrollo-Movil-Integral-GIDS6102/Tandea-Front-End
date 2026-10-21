@@ -82,9 +82,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     final success = await authProvider.register(
       nombre: _nombreController.text.trim(),
-      apellido: _apellidoController.text.trim().isNotEmpty
-          ? _apellidoController.text.trim()
-          : null,
+      apellido: _apellidoController.text.trim(),
       email: _emailController.text.trim(),
       password: _passwordController.text,
       edad: edad,
@@ -209,10 +207,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               textCapitalization: TextCapitalization.words,
                               enabled: !isLoading,
                               decoration: const InputDecoration(
-                                labelText: 'Apellido (opcional)',
+                                labelText: 'Apellido *',
                                 hintText: 'Ej. Pérez',
                                 prefixIcon: Icon(Icons.badge_outlined),
                               ),
+                              validator: RegisterValidators.apellido,
                             ),
                             const SizedBox(height: 16),
 
@@ -389,6 +388,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   Widget _buildErrorBanner(BuildContext context, String message) {
+    final isDuplicate = message.toLowerCase().contains('registrado') ||
+        message.toLowerCase().contains('duplicad');
+
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -398,36 +400,70 @@ class _RegisterScreenState extends State<RegisterScreen> {
           color: AppColors.error.withValues(alpha: 0.3),
         ),
       ),
-
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Icon(
-            Icons.error_outline,
-            color: AppColors.error,
-            size: 20,
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              message,
-              style: const TextStyle(
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(
+                Icons.error_outline,
                 color: AppColors.error,
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
+                size: 20,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  message,
+                  style: const TextStyle(
+                    color: AppColors.error,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+              GestureDetector(
+                onTap: () {
+                  context.read<AuthProvider>().clearError();
+                },
+                child: const Icon(
+                  Icons.close,
+                  color: AppColors.error,
+                  size: 18,
+                ),
+              ),
+            ],
+          ),
+          if (isDuplicate) ...[
+            const SizedBox(height: 8),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                style: TextButton.styleFrom(
+                  padding: EdgeInsets.zero,
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  foregroundColor: AppColors.primary,
+                ),
+                onPressed: () {
+                  if (context.canPop()) {
+                    context.pop();
+                  } else {
+                    context.go(RouteNames.login);
+                  }
+                },
+                icon: const Icon(Icons.login, size: 16),
+                label: const Text(
+                  'Iniciar sesión con esta cuenta',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                    decoration: TextDecoration.underline,
+                  ),
+                ),
               ),
             ),
-          ),
-          GestureDetector(
-            onTap: () {
-              context.read<AuthProvider>().clearError();
-            },
-            child: const Icon(
-              Icons.close,
-              color: AppColors.error,
-              size: 18,
-            ),
-          ),
+          ],
         ],
       ),
     );

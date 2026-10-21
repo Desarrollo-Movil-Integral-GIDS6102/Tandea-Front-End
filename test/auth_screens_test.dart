@@ -264,7 +264,7 @@ void main() {
     Future<void> fillForm(
       WidgetTester tester, {
       String nombre = 'Pedro',
-      String apellido = '',
+      String apellido = 'Pérez',
       String email = 'pedro@tandea.app',
       String edad = '',
       String password = 'MiClaveSegura2026!',
@@ -273,7 +273,7 @@ void main() {
       await tester.enterText(
           find.widgetWithText(TextFormField, 'Nombre *'), nombre);
       await tester.enterText(
-          find.widgetWithText(TextFormField, 'Apellido (opcional)'), apellido);
+          find.widgetWithText(TextFormField, 'Apellido *'), apellido);
       await tester.enterText(
           find.widgetWithText(TextFormField, 'Correo electrónico *'), email);
       await tester.enterText(
@@ -299,6 +299,7 @@ void main() {
       await submit(tester);
 
       expect(find.text('El nombre es obligatorio'), findsOneWidget);
+      expect(find.text('El apellido es obligatorio'), findsOneWidget);
       expect(find.text('El correo electrónico es obligatorio'), findsOneWidget);
       expect(find.text('La contraseña es obligatoria'), findsOneWidget);
       expect(find.text('Confirma tu contraseña'), findsOneWidget);
@@ -318,10 +319,10 @@ void main() {
     testWidgets('contraseña menor a la longitud mínima muestra mensaje y no envía',
         (WidgetTester tester) async {
       await pumpRegister(tester, authProvider);
-      await fillForm(tester, password: 'ClaveCorta9');
+      await fillForm(tester, password: 'Corta7');
       await submit(tester);
 
-      expect(find.text('La contraseña debe tener al menos 12 caracteres'),
+      expect(find.text('La contraseña debe tener al menos 8 caracteres'),
           findsOneWidget);
       expect(fakeRepo.registerCalls, 0);
     });
@@ -376,6 +377,11 @@ void main() {
 
       final passField = find.widgetWithText(TextFormField, 'Contraseña *');
 
+      // Al escribir una contraseña corta, aparece el mensaje
+      await tester.enterText(passField, 'Abc1');
+      await tester.pumpAndSettle();
+      expect(find.text('La contraseña debe tener al menos 8 caracteres'), findsOneWidget);
+
       // Al escribir una secuencia débil, aparece el mensaje
       await tester.enterText(passField, '123456789');
       await tester.pumpAndSettle();
@@ -385,7 +391,7 @@ void main() {
       await tester.enterText(passField, 'MiClaveSegura2026!');
       await tester.pumpAndSettle();
       expect(find.text('Evita secuencias como 123456789'), findsNothing);
-      expect(find.text('La contraseña debe tener al menos 12 caracteres'),
+      expect(find.text('La contraseña debe tener al menos 8 caracteres'),
           findsNothing);
     });
 

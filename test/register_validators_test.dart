@@ -11,6 +11,14 @@ void main() {
       expect(RegisterValidators.nombre('Ana'), isNull);
     });
 
+    test('apellido valida obligatoriedad y longitud mínima', () {
+      expect(RegisterValidators.apellido(null), 'El apellido es obligatorio');
+      expect(RegisterValidators.apellido('   '), 'El apellido es obligatorio');
+      expect(RegisterValidators.apellido('P'),
+          'El apellido debe tener al menos 2 caracteres');
+      expect(RegisterValidators.apellido('Pérez'), isNull);
+    });
+
     test('email valida formato razonable', () {
       expect(RegisterValidators.email(''), 'El correo electrónico es obligatorio');
       for (final bad in ['abc', 'a@b', 'a b@c.com', '@tandea.app', 'a@.c']) {
@@ -42,12 +50,12 @@ void main() {
         expect(RegisterValidators.password(null), 'La contraseña es obligatoria');
       });
 
-      test('rechaza contraseñas cortas menores a 12 caracteres', () {
-        expect(RegisterValidators.minPasswordLength, 12);
-        expect(RegisterValidators.password('ClaveCorta9'),
-            'La contraseña debe tener al menos 12 caracteres');
+      test('rechaza contraseñas cortas menores a 8 caracteres', () {
+        expect(RegisterValidators.minPasswordLength, 8);
+        expect(RegisterValidators.password('Corta7'),
+            'La contraseña debe tener al menos 8 caracteres');
         expect(RegisterValidators.password('abc'),
-            'La contraseña debe tener al menos 12 caracteres');
+            'La contraseña debe tener al menos 8 caracteres');
       });
 
       test('rechaza secuencias numéricas obvias como 123456789', () {

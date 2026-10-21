@@ -10,7 +10,7 @@ class RegisterValidators {
   RegisterValidators._();
 
   /// Longitud mínima de contraseña requerida.
-  static const int minPasswordLength = 12;
+  static const int minPasswordLength = 8;
 
   /// Longitud mínima del nombre.
   static const int minNameLength = 2;
@@ -68,6 +68,15 @@ class RegisterValidators {
     return null;
   }
 
+  static String? apellido(String? value) {
+    final v = value?.trim() ?? '';
+    if (v.isEmpty) return 'El apellido es obligatorio';
+    if (v.length < minNameLength) {
+      return 'El apellido debe tener al menos $minNameLength caracteres';
+    }
+    return null;
+  }
+
   static String? email(String? value) {
     final v = value?.trim() ?? '';
     if (v.isEmpty) return 'El correo electrónico es obligatorio';
@@ -91,18 +100,19 @@ class RegisterValidators {
   ///
   /// Reglas:
   /// - Rechazar campo vacío.
+  /// - Mínimo de [minPasswordLength] caracteres (8).
   /// - Rechazar contraseñas comunes (ej. 'password123').
+  /// - Rechazar patrones repetitivos (ej. 'aaaaaaaaaaaa').
   /// - Rechazar secuencias numéricas obvias (ej. '123456789').
   /// - Rechazar secuencias alfabéticas obvias (ej. 'abcdefghi') o secuencias de teclado.
-  /// - Rechazar patrones repetitivos (ej. 'aaaaaaaaaaaa').
   /// - Rechazar contraseñas formadas exclusivamente por números.
-  /// - Mínimo de [minPasswordLength] caracteres (12).
-  ///
-  /// Permite frases de contraseña largas que sean difíciles de adivinar
-  /// (ej. 'correct horse battery staple').
   static String? password(String? value) {
     if (value == null || value.isEmpty) {
       return 'La contraseña es obligatoria';
+    }
+
+    if (value.length < minPasswordLength) {
+      return 'La contraseña debe tener al menos $minPasswordLength caracteres';
     }
 
     if (_isCommonPassword(value)) {
@@ -123,10 +133,6 @@ class RegisterValidators {
 
     if (RegExp(r'^\d+$').hasMatch(value)) {
       return 'La contraseña no puede estar compuesta solo por números';
-    }
-
-    if (value.length < minPasswordLength) {
-      return 'La contraseña debe tener al menos $minPasswordLength caracteres';
     }
 
     return null;

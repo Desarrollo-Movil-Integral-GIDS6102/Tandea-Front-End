@@ -47,6 +47,20 @@ class NetworkErrorHandler {
         );
       }
 
+      if (statusCode == 409) {
+        throw ServerException(
+          message: extractErrorMessage(e) ?? 'El correo electrónico ya se encuentra registrado. Intenta iniciar sesión con tu cuenta.',
+          statusCode: 409,
+        );
+      }
+
+      if (statusCode == 422) {
+        throw ServerException(
+          message: extractErrorMessage(e) ?? 'Uno o más datos ingresados son inválidos. Revisa el formulario.',
+          statusCode: 422,
+        );
+      }
+
       if (statusCode >= 500 && statusCode <= 599) {
         throw ServerException(
           message: extractErrorMessage(e) ?? 'Error interno del servidor ($statusCode). Intenta nuevamente más tarde.',
@@ -55,7 +69,7 @@ class NetworkErrorHandler {
       }
     }
 
-    // 3. Fallback genérico para otros errores HTTP (400, 409, 422, etc.)
+    // 3. Fallback genérico para otros errores HTTP (400, etc.)
     final message = extractErrorMessage(e) ?? e.message ?? fallbackMessage;
     throw ServerException(
       message: message,
@@ -67,12 +81,39 @@ class NetworkErrorHandler {
   static String? extractErrorMessage(DioException e) {
     final data = e.response?.data;
     if (data is Map<String, dynamic>) {
-      final message = data['message'] ?? data['error'];
-      if (message is List<dynamic>) {
-        return message.map((dynamic item) => item.toString()).join('\n');
+      // 1. Si el backend incluye detalles específicos por campo (Zod / DTOs),
+      // extraer los mensajes específicos de cada campo en lugar del mensaje genérico.
+      if (data['details'] is List) {
+        final details = data['details'] as List<dynamic>;
+        final detailMessages = details
+            .map((dynamic item) {
+              if (item is Map<String, dynamic> && item['message'] != null) {
+                return item['message'].toString().trim();
+              }
+              return null;
+            })
+            .whereType<String>()
+            .where((String msg) => msg.isNotEmpty)
+            .toSet()
+            .toList();
+
+        if (detailMessages.isNotEmpty) {
+          return detailMessages.join('\n');
+        }
       }
-      if (message != null) {
-        return message.toString();
+
+      // 2. Si viene lista de mensajes en 'message'
+      final rawMessage = data['message'] ?? data['error'];
+      if (rawMessage is List<dynamic>) {
+        return rawMessage.map((dynamic item) => item.toString()).join('\n');
+      }
+
+      if (rawMessage != null && rawMessage.toString().trim().isNotEmpty) {
+        final msgStr = rawMessage.toString().trim();
+        if (msgStr.contains('uno o más campos son inválidos o faltan en la petición')) {
+          return 'Verifica los campos del formulario. Hay datos incompletos o con formato inválido.';
+        }
+        return msgStr;
       }
     }
     return null;
