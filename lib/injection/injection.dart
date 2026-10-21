@@ -3,6 +3,8 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get_it/get_it.dart';
 import 'package:tandea/core/network/api_client.dart';
 import 'package:tandea/core/network/dio_client.dart';
+import 'package:tandea/core/network/server_health_service.dart';
+import 'package:tandea/core/services/share_service.dart';
 import 'package:tandea/features/auth/data/datasources/auth_remote_data_source.dart';
 import 'package:tandea/features/auth/data/repositories/auth_repository_impl.dart';
 import 'package:tandea/features/auth/domain/repositories/auth_repository.dart';
@@ -15,7 +17,12 @@ import 'package:tandea/features/pagos/presentation/providers/pago_provider.dart'
 import 'package:tandea/features/tandas/data/datasources/tandas_remote_data_source.dart';
 import 'package:tandea/features/tandas/data/repositories/tandas_repository_impl.dart';
 import 'package:tandea/features/tandas/domain/repositories/tandas_repository.dart';
+import 'package:tandea/features/tandas/domain/usecases/crear_tanda_usecase.dart';
+import 'package:tandea/features/tandas/domain/usecases/obtener_tanda_por_codigo_usecase.dart';
+import 'package:tandea/features/tandas/domain/usecases/unirse_tanda_usecase.dart';
+import 'package:tandea/features/tandas/presentation/providers/crear_tanda_provider.dart';
 import 'package:tandea/features/tandas/presentation/providers/tandas_provider.dart';
+import 'package:tandea/features/tandas/presentation/providers/unirse_tanda_provider.dart';
 
 final sl = GetIt.instance;
 
@@ -45,6 +52,15 @@ Future<void> initDependencies() async {
     () => DioClient(apiClient: sl<ApiClient>()),
   );
 
+  // Servicio de Health Check del servidor
+  sl.registerLazySingleton<ServerHealthService>(
+    () => ServerHealthService(dio: sl<Dio>()),
+  );
+
+  // Servicio para compartir con share_plus
+  sl.registerLazySingleton<ShareService>(
+    () => ShareServiceImpl(),
+  );
   // ----------------------------------------------------
   // 3. DataSources
   // ----------------------------------------------------
@@ -83,7 +99,22 @@ Future<void> initDependencies() async {
   );
 
   // ----------------------------------------------------
-  // 5. Providers / State Management
+  // 5. Casos de Uso (Domain UseCases)
+  // ----------------------------------------------------
+  sl.registerLazySingleton<CrearTandaUseCase>(
+    () => CrearTandaUseCase(repository: sl<TandasRepository>()),
+  );
+
+  sl.registerLazySingleton<ObtenerTandaPorCodigoUseCase>(
+    () => ObtenerTandaPorCodigoUseCase(repository: sl<TandasRepository>()),
+  );
+
+  sl.registerLazySingleton<UnirseTandaUseCase>(
+    () => UnirseTandaUseCase(repository: sl<TandasRepository>()),
+  );
+
+  // ----------------------------------------------------
+  // 6. Providers / State Management
   // ----------------------------------------------------
   // AuthSessionProvider para gestión de sesión y roles en GoRouter
   sl.registerLazySingleton<AuthSessionProvider>(
@@ -91,16 +122,31 @@ Future<void> initDependencies() async {
   );
 
   sl.registerFactory<AuthProvider>(
-    () => AuthProvider(authRepository: sl<AuthRepository>()),
+    () => AuthProvider(
+      authRepository: sl<AuthRepository>(),
+      sessionProvider: sl<AuthSessionProvider>(),
+    ),
   );
 
   sl.registerFactory<TandasProvider>(
     () => TandasProvider(tandasRepository: sl<TandasRepository>()),
   );
 
+  sl.registerFactory<CrearTandaProvider>(
+    () => CrearTandaProvider(crearTandaUseCase: sl<CrearTandaUseCase>()),
+  );
+
+  sl.registerFactory<UnirseTandaProvider>(
+    () => UnirseTandaProvider(
+      obtenerTandaPorCodigoUseCase: sl<ObtenerTandaPorCodigoUseCase>(),
+      unirseTandaUseCase: sl<UnirseTandaUseCase>(),
+    ),
+  );
+
   sl.registerFactory<PagoProvider>(
     () => PagoProvider(pagoRepository: sl<PagoRepository>()),
   );
+
 }
 
 /// Alias para conveniencia

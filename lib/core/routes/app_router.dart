@@ -3,18 +3,37 @@ import 'package:go_router/go_router.dart';
 import 'package:tandea/core/routes/route_names.dart';
 import 'package:tandea/features/admin/presentation/screens/admin_dashboard_screen.dart';
 import 'package:tandea/features/auth/presentation/providers/auth_session_provider.dart';
+import 'package:tandea/features/auth/presentation/screens/login_screen.dart';
+import 'package:tandea/features/auth/presentation/screens/register_screen.dart';
+import 'package:tandea/features/auth/presentation/screens/welcome_screen.dart';
+import 'package:tandea/features/tandas/domain/entities/tanda_entity.dart';
+import 'package:tandea/features/tandas/presentation/screens/compartir_codigo_tanda_screen.dart';
+import 'package:tandea/features/tandas/presentation/screens/crear_tanda_screen.dart';
 import 'package:tandea/features/tandas/presentation/screens/mis_tandas_organizador_screen.dart';
 import 'package:tandea/features/tandas/presentation/screens/mis_tandas_participante_screen.dart';
+import 'package:tandea/features/tandas/presentation/screens/seleccionar_numero_screen.dart';
 import 'package:tandea/features/tandas/presentation/screens/tandas_navigation_screen.dart';
+import 'package:tandea/features/tandas/presentation/screens/unirse_tanda_screen.dart';
 import 'package:tandea/injection/injection.dart';
 
 class AppRouter {
   static final GoRouter router = GoRouter(
-    initialLocation: RouteNames.initial,
+    initialLocation: RouteNames.welcome,
     refreshListenable: sl<AuthSessionProvider>(),
     redirect: (context, state) {
       final session = sl<AuthSessionProvider>();
       final loc = state.matchedLocation;
+
+      // Si el usuario ya está autenticado e intenta acceder a login o registro, redirigir
+      if (session.isAuthenticated) {
+        if (loc == RouteNames.welcome ||
+            loc == RouteNames.login ||
+            loc == RouteNames.register) {
+          return session.isAdminGlobal
+              ? RouteNames.admin
+              : RouteNames.tandasParticipante;
+        }
+      }
 
       // Si el rol es Admin Global, el flujo redirige hacia /admin
       if (session.isAdminGlobal) {
@@ -33,6 +52,12 @@ class AppRouter {
       return null;
     },
     routes: [
+      // Ruta de Bienvenida (Ruta inicial de la aplicación)
+      GoRoute(
+        path: RouteNames.welcome,
+        builder: (context, state) => const WelcomeScreen(),
+      ),
+
       // Flujo de Tandas con BottomNavigationBar (Participante / Organizador)
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) {
@@ -60,23 +85,79 @@ class AppRouter {
         ],
       ),
 
+      // Crear Tanda
+      GoRoute(
+        path: RouteNames.crearTanda,
+        builder: (context, state) => const CrearTandaScreen(),
+      ),
+
+      // Unirse a Tanda
+      GoRoute(
+        path: RouteNames.unirseTanda,
+        builder: (context, state) {
+          final code = state.uri.queryParameters['code'];
+          return UnirseTandaScreen(initialCode: code);
+        },
+      ),
+
+      // Seleccionar Número en Tanda por Elección
+      GoRoute(
+        path: RouteNames.seleccionarNumero,
+        builder: (context, state) {
+          final extra = state.extra;
+          if (extra is TandaEntity) {
+            return SeleccionarNumeroScreen(tanda: extra);
+          }
+          return const UnirseTandaScreen();
+        },
+      ),
+
+
+      // Compartir Código de Tanda
+      GoRoute(
+        path: RouteNames.compartirCodigo,
+        builder: (context, state) {
+          final extra = state.extra;
+          if (extra is TandaEntity) {
+            return CompartirCodigoTandaScreen(
+              inviteCode: extra.inviteCode ?? '',
+              tanda: extra,
+            );
+          } else if (extra is Map<String, dynamic>) {
+            return CompartirCodigoTandaScreen(
+              inviteCode: extra['inviteCode'] as String? ?? '',
+              nombreTanda: extra['nombreTanda'] as String?,
+              monto: (extra['monto'] as num?)?.toDouble(),
+              periodo: extra['periodo'] as String?,
+              totalParticipantes: (extra['totalParticipantes'] as num?)?.toInt(),
+            );
+          }
+          final code = state.uri.queryParameters['code'] ?? '';
+          final nombre = state.uri.queryParameters['nombre'];
+          return CompartirCodigoTandaScreen(
+            inviteCode: code,
+            nombreTanda: nombre,
+          );
+        },
+      ),
+
       // Flujo del Administrador Global
       GoRoute(
         path: RouteNames.admin,
         builder: (context, state) => const AdminDashboardScreen(),
       ),
 
-      // Rutas restantes del sistema
+      // Rutas de Autenticación
       GoRoute(
         path: RouteNames.login,
-        builder: (context, state) =>
-            const _PlaceholderScreen(title: 'Iniciar Sesión'),
+        builder: (context, state) => const LoginScreen(),
       ),
       GoRoute(
         path: RouteNames.register,
-        builder: (context, state) =>
-            const _PlaceholderScreen(title: 'Registro'),
+        builder: (context, state) => const RegisterScreen(),
       ),
+
+      // Rutas restantes del sistema
       GoRoute(
         path: RouteNames.pagos,
         builder: (context, state) => const _PlaceholderScreen(title: 'Pagos'),

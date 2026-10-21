@@ -6,17 +6,15 @@ import 'package:tandea/core/constants/app_constants.dart';
 /// Interceptor que inyecta automáticamente el token JWT en el encabezado
 /// `Authorization: Bearer <token>` y gestiona las respuestas de error `401 Unauthorized`.
 class AuthInterceptor extends Interceptor {
-  final FlutterSecureStorage _storage;
-  final String _tokenKey;
-  final void Function()? _onUnauthorized;
+  final FlutterSecureStorage storage;
+  final String tokenKey;
+  final void Function()? onUnauthorized;
 
   AuthInterceptor({
-    required FlutterSecureStorage storage,
-    String tokenKey = AppConstants.tokenKey,
-    void Function()? onUnauthorized,
-  })  : _storage = storage,
-        _tokenKey = tokenKey,
-        _onUnauthorized = onUnauthorized;
+    required this.storage,
+    this.tokenKey = AppConstants.tokenKey,
+    this.onUnauthorized,
+  });
 
   @override
   Future<void> onRequest(
@@ -25,7 +23,7 @@ class AuthInterceptor extends Interceptor {
   ) async {
     // Si la petición no cuenta con cabecera Authorization previa, obtener token seguro
     if (!options.headers.containsKey('Authorization')) {
-      final token = await _storage.read(key: _tokenKey);
+      final token = await storage.read(key: tokenKey);
       if (token != null && token.isNotEmpty) {
         options.headers['Authorization'] = 'Bearer $token';
       }
@@ -41,10 +39,10 @@ class AuthInterceptor extends Interceptor {
     // Manejo de error 401 (Sesión expirada o token no autorizado)
     if (err.response?.statusCode == 401) {
       // 1. Limpiar token de sesión en almacenamiento seguro
-      await _storage.delete(key: _tokenKey);
+      await storage.delete(key: tokenKey);
 
       // 2. Notificar callback de sesión expirada si fue configurado
-      _onUnauthorized?.call();
+      onUnauthorized?.call();
     }
     handler.next(err);
   }
@@ -53,26 +51,23 @@ class AuthInterceptor extends Interceptor {
 /// Cliente HTTP centralizado basado en Dio para la comunicación con la API REST.
 class ApiClient {
   final Dio _dio;
-  final FlutterSecureStorage _storage;
-  final String _tokenKey;
-  final void Function()? _onUnauthorized;
+  final FlutterSecureStorage storage;
+  final String tokenKey;
+  final void Function()? onUnauthorized;
 
   ApiClient({
-    required FlutterSecureStorage storage,
+    required this.storage,
     Dio? dio,
-    String tokenKey = AppConstants.tokenKey,
-    void Function()? onUnauthorized,
+    this.tokenKey = AppConstants.tokenKey,
+    this.onUnauthorized,
     String? baseUrl,
-  })  : _storage = storage,
-        _tokenKey = tokenKey,
-        _onUnauthorized = onUnauthorized,
-        _dio = dio ??
+  })  : _dio = dio ??
             Dio(
               BaseOptions(
-                baseUrl: baseUrl ?? ApiConstants.baseUrl,
+                baseUrl: baseUrl ?? ApiConstants.apiBaseUrl,
                 connectTimeout: AppConstants.connectionTimeout,
                 receiveTimeout: AppConstants.receiveTimeout,
-                headers: <String, dynamic>{
+                headers: const <String, dynamic>{
                   'Content-Type': 'application/json',
                   'Accept': 'application/json',
                 },
@@ -84,9 +79,9 @@ class ApiClient {
   void _initInterceptors() {
     _dio.interceptors.addAll([
       AuthInterceptor(
-        storage: _storage,
-        tokenKey: _tokenKey,
-        onUnauthorized: _onUnauthorized,
+        storage: storage,
+        tokenKey: tokenKey,
+        onUnauthorized: onUnauthorized,
       ),
       LogInterceptor(
         requestBody: true,
@@ -99,27 +94,21 @@ class ApiClient {
   /// Instancia de Dio subyacente
   Dio get dio => _dio;
 
-  /// Almacenamiento seguro asociado
-  FlutterSecureStorage get storage => _storage;
-
-  /// Clave del token de autenticación
-  String get tokenKey => _tokenKey;
-
   // ===================== GESTIÓN DE TOKEN =====================
 
   /// Guarda el token JWT en el almacenamiento seguro
   Future<void> saveToken(String token) async {
-    await _storage.write(key: _tokenKey, value: token);
+    await storage.write(key: tokenKey, value: token);
   }
 
   /// Obtiene el token JWT del almacenamiento seguro
   Future<String?> getToken() async {
-    return _storage.read(key: _tokenKey);
+    return storage.read(key: tokenKey);
   }
 
   /// Elimina el token JWT del almacenamiento seguro
   Future<void> deleteToken() async {
-    await _storage.delete(key: _tokenKey);
+    await storage.delete(key: tokenKey);
   }
 
   /// Verifica si existe un token almacenado

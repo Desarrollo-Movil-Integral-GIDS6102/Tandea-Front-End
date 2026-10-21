@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tandea/core/routes/app_router.dart';
+import 'package:tandea/core/routes/route_names.dart';
 import 'package:tandea/features/auth/domain/entities/user_role.dart';
 import 'package:tandea/features/auth/presentation/providers/auth_session_provider.dart';
 import 'package:tandea/injection/injection.dart';
@@ -30,6 +31,7 @@ void main() {
         routerConfig: AppRouter.router,
       ),
     );
+    AppRouter.router.go(RouteNames.tandasParticipante);
     await tester.pumpAndSettle();
 
     // Debe mostrar la pestaña por defecto: Participante
@@ -63,6 +65,7 @@ void main() {
         routerConfig: AppRouter.router,
       ),
     );
+    AppRouter.router.go(RouteNames.admin);
     await tester.pumpAndSettle();
 
     // Debe mostrar el panel de admin y NO el BottomNavigationBar de tandas de usuario

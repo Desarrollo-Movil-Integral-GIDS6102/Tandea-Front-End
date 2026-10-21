@@ -1,17 +1,33 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:tandea/core/constants/app_constants.dart';
+import 'package:tandea/core/network/server_health_service.dart';
 import 'package:tandea/core/routes/app_router.dart';
 import 'package:tandea/core/theme/app_theme.dart';
 import 'package:tandea/features/auth/presentation/providers/auth_provider.dart';
 import 'package:tandea/features/auth/presentation/providers/auth_session_provider.dart';
 import 'package:tandea/features/pagos/presentation/providers/pago_provider.dart';
+import 'package:tandea/features/tandas/presentation/providers/crear_tanda_provider.dart';
 import 'package:tandea/features/tandas/presentation/providers/tandas_provider.dart';
+import 'package:tandea/features/tandas/presentation/providers/unirse_tanda_provider.dart';
 import 'package:tandea/injection/injection.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initDependencies();
+
+  // Verificación de conectividad en modo debug (kDebugMode)
+  if (kDebugMode) {
+    final healthService = sl<ServerHealthService>();
+    final healthResult = await healthService.checkHealth();
+    healthResult.when(
+      success: (_) => debugPrint('Backend OK'),
+      failure: (failure) =>
+          debugPrint('Error al conectar con backend: ${failure.message}'),
+    );
+  }
+
   runApp(const MainApp());
 }
 
@@ -32,9 +48,16 @@ class MainApp extends StatelessWidget {
           create: (_) => sl<TandasProvider>(),
         ),
         ChangeNotifierProvider(
+          create: (_) => sl<CrearTandaProvider>(),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => sl<UnirseTandaProvider>(),
+        ),
+        ChangeNotifierProvider(
           create: (_) => sl<PagoProvider>(),
         ),
       ],
+
       child: MaterialApp.router(
         title: AppConstants.appName,
         debugShowCheckedModeBanner: false,
