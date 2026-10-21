@@ -7,6 +7,7 @@ import 'package:tandea/core/constants/app_constants.dart';
 import 'package:tandea/core/routes/route_names.dart';
 import 'package:tandea/features/auth/domain/entities/user_role.dart';
 import 'package:tandea/features/auth/presentation/providers/auth_provider.dart';
+import 'package:tandea/features/auth/presentation/utils/register_validators.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -27,6 +28,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
+  AutovalidateMode _autovalidateMode = AutovalidateMode.disabled;
 
   @override
   void initState() {
@@ -61,7 +63,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
     // Cerrar teclado
     FocusScope.of(context).unfocus();
 
+    // Evitar solicitudes duplicadas mientras hay un registro en curso
+    if (context.read<AuthProvider>().isLoading) return;
+
     if (!(_formKey.currentState?.validate() ?? false)) {
+      // Tras el primer intento, revalidar mientras el usuario corrige
+      if (_autovalidateMode != AutovalidateMode.onUserInteraction) {
+        setState(() => _autovalidateMode = AutovalidateMode.onUserInteraction);
+      }
       return;
     }
 
@@ -168,7 +177,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 28.0),
                       child: Form(
                         key: _formKey,
-                        autovalidateMode: AutovalidateMode.disabled,
+                        autovalidateMode: _autovalidateMode,
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
@@ -189,15 +198,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 hintText: 'Ej. Juan',
                                 prefixIcon: Icon(Icons.person_outline),
                               ),
-                              validator: (value) {
-                                if (value == null || value.trim().isEmpty) {
-                                  return 'El nombre es obligatorio';
-                                }
-                                if (value.trim().length < 2) {
-                                  return 'El nombre debe tener al menos 2 caracteres';
-                                }
-                                return null;
-                              },
+                              validator: RegisterValidators.nombre,
                             ),
                             const SizedBox(height: 16),
 
@@ -226,18 +227,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 hintText: 'ejemplo@tandea.app',
                                 prefixIcon: Icon(Icons.email_outlined),
                               ),
-                              validator: (value) {
-                                if (value == null || value.trim().isEmpty) {
-                                  return 'El correo electrónico es obligatorio';
-                                }
-                                final emailRegex = RegExp(
-                                  r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
-                                );
-                                if (!emailRegex.hasMatch(value.trim())) {
-                                  return 'Ingresa un formato de correo válido';
-                                }
-                                return null;
-                              },
+                              validator: RegisterValidators.email,
                             ),
                             const SizedBox(height: 16),
 
@@ -255,15 +245,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 hintText: 'Mayor de 18 años',
                                 prefixIcon: Icon(Icons.cake_outlined),
                               ),
-                              validator: (value) {
-                                if (value != null && value.trim().isNotEmpty) {
-                                  final edad = int.tryParse(value.trim());
-                                  if (edad == null || edad < 18) {
-                                    return 'Debes tener al menos 18 años para participar';
-                                  }
-                                }
-                                return null;
-                              },
+                              validator: RegisterValidators.edad,
                             ),
                             const SizedBox(height: 16),
 
@@ -273,9 +255,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               obscureText: _obscurePassword,
                               textInputAction: TextInputAction.next,
                               enabled: !isLoading,
+                              autovalidateMode: AutovalidateMode.onUserInteraction,
                               decoration: InputDecoration(
                                 labelText: 'Contraseña *',
-                                hintText: 'Mínimo 8 caracteres',
+                                hintText: 'Mínimo ${RegisterValidators.minPasswordLength} caracteres',
                                 prefixIcon: const Icon(Icons.lock_outline),
                                 suffixIcon: IconButton(
                                   icon: Icon(
@@ -293,15 +276,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   },
                                 ),
                               ),
-                              validator: (value) {
-                                if (value == null || value.isEmpty) {
-                                  return 'La contraseña es obligatoria';
-                                }
-                                if (value.length < 8) {
-                                  return 'La contraseña debe tener al menos 8 caracteres';
-                                }
-                                return null;
-                              },
+                              validator: RegisterValidators.password,
                             ),
                             const SizedBox(height: 16),
 
@@ -311,6 +286,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               obscureText: _obscureConfirmPassword,
                               textInputAction: TextInputAction.done,
                               enabled: !isLoading,
+                              autovalidateMode: AutovalidateMode.onUserInteraction,
                               onFieldSubmitted: (_) => _handleRegister(),
                               decoration: InputDecoration(
                                 labelText: 'Confirmar contraseña *',
@@ -333,15 +309,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   },
                                 ),
                               ),
-                              validator: (value) {
-                                if (value == null || value.isEmpty) {
-                                  return 'Confirma tu contraseña';
-                                }
-                                if (value != _passwordController.text) {
-                                  return 'Las contraseñas no coinciden';
-                                }
-                                return null;
-                              },
+                              validator: (value) => RegisterValidators.confirmPassword(value, _passwordController.text),
                             ),
                             const SizedBox(height: 28),
 
