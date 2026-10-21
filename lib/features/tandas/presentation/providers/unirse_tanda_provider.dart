@@ -6,7 +6,7 @@ import 'package:tandea/features/tandas/domain/usecases/unirse_tanda_usecase.dart
 
 /// Proveedor de estado para el flujo de Unirse a una Tanda.
 ///
-/// Gestiona la validación local de código mediante regex de 8 caracteres,
+/// Gestiona la validación local de código mediante regex de 8 a 10 caracteres,
 /// la consulta previa de la tanda y el envío de unión con o sin turno seleccionado,
 /// exponiendo de manera transparente los mensajes de error retornados por el backend.
 class UnirseTandaProvider extends ChangeNotifier {
@@ -18,8 +18,14 @@ class UnirseTandaProvider extends ChangeNotifier {
     required this.unirseTandaUseCase,
   });
 
-  /// Expresión regular que exige exactamente 8 caracteres alfanuméricos (incluye guión opcional).
-  static final RegExp regexCodigo8 = RegExp(r'^[A-Z0-9\-]{8}$');
+  /// Longitud mínima permitida para el código de invitación.
+  static const int codigoMinLength = 8;
+
+  /// Longitud máxima permitida para el código de invitación.
+  static const int codigoMaxLength = 10;
+
+  /// Expresión regular que exige entre 8 y 10 caracteres alfanuméricos (incluye guión opcional).
+  static final RegExp regexCodigo = RegExp(r'^[A-Z0-9\-]{8,10}$');
 
   // --- Estado interno ---
   String _inviteCode = '';
@@ -65,18 +71,21 @@ class UnirseTandaProvider extends ChangeNotifier {
   }
 
   /// Valida localmente el código antes de emitir cualquier petición HTTP al API.
-  /// Retorna `true` si cumple con la longitud y formato de 8 caracteres.
+  /// Retorna `true` si cumple con la longitud y formato de 8 a 10 caracteres.
   bool validarCodigoLocal() {
     final codigo = _inviteCode.trim();
 
     if (codigo.isEmpty) {
-      _validationError = 'Ingresa el código de 8 caracteres de la tanda.';
+      _validationError = 'Ingresa el código de invitación de la tanda.';
       notifyListeners();
       return false;
     }
 
-    if (codigo.length != 8 || !regexCodigo8.hasMatch(codigo)) {
-      _validationError = 'El código debe tener exactamente 8 caracteres (ej. TND-7K9A o ABC12345).';
+    if (codigo.length < codigoMinLength ||
+        codigo.length > codigoMaxLength ||
+        !regexCodigo.hasMatch(codigo)) {
+      _validationError =
+          'El código debe tener entre $codigoMinLength y $codigoMaxLength caracteres (ej. TND-7K9A2B).';
       notifyListeners();
       return false;
     }
@@ -97,7 +106,7 @@ class UnirseTandaProvider extends ChangeNotifier {
     _foundTanda = null;
     notifyListeners();
 
-    final result = await obtenerTandaPorCodigoUseCase(_inviteCode);
+    final result = await obtenerTandaPorCodigoUseCase(_inviteCode.trim());
 
     return result.when(
       success: (tanda) {
@@ -126,7 +135,7 @@ class UnirseTandaProvider extends ChangeNotifier {
     notifyListeners();
 
     final params = JoinTandaParams(
-      inviteCode: _inviteCode,
+      inviteCode: _inviteCode.trim(),
       selectedNumber: numero,
     );
 
