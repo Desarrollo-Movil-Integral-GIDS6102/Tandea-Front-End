@@ -3,16 +3,15 @@ import 'package:tandea/core/constants/api_constants.dart';
 import 'package:tandea/core/errors/exceptions.dart';
 import 'package:tandea/core/network/api_client.dart';
 import 'package:tandea/core/network/network_error_handler.dart';
+import 'package:tandea/core/utils/formato_moneda.dart';
 import 'package:tandea/features/pagos/data/models/pago_model.dart';
+import 'package:tandea/features/pagos/domain/repositories/pago_repository.dart';
 
 abstract class PagoRemoteDataSource {
   Future<List<PagoModel>> getPagosByTanda(String tandaId);
 
-  Future<PagoModel> registrarPago({
-    required String tandaId,
-    required double monto,
-    String? comprobanteUrl,
-  });
+  /// `POST /api/v1/pagos` como `multipart/form-data`.
+  Future<PagoModel> registrarPago(RegistrarPagoParams params);
 }
 
 class PagoRemoteDataSourceImpl implements PagoRemoteDataSource {
@@ -45,20 +44,33 @@ class PagoRemoteDataSourceImpl implements PagoRemoteDataSource {
     }
   }
 
+  /// Arma el `FormData` que espera el backend. Los montos viajan como texto
+  /// con 2 decimales exactos (`600.00`) para no arrastrar errores de redondeo.
+  static FormData construirFormData(RegistrarPagoParams params) {
+    final comprobante = params.comprobante;
+    final transferAmount = params.transferAmount;
+    final cashAmount = params.cashAmount;
+
+    return FormData.fromMap(<String, dynamic>{
+      'idNumber': params.idNumber.toString(),
+      'metodoPago': params.metodoPago.valor,
+      if (transferAmount != null) 'transferAmount': formatearMontoApi(transferAmount),
+      if (cashAmount != null) 'cashAmount': formatearMontoApi(cashAmount),
+      if (comprobante != null)
+        'file': MultipartFile.fromBytes(
+          comprobante.bytes,
+          filename: comprobante.nombre,
+          contentType: DioMediaType.parse(comprobante.mimeType),
+        ),
+    });
+  }
+
   @override
-  Future<PagoModel> registrarPago({
-    required String tandaId,
-    required double monto,
-    String? comprobanteUrl,
-  }) async {
+  Future<PagoModel> registrarPago(RegistrarPagoParams params) async {
     try {
       final response = await apiClient.post<dynamic>(
         ApiConstants.pagosEndpoint,
-        data: <String, dynamic>{
-          'tandaId': tandaId,
-          'monto': monto,
-          'comprobanteUrl': ?comprobanteUrl,
-        },
+        data: construirFormData(params),
       );
       final rawData = response.data;
       if (rawData is Map<String, dynamic>) {
@@ -69,6 +81,19 @@ class PagoRemoteDataSourceImpl implements PagoRemoteDataSource {
       }
       throw const ServerException(message: 'Formato de respuesta inválido al registrar pago');
     } on DioException catch (e) {
+      // Errores de negocio (400, 403, 409, 413, 422): solo se conserva el mensaje
+      // del backend (puede ir vacío) para que la presentación decida qué mostrar.
+      final statusCode = e.response?.statusCode;
+      if (statusCode != null &&
+          statusCode >= 400 &&
+          statusCode < 500 &&
+          statusCode != 401 &&
+          statusCode != 404) {
+        throw ServerException(
+          message: NetworkErrorHandler.extractErrorMessage(e) ?? '',
+          statusCode: statusCode,
+        );
+      }
       NetworkErrorHandler.handleDioException(e, fallbackMessage: 'Error al registrar pago');
     }
   }

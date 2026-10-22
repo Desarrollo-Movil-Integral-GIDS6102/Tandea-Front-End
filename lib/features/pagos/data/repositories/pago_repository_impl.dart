@@ -28,17 +28,9 @@ class PagoRepositoryImpl implements PagoRepository {
   }
 
   @override
-  Future<Result<PagoEntity>> registrarPago({
-    required String tandaId,
-    required double monto,
-    String? comprobanteUrl,
-  }) async {
+  Future<Result<PagoEntity>> registrarPago(RegistrarPagoParams params) async {
     try {
-      final pago = await remoteDataSource.registrarPago(
-        tandaId: tandaId,
-        monto: monto,
-        comprobanteUrl: comprobanteUrl,
-      );
+      final pago = await remoteDataSource.registrarPago(params);
       return Success(pago);
     } on UnauthorizedException catch (e) {
       return Error(UnauthorizedFailure(e.message));
