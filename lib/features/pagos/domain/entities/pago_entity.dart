@@ -1,25 +1,56 @@
 import 'package:equatable/equatable.dart';
+import 'package:tandea/features/pagos/domain/entities/metodo_pago.dart';
 
-/// Entidad pura del dominio que modela un pago en una tanda.
+/// Entidad pura del dominio que modela el pago de un turno (`number`) en una tanda.
 class PagoEntity extends Equatable {
-  final String id;
-  final String tandaId;
-  final String usuarioId;
-  final double monto;
-  final DateTime fecha;
-  final String estado;
-  final String? comprobanteUrl;
+  final int idPayment;
+  final int idNumber;
+  final MetodoPago metodoPago;
+  final double transferAmount;
+  final double cashAmount;
+  final double totalAmount;
+
+  /// `PENDIENTE`, `CONFIRMADO` o `RECHAZADO`.
+  final String status;
+  final bool confirmedByParticipant;
+  final bool confirmedByAdmin;
+  final bool ocrVerified;
+  final double? ocrDetectedAmount;
+  final String? evidenceUrl;
+  final DateTime? createdAt;
 
   const PagoEntity({
-    required this.id,
-    required this.tandaId,
-    required this.usuarioId,
-    required this.monto,
-    required this.fecha,
-    required this.estado,
-    this.comprobanteUrl,
+    required this.idPayment,
+    required this.idNumber,
+    required this.metodoPago,
+    required this.transferAmount,
+    required this.cashAmount,
+    required this.totalAmount,
+    required this.status,
+    this.confirmedByParticipant = false,
+    this.confirmedByAdmin = false,
+    this.ocrVerified = false,
+    this.ocrDetectedAmount,
+    this.evidenceUrl,
+    this.createdAt,
   });
 
+  bool get estaPendiente => status.toUpperCase() == 'PENDIENTE';
+
   @override
-  List<Object?> get props => [id, tandaId, usuarioId, monto, fecha, estado, comprobanteUrl];
+  List<Object?> get props => [
+        idPayment,
+        idNumber,
+        metodoPago,
+        transferAmount,
+        cashAmount,
+        totalAmount,
+        status,
+        confirmedByParticipant,
+        confirmedByAdmin,
+        ocrVerified,
+        ocrDetectedAmount,
+        evidenceUrl,
+        createdAt,
+      ];
 }
