@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tandea/core/utils/result.dart';
+import 'package:tandea/core/widgets/primary_button.dart';
 import 'package:tandea/features/tandas/domain/entities/tanda_entity.dart';
 import 'package:tandea/features/tandas/domain/entities/unirse_tanda_result.dart';
 import 'package:tandea/features/tandas/domain/repositories/tandas_repository.dart';
@@ -191,6 +192,33 @@ void main() {
       expect(mockRepo.lastCreatedPayload!['hasDeadNumber'], isTrue);
       expect(mockRepo.lastCreatedPayload!['idTandaType'], equals(2)); // Sorteo
     });
+    test('crearTanda rechaza participantes menores a 3 con mensaje exacto (QA-03)', () async {
+      provider.setNombre('Tanda Familia');
+      provider.setMontoCuota(1000.0);
+
+      // Caso 0 participantes
+      provider.setNumParticipantes(0);
+      var ok = await provider.crearTanda();
+      expect(ok, isFalse);
+      expect(provider.errorMessage, equals('Una tanda requiere al menos 3 participantes'));
+      expect(mockRepo.lastCreatedPayload, isNull);
+
+      // Caso 2 participantes
+      provider.setNumParticipantes(2);
+      ok = await provider.crearTanda();
+      expect(ok, isFalse);
+      expect(provider.errorMessage, equals('Una tanda requiere al menos 3 participantes'));
+      expect(mockRepo.lastCreatedPayload, isNull);
+
+      // Caso 3 participantes (válido)
+      provider.setNumParticipantes(3);
+      ok = await provider.crearTanda();
+      expect(ok, isTrue);
+      expect(provider.errorMessage, isNull);
+      expect(mockRepo.lastCreatedPayload, isNotNull);
+      expect(mockRepo.lastCreatedPayload!['numParticipants'], equals(3));
+    });
+
   });
 
   group('CrearTandaScreen - Widget Tests', () {
@@ -320,5 +348,73 @@ void main() {
 
       expect(provider.graceDays, equals(1));
     });
+    testWidgets('QA-03: muestra error exacto con menos de 3 participantes, lo limpia con 3 y bloquea envío inválido', (tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 2.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: CrearTandaScreen(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      const errorMsg = 'Una tanda requiere al menos 3 participantes';
+      final participantesField = find.widgetWithText(TextFormField, 'Participantes *');
+
+      // 1. Ingresar 2 participantes -> Muestra el mensaje exacto
+      await tester.enterText(participantesField, '2');
+      await tester.pumpAndSettle();
+      expect(find.text(errorMsg), findsOneWidget);
+
+      // 2. Ingresar 0 participantes -> Muestra el mensaje exacto
+      await tester.enterText(participantesField, '0');
+      await tester.pumpAndSettle();
+      expect(find.text(errorMsg), findsOneWidget);
+
+      // 3. Dejar el campo vacío -> Muestra el mensaje exacto
+      await tester.enterText(participantesField, '');
+      await tester.pumpAndSettle();
+      expect(find.text(errorMsg), findsOneWidget);
+
+      // 4. Intentar enviar con campo inválido (2 participantes) -> bloquea creación
+      await tester.enterText(participantesField, '2');
+      await tester.pumpAndSettle();
+      expect(find.text(errorMsg), findsOneWidget);
+
+      final submitBtn = find.widgetWithText(PrimaryButton, 'Crear tanda');
+      await tester.ensureVisible(submitBtn);
+      await tester.tap(submitBtn);
+      await tester.pumpAndSettle();
+
+      // No se envía al backend ni se abre diálogo de éxito
+      expect(mockRepo.lastCreatedPayload, isNull);
+      expect(find.text('¡Tanda creada exitosamente!'), findsNothing);
+      expect(find.text(errorMsg), findsOneWidget);
+
+      // 5. Corregir a 3 participantes -> Se limpia el mensaje
+      await tester.ensureVisible(participantesField);
+      await tester.enterText(participantesField, '3');
+      await tester.pumpAndSettle();
+      expect(find.text(errorMsg), findsNothing);
+
+      // 6. Completar nombre y enviar con 3 participantes -> Permite continuar con el flujo normal
+      final nombreField = find.widgetWithText(TextFormField, 'Nombre de la tanda *');
+      await tester.enterText(nombreField, 'Tanda de Prueba 3P');
+      await tester.pumpAndSettle();
+
+      await tester.ensureVisible(submitBtn);
+      await tester.tap(submitBtn);
+      await tester.pumpAndSettle();
+
+      expect(mockRepo.lastCreatedPayload, isNotNull);
+      expect(mockRepo.lastCreatedPayload!['numParticipants'], equals(3));
+      expect(find.text('¡Tanda creada exitosamente!'), findsOneWidget);
+    });
+
   });
 }
