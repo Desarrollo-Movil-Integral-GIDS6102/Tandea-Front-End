@@ -7,6 +7,7 @@ import 'package:tandea/core/routes/route_names.dart';
 import 'package:tandea/core/widgets/primary_button.dart';
 import 'package:tandea/features/tandas/domain/services/calcular_plan.dart';
 import 'package:tandea/features/tandas/presentation/providers/crear_tanda_provider.dart';
+import 'package:tandea/features/tandas/presentation/utils/crear_tanda_validators.dart';
 import 'package:tandea/features/tandas/presentation/widgets/dias_gracia_stepper.dart';
 import 'package:tandea/features/tandas/presentation/widgets/resumen_estimado_card.dart';
 import 'package:tandea/injection/injection.dart';
@@ -33,6 +34,7 @@ class _CrearTandaView extends StatefulWidget {
 
 class _CrearTandaViewState extends State<_CrearTandaView> {
   final _formKey = GlobalKey<FormState>();
+  AutovalidateMode _autovalidateMode = AutovalidateMode.disabled;
 
   late final TextEditingController _nameController;
   late final TextEditingController _descriptionController;
@@ -97,7 +99,14 @@ class _CrearTandaViewState extends State<_CrearTandaView> {
   Future<void> _onSubmit(BuildContext context) async {
     final provider = context.read<CrearTandaProvider>();
 
-    if (!_formKey.currentState!.validate()) {
+    if (!(_formKey.currentState?.validate() ?? false)) {
+      if (_autovalidateMode != AutovalidateMode.onUserInteraction) {
+        setState(() => _autovalidateMode = AutovalidateMode.onUserInteraction);
+      }
+      return;
+    }
+
+    if (provider.numParticipantes < CrearTandaValidators.minParticipantes) {
       return;
     }
 
@@ -226,6 +235,7 @@ class _CrearTandaViewState extends State<_CrearTandaView> {
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
           child: Form(
             key: _formKey,
+            autovalidateMode: _autovalidateMode,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -426,6 +436,7 @@ class _CrearTandaViewState extends State<_CrearTandaView> {
                       child: TextFormField(
                         controller: _participantesController,
                         keyboardType: TextInputType.number,
+                        autovalidateMode: AutovalidateMode.onUserInteraction,
                         inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                         decoration: const InputDecoration(
                           labelText: 'Participantes *',
@@ -436,16 +447,7 @@ class _CrearTandaViewState extends State<_CrearTandaView> {
                           final n = int.tryParse(val);
                           provider.setNumParticipantes(n ?? 0);
                         },
-                        validator: (val) {
-                          final n = int.tryParse(val ?? '');
-                          if (n == null || n < 2) {
-                            return 'Mínimo 2';
-                          }
-                          if (n > 50) {
-                            return 'Máx. 50';
-                          }
-                          return null;
-                        },
+                        validator: CrearTandaValidators.participantes,
                       ),
                     ),
                     const SizedBox(width: 14),
