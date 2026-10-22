@@ -12,6 +12,7 @@ Este directorio centraliza la documentación técnica de la arquitectura de la a
 | [**`modulo-auth.md`**](./modulo-auth.md) | Documentación técnica del módulo de Autenticación (Bienvenida, Login, Registro, validaciones y sesión). |
 | [**`modulo-tandas.md`**](./modulo-tandas.md) | Documentación de Gestión de Tandas (Crear tanda, Unirse con código, Seleccionar número, Compartir código y Mis tandas). |
 | [**`modulo-pagos.md`**](./modulo-pagos.md) | Documentación del flujo de Pagos (Registrar pago con selector de método, validaciones híbridas, entidades y repositorio). |
+| [**`pagos.md`**](./pagos.md) | Pantalla Registrar pago (AP-03): flujo de datos, campos enviados y mensajes de error. |
 | [**`modulo-admin.md`**](./modulo-admin.md) | Documentación del Dashboard y funciones administrativas globales. |
 | [**`plan-implementacion-pago-ap03.md`**](./plan-implementacion-pago-ap03.md) | Guía técnica paso a paso para implementar la tarea `SP-2-[FE-PAGO] Pantalla Registrar pago (AP-03)` y `SP-2-[BE-PAGO] POST /api/v1/pagos`. |
 

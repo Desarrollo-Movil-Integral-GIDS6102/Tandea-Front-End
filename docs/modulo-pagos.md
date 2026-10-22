@@ -26,38 +26,23 @@ El módulo de Pagos es el núcleo transaccional de Tandea. Permite a los partici
   * **`paymentTable`**: Almacena `id_payment`, `id_number`, `transfer_amount`, `cash_amount`, `total_amount`, `confirmed_by_participant`, `confirmed_by_admin`, `status`.
   * **`evidenceTable`**: Almacena `id_evidence`, `id_payment`, `id_payout`, `file_url`.
 * **Endpoint Principal**:
-  * **`POST /api/v1/pagos`**:
-    * Body JSON:
-      ```json
-      {
-        "idNumber": 12,
-        "metodoPago": "hibrido",
-        "transferAmount": 500.00,
-        "cashAmount": 500.00,
-        "fileUrl": "https://res.cloudinary.com/.../comprobante.jpg"
-      }
-      ```
+  * **`POST /api/v1/pagos`** (`multipart/form-data`, con JWT):
+    * Campos: `idNumber`, `metodoPago` (`efectivo | transferencia | hibrido`), `transferAmount`, `cashAmount` y `file` (comprobante JPG, PNG o PDF de hasta 10 MB; obligatorio en transferencia e híbrido).
     * Respuestas:
-      * `201 Created`: Pago registrado con éxito.
-      * `400 Bad Request`: Si la suma de montos no coincide con la cuota de la tanda o falta comprobante para transferencia.
-      * `404 Not Found`: Si el número o turno no existe.
-      * `409 Conflict`: Si ya existe un pago confirmado para esa ronda o el número no corresponde al usuario autenticado.
+      * `201 Created`: Pago registrado como `PENDIENTE`.
+      * `400 Bad Request`: Archivo de tipo no permitido o contenido inválido.
+      * `403 Forbidden`: El número no pertenece al usuario autenticado.
+      * `404 Not Found`: El número o la tanda no existen.
+      * `409 Conflict`: Ya existe un pago pendiente o confirmado para ese número.
+      * `413 Payload Too Large`: El comprobante supera 10 MB.
+      * `422 Unprocessable Entity`: Montos inválidos, suma distinta a la cuota o falta el comprobante.
 
 ---
 
 ## 📱 Estructura en el Frontend (`Tandea-Front-End`)
 
-* **Capa Domain**:
-  * [`PagoEntity`](../Tandea-Front-End/lib/features/pagos/domain/entities/pago_entity.dart): Entidad inmutable con montos, método, estado y comprobante.
-  * [`PagoRepository`](../Tandea-Front-End/lib/features/pagos/domain/repositories/pago_repository.dart): Contrato del repositorio para `registrarPago(PagoEntity pago)`.
-* **Capa Data**:
-  * `PagoRemoteDataSource`: Implementación HTTP con `ApiClient` (Dio).
-  * `PagoRepositoryImpl`: Mapea excepciones de red a `Failures` de dominio.
-* **Capa Presentation**:
-  * `PagoProvider`: Administra el estado de carga (`isLoading`), errores y éxito del registro de pagos.
-  * **`RegistrarPagoScreen`** (`lib/features/pagos/presentation/screens/registrar_pago_screen.dart`):
-    * Selector interactivo de método (`SegmentedButton` o pestañas: Efectivo / Transferencia / Híbrido).
-    * Desglose dinámico de campos según el método seleccionado.
-    * Validación en tiempo real de la suma híbrida.
-    * Área de subida/captura de comprobante.
-    * Botón de acción reutilizable `PrimaryButton` (deshabilitado hasta cumplir la cuota exacta).
+La pantalla, el flujo de datos, los campos enviados y los mensajes de error se describen en [`pagos.md`](./pagos.md).
+
+* **Capa Domain**: `PagoEntity`, `MetodoPago`, `ComprobanteArchivo` y `PagoRepository.registrarPago(RegistrarPagoParams)`.
+* **Capa Data**: `PagoRemoteDataSource` (Dio + `FormData`) y `PagoRepositoryImpl` (excepciones → `Failure`).
+* **Capa Presentation**: `PagoProvider` (`EstadoCarga`, mensajes de error) y `RegistrarPagoScreen` con sus widgets en `presentation/widgets/`.
