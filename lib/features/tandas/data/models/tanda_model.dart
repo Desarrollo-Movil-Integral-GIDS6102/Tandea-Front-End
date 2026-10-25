@@ -16,6 +16,8 @@ class TandaModel extends TandaEntity {
     super.idTandaType,
     super.indicadorPago,
     super.rolUsuario,
+    super.idNumberUsuario,
+    super.numeroTurnoUsuario,
   });
 
   static IndicadorPago _parseIndicadorPago(dynamic raw, String id, String status) {
@@ -44,6 +46,7 @@ class TandaModel extends TandaEntity {
       id,
       estado,
     );
+    final miNumero = json['miNumero'];
 
     return TandaModel(
       id: id,
@@ -59,6 +62,8 @@ class TandaModel extends TandaEntity {
       idTandaType: (json['idTandaType'] as num?)?.toInt(),
       indicadorPago: indicador,
       rolUsuario: json['rolUsuario']?.toString(),
+      idNumberUsuario: miNumero is Map ? (miNumero['idNumber'] as num?)?.toInt() : null,
+      numeroTurnoUsuario: miNumero is Map ? (miNumero['numberValue'] as num?)?.toInt() : null,
     );
   }
 

@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:tandea/core/constants/app_colors.dart';
 import 'package:tandea/core/routes/route_names.dart';
+import 'package:tandea/features/pagos/presentation/screens/registrar_pago_screen.dart';
 import 'package:tandea/features/tandas/domain/entities/tanda_entity.dart';
 import 'package:tandea/features/tandas/presentation/providers/tandas_provider.dart';
 
@@ -191,6 +192,34 @@ class TandaCardItem extends StatelessWidget {
                       style: OutlinedButton.styleFrom(
                         foregroundColor: AppColors.primary,
                         side: const BorderSide(color: AppColors.primary),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                    )
+                  else if (tanda.idNumberUsuario != null)
+                    // Acceso mínimo a "Registrar pago" mientras llega el detalle de la tanda (SP-3)
+                    FilledButton.icon(
+                      key: Key('btn_pagar_${tanda.id}'),
+                      onPressed: () {
+                        context.push(
+                          RouteNames.registrarPago,
+                          extra: RegistrarPagoArgs(
+                            nombreTanda: tanda.nombre,
+                            idNumber: tanda.idNumberUsuario!,
+                            numeroTurno: tanda.numeroTurnoUsuario,
+                            vuelta: 1,
+                            cuota: tanda.monto,
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.payments_outlined, size: 16),
+                      label: const Text('Pagar', style: TextStyle(fontSize: 12.5)),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: AppColors.primary,
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                         minimumSize: Size.zero,
                         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
