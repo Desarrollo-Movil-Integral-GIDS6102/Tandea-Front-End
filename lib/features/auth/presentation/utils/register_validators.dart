@@ -9,8 +9,8 @@
 class RegisterValidators {
   RegisterValidators._();
 
-  /// Longitud mínima de contraseña requerida.
-  static const int minPasswordLength = 12;
+  /// Longitud mínima de contraseña requerida (igual que PASSWORD_MIN_LENGTH del backend).
+  static const int minPasswordLength = 8;
 
   /// Longitud mínima del nombre.
   static const int minNameLength = 2;
@@ -68,6 +68,13 @@ class RegisterValidators {
     return null;
   }
 
+  /// El backend exige el apellido (`lastName`).
+  static String? apellido(String? value) {
+    final v = value?.trim() ?? '';
+    if (v.isEmpty) return 'El apellido es obligatorio';
+    return null;
+  }
+
   static String? email(String? value) {
     final v = value?.trim() ?? '';
     if (v.isEmpty) return 'El correo electrónico es obligatorio';
@@ -96,7 +103,7 @@ class RegisterValidators {
   /// - Rechazar secuencias alfabéticas obvias (ej. 'abcdefghi') o secuencias de teclado.
   /// - Rechazar patrones repetitivos (ej. 'aaaaaaaaaaaa').
   /// - Rechazar contraseñas formadas exclusivamente por números.
-  /// - Mínimo de [minPasswordLength] caracteres (12).
+  /// - Mínimo de [minPasswordLength] caracteres (8).
   ///
   /// Permite frases de contraseña largas que sean difíciles de adivinar
   /// (ej. 'correct horse battery staple').
@@ -158,7 +165,7 @@ class RegisterValidators {
     // Patrón corto repetido 3 o más veces: ej. abababab, 12121212
     if (RegExp(r'(.{2,4})\1{2,}').hasMatch(s)) return true;
 
-    // 12 o más caracteres pero sólo 1 o 2 caracteres únicos
+    // [minPasswordLength] o más caracteres pero sólo 1 o 2 caracteres únicos
     final unique = s.split('').toSet();
     if (s.length >= minPasswordLength && unique.length <= 2) return true;
 

@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:tandea/core/constants/app_constants.dart';
 import 'package:tandea/core/network/server_health_service.dart';
@@ -63,6 +64,10 @@ class MainApp extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         theme: AppTheme.lightTheme,
         routerConfig: AppRouter.router,
+        // Textos del sistema (diálogos, selectores, menús) en español de México
+        locale: const Locale('es', 'MX'),
+        supportedLocales: const [Locale('es', 'MX'), Locale('es')],
+        localizationsDelegates: GlobalMaterialLocalizations.delegates,
       ),
     );
   }

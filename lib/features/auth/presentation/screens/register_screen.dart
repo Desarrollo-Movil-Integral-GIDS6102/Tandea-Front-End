@@ -82,9 +82,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     final success = await authProvider.register(
       nombre: _nombreController.text.trim(),
-      apellido: _apellidoController.text.trim().isNotEmpty
-          ? _apellidoController.text.trim()
-          : null,
+      apellido: _apellidoController.text.trim(),
       email: _emailController.text.trim(),
       password: _passwordController.text,
       edad: edad,
@@ -198,6 +196,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 hintText: 'Ej. Juan',
                                 prefixIcon: Icon(Icons.person_outline),
                               ),
+                              forceErrorText: authProvider.fieldErrors['name'],
+                              onChanged: (_) => authProvider.limpiarErrorCampo('name'),
                               validator: RegisterValidators.nombre,
                             ),
                             const SizedBox(height: 16),
@@ -209,10 +209,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               textCapitalization: TextCapitalization.words,
                               enabled: !isLoading,
                               decoration: const InputDecoration(
-                                labelText: 'Apellido (opcional)',
+                                labelText: 'Apellido *',
                                 hintText: 'Ej. Pérez',
                                 prefixIcon: Icon(Icons.badge_outlined),
                               ),
+                              forceErrorText: authProvider.fieldErrors['lastName'],
+                              onChanged: (_) => authProvider.limpiarErrorCampo('lastName'),
+                              validator: RegisterValidators.apellido,
                             ),
                             const SizedBox(height: 16),
 
@@ -227,6 +230,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 hintText: 'ejemplo@tandea.app',
                                 prefixIcon: Icon(Icons.email_outlined),
                               ),
+                              forceErrorText: authProvider.fieldErrors['email'],
+                              onChanged: (_) => authProvider.limpiarErrorCampo('email'),
                               validator: RegisterValidators.email,
                             ),
                             const SizedBox(height: 16),
@@ -245,6 +250,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 hintText: 'Mayor de 18 años',
                                 prefixIcon: Icon(Icons.cake_outlined),
                               ),
+                              forceErrorText: authProvider.fieldErrors['age'],
+                              onChanged: (_) => authProvider.limpiarErrorCampo('age'),
                               validator: RegisterValidators.edad,
                             ),
                             const SizedBox(height: 16),
@@ -276,6 +283,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   },
                                 ),
                               ),
+                              forceErrorText: authProvider.fieldErrors['password'],
+                              onChanged: (_) => authProvider.limpiarErrorCampo('password'),
                               validator: RegisterValidators.password,
                             ),
                             const SizedBox(height: 16),

@@ -60,7 +60,25 @@ class NetworkErrorHandler {
     throw ServerException(
       message: message,
       statusCode: statusCode,
+      fieldErrors: extractFieldErrors(e),
     );
+  }
+
+  /// Lee `details: [{field, message}]` del 422 de validación (Zod) del backend.
+  /// Si un campo trae varios errores, se queda con el primero.
+  static Map<String, String> extractFieldErrors(DioException e) {
+    final data = e.response?.data;
+    final details = data is Map<String, dynamic> ? data['details'] : null;
+    if (details is! List) {
+      return const {};
+    }
+    final errores = <String, String>{};
+    for (final item in details) {
+      if (item is Map && item['field'] is String && item['message'] is String) {
+        errores.putIfAbsent(item['field'] as String, () => item['message'] as String);
+      }
+    }
+    return errores;
   }
 
   /// Extrae el mensaje de error estructurado retornado por el backend.
