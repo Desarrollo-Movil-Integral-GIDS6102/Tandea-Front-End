@@ -182,3 +182,20 @@ flutter analyze
 flutter run
 ```
 
+---
+
+## 🔁 Integración Continua (GitHub Actions)
+
+El workflow [`.github/workflows/ci.yml`](.github/workflows/ci.yml) corre en cada Pull Request y en cada push a `main` y `develop`. Un PR solo debe mergearse con el job en verde.
+
+| Job | Qué hace |
+| :--- | :--- |
+| **Analyze, pruebas y build web** | Con Flutter 3.47.7 (stable): `flutter pub get`, `flutter analyze`, `flutter test` y `flutter build web --release`. |
+
+Para reproducirlo en local antes de abrir un PR:
+
+```bash
+flutter pub get && flutter analyze && flutter test && flutter build web --release
+```
+
+Si se actualiza la versión de Flutter del equipo, hay que cambiar también `flutter-version` en el workflow.
