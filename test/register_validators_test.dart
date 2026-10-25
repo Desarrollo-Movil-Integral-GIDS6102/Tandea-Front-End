@@ -42,12 +42,16 @@ void main() {
         expect(RegisterValidators.password(null), 'La contraseña es obligatoria');
       });
 
-      test('rechaza contraseñas cortas menores a 12 caracteres', () {
-        expect(RegisterValidators.minPasswordLength, 12);
-        expect(RegisterValidators.password('ClaveCorta9'),
-            'La contraseña debe tener al menos 12 caracteres');
+      test('rechaza contraseñas cortas menores a 8 caracteres', () {
+        expect(RegisterValidators.minPasswordLength, 8);
+        expect(RegisterValidators.password('Clave9x'),
+            'La contraseña debe tener al menos 8 caracteres');
         expect(RegisterValidators.password('abc'),
-            'La contraseña debe tener al menos 12 caracteres');
+            'La contraseña debe tener al menos 8 caracteres');
+      });
+
+      test('acepta una contraseña robusta de 8 caracteres', () {
+        expect(RegisterValidators.password('Tnd#9vKq'), isNull);
       });
 
       test('rechaza secuencias numéricas obvias como 123456789', () {

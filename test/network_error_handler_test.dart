@@ -120,5 +120,33 @@ void main() {
         ),
       );
     });
+
+    test('422 de validación lleva los errores por campo de `details`', () {
+      final dioException = DioException(
+        requestOptions: RequestOptions(path: '/auth/register'),
+        response: Response(
+          requestOptions: RequestOptions(path: '/auth/register'),
+          statusCode: 422,
+          data: <String, dynamic>{
+            'message': 'El apellido es requerido. La contraseña es muy corta',
+            'details': [
+              {'field': 'lastName', 'message': 'El apellido es requerido'},
+              {'field': 'password', 'message': 'La contraseña es muy corta'},
+              {'field': 'password', 'message': 'Evita secuencias'},
+            ],
+          },
+        ),
+      );
+
+      expect(
+        () => NetworkErrorHandler.handleDioException(dioException),
+        throwsA(
+          isA<ServerException>().having((e) => e.fieldErrors, 'fieldErrors', {
+            'lastName': 'El apellido es requerido',
+            'password': 'La contraseña es muy corta',
+          }),
+        ),
+      );
+    });
   });
 }

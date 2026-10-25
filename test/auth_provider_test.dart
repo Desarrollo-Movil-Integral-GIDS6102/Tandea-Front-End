@@ -142,7 +142,7 @@ void main() {
       expect(sessionProvider.isAuthenticated, isTrue);
     });
 
-    test('register con error cambia estado a error', () async {
+    test('register con correo duplicado (409) muestra el mensaje amigable', () async {
       mockRepo.registerResult =
           const Error(ServerFailure('El correo electrónico ya está registrado', statusCode: 409));
 
@@ -155,7 +155,26 @@ void main() {
       expect(result, isFalse);
       expect(authProvider.status, AuthStatus.error);
       expect(authProvider.isError, isTrue);
-      expect(authProvider.errorMessage, 'El correo electrónico ya está registrado');
+      expect(
+        authProvider.errorMessage,
+        'El correo electrónico ingresado ya está registrado. Intenta iniciar sesión.',
+      );
+    });
+
+    test('register con 422 guarda los errores por campo y se limpian al corregir', () async {
+      mockRepo.registerResult = const Error(ServerFailure(
+        'El apellido es requerido',
+        statusCode: 422,
+        fieldErrors: {'lastName': 'El apellido es requerido'},
+      ));
+
+      await authProvider.register(email: 'v@tandea.app', password: 'Tnd#9vKq', nombre: 'Valeria');
+
+      expect(authProvider.errorMessage, 'Revisa los campos marcados en rojo.');
+      expect(authProvider.fieldErrors, {'lastName': 'El apellido es requerido'});
+
+      authProvider.limpiarErrorCampo('lastName');
+      expect(authProvider.fieldErrors, isEmpty);
     });
 
     test('logout limpia currentUser y establece unauthenticated', () async {

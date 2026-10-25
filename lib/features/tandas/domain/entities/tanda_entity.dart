@@ -26,6 +26,12 @@ class TandaEntity extends Equatable {
   final IndicadorPago indicadorPago;
   final String? rolUsuario;
 
+  /// `id_number` del turno del usuario en esta tanda (null si no participa).
+  final int? idNumberUsuario;
+
+  /// Número visible del turno del usuario (`number_value`).
+  final int? numeroTurnoUsuario;
+
   const TandaEntity({
     required this.id,
     required this.nombre,
@@ -40,6 +46,8 @@ class TandaEntity extends Equatable {
     this.idTandaType,
     this.indicadorPago = IndicadorPago.alDia,
     this.rolUsuario,
+    this.idNumberUsuario,
+    this.numeroTurnoUsuario,
   });
 
   TandaEntity copyWith({
@@ -56,6 +64,8 @@ class TandaEntity extends Equatable {
     int? idTandaType,
     IndicadorPago? indicadorPago,
     String? rolUsuario,
+    int? idNumberUsuario,
+    int? numeroTurnoUsuario,
   }) {
     return TandaEntity(
       id: id ?? this.id,
@@ -71,6 +81,8 @@ class TandaEntity extends Equatable {
       idTandaType: idTandaType ?? this.idTandaType,
       indicadorPago: indicadorPago ?? this.indicadorPago,
       rolUsuario: rolUsuario ?? this.rolUsuario,
+      idNumberUsuario: idNumberUsuario ?? this.idNumberUsuario,
+      numeroTurnoUsuario: numeroTurnoUsuario ?? this.numeroTurnoUsuario,
     );
   }
 
@@ -89,6 +101,8 @@ class TandaEntity extends Equatable {
         idTandaType,
         indicadorPago,
         rolUsuario,
+        idNumberUsuario,
+        numeroTurnoUsuario,
       ];
 }
 
