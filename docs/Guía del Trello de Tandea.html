@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Guía del Trello de Tandea</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;800&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+--bg:#f3f7f9;--card:#fff;--ink:#12303f;--mute:#5a7280;--line:#d6e1e7;--blue:#1b4f72;--green:#1f8a4c;--gold:#c99700;--red:#c0392b;--navy:#0d2b3e;--onnavy:#e8f3f7}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0b1a23;--card:#12293a;--ink:#e6f0f4;--mute:#93aab6;--line:#24435a;--blue:#6fb3e0;--green:#4cc47f;--gold:#e5b92e;--red:#ef7b6e;--navy:#071219;--onnavy:#e8f3f7}}
+:root[data-theme="dark"]{--bg:#0b1a23;--card:#12293a;--ink:#e6f0f4;--mute:#93aab6;--line:#24435a;--blue:#6fb3e0;--green:#4cc47f;--gold:#e5b92e;--red:#ef7b6e;--navy:#071219;--onnavy:#e8f3f7}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.55 "Source Sans 3",system-ui,sans-serif}
+h1,h2,h3{font-family:"Bricolage Grotesque",system-ui,sans-serif;line-height:1.1;margin:0}
+main{max-width:980px;margin:0 auto;padding:0 20px 60px}
+section{margin-top:56px}
+h2{font-size:1.9rem;font-weight:800;margin-bottom:6px}
+.lead{color:var(--mute);margin:0 0 20px;max-width:62ch}
+.hero{background:var(--navy);color:var(--onnavy);padding:44px 20px 36px}
+.hero .in{max-width:980px;margin:0 auto}
+.hero h1{font-size:clamp(2rem,6vw,3.4rem);font-weight:800;max-width:16ch}
+.hero p{max-width:58ch;opacity:.85;margin:14px 0 26px}
+.builder{background:var(--card);color:var(--ink);border-radius:10px;padding:18px;display:grid;gap:12px}
+.row{display:grid;grid-template-columns:1fr 1fr 90px;gap:10px}
+@media(max-width:560px){.row{grid-template-columns:1fr}}
+label{font-size:.85rem;color:var(--mute);display:block;margin-bottom:3px}
+select,input{width:100%;font:inherit;padding:9px 10px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink)}
+:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+.out{border-left:5px solid var(--green);padding:8px 12px;background:var(--bg);border-radius:0 6px 6px 0;word-break:break-word}
+.out small{color:var(--mute);display:block}
+.out code{font-size:1rem;font-weight:600}
+button{font:inherit;font-weight:600;border:0;border-radius:6px;padding:8px 14px;background:var(--blue);color:#fff;cursor:pointer;margin-top:6px}
+.cols{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+@media(max-width:820px){.cols{grid-template-columns:1fr}}
+.col{background:var(--card);border-top:6px solid var(--blue);border-radius:6px;padding:14px}
+.col:nth-child(5){border-top-color:var(--green)}
+.col h3{font-size:1.05rem;margin-bottom:6px}
+.col p{margin:0;font-size:.92rem;color:var(--mute)}
+.tbl{width:100%;border-collapse:collapse;background:var(--card);border-radius:8px;overflow:hidden}
+.tbl th,.tbl td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top;font-size:.95rem}
+.tbl th{background:var(--navy);color:var(--onnavy);font-weight:600}
+.wrap{overflow-x:auto}
+.chip{display:inline-block;padding:2px 10px;border-radius:99px;color:#fff;font-weight:600;font-size:.85rem;white-space:nowrap}
+.BD{background:#7d4fb3}.BE{background:#2a73b8}.FE{background:#1f8a4c}.QA{background:#d9741a}.INT{background:#b58900}.DEVOPS{background:#6b7b85}.DOC{background:#3b8c95}
+.Alta{background:#c0392b}.Media{background:#b58900}.Baja{background:#6b7b85}.S{background:var(--navy);color:var(--onnavy)}
+.rules{display:grid;gap:10px;padding:0;list-style:none;margin:0}
+.rules li{background:var(--card);border-left:5px solid var(--gold);padding:12px 14px;border-radius:0 8px 8px 0}
+.rules b{display:block}
+.dod label{display:flex;gap:10px;align-items:center;font-size:1rem;color:var(--ink);background:var(--card);padding:10px 14px;border-radius:8px;margin-bottom:8px;cursor:pointer}
+.dod input{width:20px;height:20px;accent-color:var(--green)}
+.dod input:checked+span{text-decoration:line-through;color:var(--mute)}
+.cut{counter-reset:c;list-style:none;padding:0;margin:0;display:grid;gap:8px}
+.cut li{counter-increment:c;background:var(--card);padding:10px 14px 10px 46px;border-radius:8px;position:relative}
+.cut li::before{content:counter(c);position:absolute;left:12px;top:9px;width:24px;height:24px;border-radius:50%;background:var(--red);color:#fff;text-align:center;font-weight:700;font-size:.9rem;line-height:24px}
+.warn{background:var(--card);border:2px solid var(--green);border-radius:8px;padding:12px 14px;margin-top:12px}
+</style>
+</head>
+<body>
+<header class="hero"><div class="in">
+<h1>Cómo usamos el Trello de Tandea</h1>
+<p>Entrega: 20 de noviembre. Esta guía explica cómo se nombran las tarjetas, cómo se mueven entre listas y qué le toca a cada quien. Prueba el generador de abajo antes de crear tu primera tarjeta.</p>
+<div class="builder">
+<div class="row">
+<div><label for="t">Tipo de trabajo</label><select id="t"></select></div>
+<div><label for="m">Módulo</label><select id="m"></select></div>
+<div><label for="a">Historia</label><input id="a" placeholder="AP-03"></div>
+</div>
+<div><label for="x">Qué se hace (verbo en infinitivo + qué)</label><input id="x" value="Validar que transferencia + efectivo = cuota en pago híbrido"></div>
+<div class="out"><small>Título de la tarjeta</small><code id="o1"></code></div>
+<div class="out"><small>Nombre de la rama en Git</small><code id="o2"></code></div>
+<div><button id="cp" type="button">Copiar título</button> <span id="ok" role="status"></span></div>
+</div>
+</div></header>
+
+<main>
+<section>
+<h2>El título dice todo</h2>
+<p class="lead">Formato: <b>[TIPO-MÓDULO] Verbo + qué (AP-XX)</b>. Con solo leer el prefijo sabes en qué capa se trabaja y quién lo hace.</p>
+<div class="wrap"><table class="tbl">
+<tr><th>Prefijo</th><th>Qué incluye</th><th>Quién</th></tr>
+<tr><td><span class="chip BD">BD</span></td><td>Esquema, ENUMs, índices, migraciones y seeds (Prisma / PostgreSQL)</td><td>Backend y nube</td></tr>
+<tr><td><span class="chip BE">BE</span></td><td>Endpoints, services, dominio, puertos y adaptadores (NestJS)</td><td>Backend y nube</td></tr>
+<tr><td><span class="chip FE">FE</span></td><td>Pantallas, widgets, providers y datasources (Flutter)</td><td>Frontend</td></tr>
+<tr><td><span class="chip QA">QA</span></td><td>Pruebas unitarias, de widget, de integración y manuales</td><td>Lógica y pruebas</td></tr>
+<tr><td><span class="chip INT">INT</span></td><td>Servicios externos: OCR, FCM, Cloudinary, correo</td><td>Backend y nube</td></tr>
+<tr><td><span class="chip DEVOPS">DEVOPS</span></td><td>Repositorio, ramas, hosting y variables de entorno</td><td>Backend y nube</td></tr>
+<tr><td><span class="chip DOC">DOC</span></td><td>Documentación y diagramas</td><td>Todos</td></tr>
+</table></div>
+<p class="lead" style="margin-top:12px">Módulos: SETUP, AUTH, TANDA, PAGO, ENTREGA, CAL, NOTIF, AJUSTE y ADMIN.</p>
+</section>
+
+<section>
+<h2>Las cinco listas</h2>
+<p class="lead">Una tarjeta avanza de izquierda a derecha. Nunca se salta la revisión.</p>
+<div class="cols">
+<div class="col"><h3>Backlog</h3><p>Todo lo pendiente, ordenado por prioridad.</p></div>
+<div class="col"><h3>En sprint</h3><p>Lo que se comprometió el lunes en el planning.</p></div>
+<div class="col"><h3>En progreso</h3><p>Máximo 2 tarjetas por persona a la vez.</p></div>
+<div class="col"><h3>En revisión</h3><p>PR abierto. Otro integrante lo revisa.</p></div>
+<div class="col"><h3>Hecho</h3><p>PR fusionado a develop y checklist completo.</p></div>
+</div>
+</section>
+
+<section>
+<h2>Etiquetas y fechas</h2>
+<p class="lead">Cada tarjeta lleva tres etiquetas y una fecha límite.</p>
+<div class="wrap"><table class="tbl">
+<tr><th>Qué</th><th>Valores</th><th>Para qué sirve</th></tr>
+<tr><td>Tipo</td><td><span class="chip BD">BD</span> <span class="chip BE">BE</span> <span class="chip FE">FE</span> <span class="chip QA">QA</span> <span class="chip INT">INT</span> <span class="chip DEVOPS">DEVOPS</span></td><td>Filtrar el tablero por capa o por persona.</td></tr>
+<tr><td>Prioridad</td><td><span class="chip Alta">Alta</span> <span class="chip Media">Media</span> <span class="chip Baja">Baja</span></td><td>Alta es lo mínimo para que exista el producto.</td></tr>
+<tr><td>Sprint</td><td><span class="chip S">Sprint 1</span> a <span class="chip S">Sprint 7</span></td><td>Saber a qué semana pertenece.</td></tr>
+<tr><td>Due date</td><td>Campo de fecha de Trello</td><td>La fecha va aquí, no en el título.</td></tr>
+</table></div>
+</section>
+
+<section>
+<h2>Calendario de sprints</h2>
+<p class="lead">El desarrollo termina el 13 de noviembre. La semana 7 es solo para probar y entregar; el lunes 16 es feriado.</p>
+<div class="wrap"><table class="tbl">
+<tr><th>Sprint</th><th>Fechas</th><th>Enfoque</th></tr>
+<tr><td>1</td><td>5 – 9 oct</td><td>SETUP, esquema completo de BD y AUTH</td></tr>
+<tr><td>2</td><td>12 – 16 oct</td><td>TANDA: crear y unirse</td></tr>
+<tr><td>3</td><td>19 – 23 oct</td><td>PAGO: registro y OCR</td></tr>
+<tr><td>4</td><td>26 – 30 oct</td><td>PAGO: confirmación y ENTREGA</td></tr>
+<tr><td>5</td><td>2 – 6 nov</td><td>CAL y NOTIF</td></tr>
+<tr><td>6</td><td>9 – 13 nov</td><td>AJUSTE y ADMIN</td></tr>
+<tr><td>7</td><td>16 – 20 nov</td><td>QA, usuarios reales, documentación y entrega</td></tr>
+</table></div>
+<div class="warn"><b>Ritmo semanal:</b> lunes planning, daily asíncrono por chat y viernes revisión con retrospectiva de 5 a 10 minutos.</div>
+</section>
+
+<section>
+<h2>Reglas del tablero</h2>
+<ul class="rules">
+<li><b>Una tarjeta, un tipo.</b>Si algo toca BE y FE, se hacen dos tarjetas para trabajar en paralelo.</li>
+<li><b>El esquema de BD se creó en el Sprint 1.</b>Cualquier cambio posterior al schema.prisma va en un PR propio y el equipo lo revisa para evitar conflictos de migración.</li>
+<li><b>Nada se sube directo a main ni a develop.</b>Todo entra por Pull Request con squash and merge.</li>
+<li><b>Otro integrante aprueba tu PR.</b>Quien conoce el módulo lo revisa, aunque no lo haya escrito.</li>
+<li><b>Cada PR se vincula a su tarjeta.</b>Así el código y el tablero siempre dicen lo mismo.</li>
+<li><b>El comentario técnico va en la descripción.</b>Explica qué se implementa, con qué herramienta y en qué endpoint o archivo.</li>
+<li><b>Commits con Conventional Commits.</b>feat, fix, docs, refactor o test, en presente: "feat: agregar validación de monto híbrido".</li>
+</ul>
+</section>
+
+<section class="dod">
+<h2>Checklist para mover a Hecho</h2>
+<p class="lead">Esta lista va dentro de cada tarjeta. Pruébala aquí.</p>
+<label><input type="checkbox"><span>Cumple el criterio de aceptación</span></label>
+<label><input type="checkbox"><span>Compila y pasa el linter</span></label>
+<label><input type="checkbox"><span>Las pruebas existentes siguen pasando</span></label>
+<label><input type="checkbox"><span>PR aprobado por otro integrante</span></label>
+<label><input type="checkbox"><span>PR vinculado a la tarjeta</span></label>
+</section>
+
+<section>
+<h2>Si el tiempo no alcanza</h2>
+<p class="lead">Se recorta en este orden. El flujo crear tanda, unirse, pagar, confirmar y entregar, con OCR y doble confirmación, nunca se recorta.</p>
+<ol class="cut">
+<li>Correos de confirmación y suspensión (INT-AUTH, INT-ADMIN)</li>
+<li>Historial dentro de la tanda (AP-09)</li>
+<li>Bandeja de notificaciones leído / no leído</li>
+<li>Detalle del caso del administrador con línea de tiempo</li>
+</ol>
+</section>
+</main>
+
+<script>
+(function(){
+var T=["BD","BE","FE","QA","INT","DEVOPS","DOC"],M=["SETUP","AUTH","TANDA","PAGO","ENTREGA","CAL","NOTIF","AJUSTE","ADMIN"];
+var t=document.getElementById("t"),m=document.getElementById("m"),a=document.getElementById("a"),x=document.getElementById("x");
+T.forEach(function(v){t.add(new Option(v,v))});M.forEach(function(v){m.add(new Option(v,v))});
+t.value="BE";m.value="PAGO";a.value="AP-03";
+function slug(s){return s.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9\s]/g," ").trim().split(/\s+/).slice(0,4).join("-")}
+function up(){
+var ap=a.value.trim();
+document.getElementById("o1").textContent="["+t.value+"-"+m.value+"] "+x.value.trim()+(ap?" ("+ap.toUpperCase()+")":"");
+document.getElementById("o2").textContent="feature/"+t.value.toLowerCase()+"-"+m.value.toLowerCase()+"-"+slug(x.value);
+}
+[t,m,a,x].forEach(function(e){e.addEventListener("input",up)});up();
+document.getElementById("cp").addEventListener("click",function(){
+var s=document.getElementById("o1").textContent,ok=document.getElementById("ok");
+try{navigator.clipboard.writeText(s).then(function(){ok.textContent="Copiado"},function(){ok.textContent="Selecciona y copia manualmente"})}catch(e){ok.textContent="Selecciona y copia manualmente"}
+});
+})();
+</script>
+</body>
+</html>

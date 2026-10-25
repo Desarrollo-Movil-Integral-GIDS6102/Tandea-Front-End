@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ficha de Diseño: Nube y Seguridad — Tandea</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    @page {
+      size: letter;
+      margin: 12mm 15mm 12mm 15mm;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      color: #1e293b;
+      background-color: #f8fafc;
+      line-height: 1.35;
+      font-size: 11.5px;
+      -webkit-font-smoothing: antialiased;
+    }
+    .page-container {
+      max-width: 820px;
+      margin: 0 auto;
+      background: #ffffff;
+      padding: 24px 28px;
+      border-radius: 10px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    }
+    @media print {
+      body {
+        background: #ffffff;
+        font-size: 11px;
+        line-height: 1.3;
+      }
+      .page-container {
+        padding: 0;
+        box-shadow: none;
+        max-width: 100%;
+        border-radius: 0;
+      }
+      .no-print {
+        display: none !important;
+      }
+    }
+    header {
+      border-bottom: 2px solid #0f172a;
+      padding-bottom: 10px;
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+    }
+    .header-left h1 {
+      font-size: 18px;
+      font-weight: 800;
+      color: #0f172a;
+      letter-spacing: -0.3px;
+    }
+    .header-left .subtitle {
+      font-size: 12px;
+      font-weight: 600;
+      color: #475569;
+      margin-top: 2px;
+    }
+    .header-right {
+      text-align: right;
+    }
+    .badge {
+      display: inline-block;
+      background: #eff6ff;
+      color: #1d4ed8;
+      font-weight: 700;
+      font-size: 10px;
+      padding: 3px 8px;
+      border-radius: 12px;
+      border: 1px solid #bfdbfe;
+    }
+    .meta-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      background: #f1f5f9;
+      padding: 8px 12px;
+      border-radius: 6px;
+      margin-bottom: 12px;
+      font-size: 11px;
+    }
+    .meta-item strong {
+      color: #0f172a;
+    }
+    .block {
+      margin-bottom: 11px;
+      padding-bottom: 9px;
+      border-bottom: 1px dashed #cbd5e1;
+    }
+    .block:last-child {
+      border-bottom: none;
+      margin-bottom: 0;
+      padding-bottom: 0;
+    }
+    .block-title {
+      font-size: 12.5px;
+      font-weight: 700;
+      color: #0f172a;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .provider-tag {
+      font-weight: 600;
+      color: #0369a1;
+      background: #e0f2fe;
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-size: 11px;
+      display: inline-block;
+    }
+    .checklist {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 5px 12px;
+      margin-top: 6px;
+    }
+    .check-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 6px;
+    }
+    .check-box {
+      font-weight: 800;
+      color: #15803d;
+      font-size: 11px;
+      line-height: 1.2;
+    }
+    .check-item-text {
+      color: #334155;
+    }
+    .check-item-text strong {
+      color: #0f172a;
+    }
+    .rules-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .rule-card {
+      background: #fafafa;
+      border-left: 3px solid #2563eb;
+      padding: 5px 10px;
+      border-radius: 0 4px 4px 0;
+    }
+    .rule-card.rule-2 {
+      border-left-color: #0d9488;
+    }
+    .rule-card.rule-3 {
+      border-left-color: #7c3aed;
+    }
+    .rule-card-title {
+      font-weight: 700;
+      color: #0f172a;
+      font-size: 11px;
+      margin-bottom: 2px;
+    }
+    .rule-card-text {
+      color: #334155;
+    }
+    .code-protect-box {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 7px 10px;
+    }
+    .code-protect-box ul {
+      list-style-type: disc;
+      padding-left: 16px;
+      margin-top: 3px;
+    }
+    .code-protect-box li {
+      margin-bottom: 2px;
+      color: #334155;
+    }
+    .print-bar {
+      margin-bottom: 12px;
+      text-align: right;
+    }
+    .print-btn {
+      background: #0f172a;
+      color: #ffffff;
+      border: none;
+      padding: 6px 14px;
+      font-size: 12px;
+      font-weight: 600;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .print-btn:hover {
+      background: #1e293b;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="page-container">
+    <div class="print-bar no-print">
+      <button class="print-btn" onclick="window.print()">🖨️ Imprimir / Guardar como PDF (1 página)</button>
+    </div>
+
+    <header>
+      <div class="header-left">
+        <h1>📝 Ficha de Diseño: Nube y Seguridad</h1>
+        <div class="subtitle">Hoja de Ruta Técnica — Proyecto Tandea</div>
+      </div>
+      <div class="header-right">
+        <span class="badge">1 Sola Página (Entregable)</span>
+      </div>
+    </header>
+
+    <div class="meta-grid">
+      <div class="meta-item">
+        <strong>Tecnología App Móvil:</strong> Flutter (Dart SDK ^3.13)
+      </div>
+      <div class="meta-item">
+        <strong>Backend & Base de Datos:</strong> NestJS + Fastify (TypeScript) / PostgreSQL
+      </div>
+    </div>
+
+    <!-- BLOQUE 1 -->
+    <div class="block">
+      <div class="block-title">
+        <span>☁️ Bloque 1: El Componente en la Nube</span>
+      </div>
+      <p style="margin-bottom: 5px;">
+        <strong>Proveedor elegido:</strong>
+        <span class="provider-tag">Railway</span> (Backend NestJS + PostgreSQL gestionada) y
+        <span class="provider-tag">Google Firebase</span> (FCM para notificaciones + Firebase Storage para evidencias).
+      </p>
+
+      <div class="checklist">
+        <div class="check-item">
+          <span class="check-box">[X]</span>
+          <div class="check-item-text">
+            <strong>Autenticación:</strong> Registro y login con contraseñas hasheadas (bcrypt) y emisión de tokens de sesión JWT con expiración.
+          </div>
+        </div>
+        <div class="check-item">
+          <span class="check-box">[X]</span>
+          <div class="check-item-text">
+            <strong>Base de datos:</strong> PostgreSQL en Railway para almacenar usuarios, tandas, turnos, esquemas de pago y auditoría.
+          </div>
+        </div>
+        <div class="check-item">
+          <span class="check-box">[X]</span>
+          <div class="check-item-text">
+            <strong>Almacenamiento de archivos:</strong> Firebase Storage (plan Spark gratuito de 5 GB) para comprobantes de pago y fotos de evidencia.
+          </div>
+        </div>
+        <div class="check-item">
+          <span class="check-box">[X]</span>
+          <div class="check-item-text">
+            <strong>Funciones de servidor / Backend:</strong> NestJS en Railway para control de concurrencia en turnos, generación de códigos únicos y validación de cobros.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BLOQUE 2 -->
+    <div class="block">
+      <div class="block-title">
+        <span>🔒 Bloque 2: Las 3 Reglas de Seguridad</span>
+      </div>
+      <div class="rules-list">
+        <div class="rule-card">
+          <div class="rule-card-title">1. En el teléfono del usuario (Protección contra robo de datos):</div>
+          <div class="rule-card-text">
+            <em>No se guardan contraseñas en el dispositivo</em>. El token de sesión JWT se almacena cifrado con <code>flutter_secure_storage</code> mediante hardware seguro (<strong>Android Keystore</strong> / <strong>iOS Keychain</strong>). En caso de cierre o caducidad, el almacenamiento seguro se purga automáticamente.
+          </div>
+        </div>
+        <div class="rule-card rule-2">
+          <div class="rule-card-title">2. En el viaje de los datos (Cifrado en tránsito):</div>
+          <div class="rule-card-text">
+            Toda la comunicación móvil-nube viaja exclusivamente bajo <strong>HTTPS/TLS 1.3</strong> hacia el host seguro (<code>tandea-back-end-production.up.railway.app</code>). Cada petición a endpoints protegidos incluye la cabecera estándar <code>Authorization: Bearer &lt;token_jwt&gt;</code>.
+          </div>
+        </div>
+        <div class="rule-card rule-3">
+          <div class="rule-card-title">3. En la base de datos (Aislamiento entre usuarios):</div>
+          <div class="rule-card-text">
+            Control de acceso en el backend mediante <code>JwtAuthGuard</code> y reglas de dominio: el servidor valida el <code>idUser</code> del token y restringe lectura o mutación; únicamente el organizador (<code>idAdmin</code>) o el titular asignado a ese turno pueden consultar o confirmar sus registros.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BLOQUE 3 -->
+    <div class="block">
+      <div class="block-title">
+        <span>🛡️ Bloque 3: Protección del Código (Buenas Prácticas)</span>
+      </div>
+      <div class="code-protect-box">
+        <strong>¿Cómo ocultarán las credenciales (API Keys) para que no se suban por error a repositorios públicos (GitHub)?</strong>
+        <ul>
+          <li><strong>Exclusión obligatoria en Git:</strong> Los archivos locales <code>.env</code> que contienen la <code>DATABASE_URL</code>, secretos JWT y credenciales de correo/nube están agregados a los <code>.gitignore</code> de Frontend y Backend.</li>
+          <li><strong>Plantilla pública desacoplada:</strong> Únicamente se versiona <code>.env.example</code> como contrato de referencia con valores vacíos o ficticios.</li>
+          <li><strong>Inyección segura en la Nube:</strong> En Railway las llaves se inyectan como variables de entorno privadas encriptadas en el panel. En Flutter se inyectan en tiempo de compilación con <code>--dart-define</code>.</li>
+        </ul>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

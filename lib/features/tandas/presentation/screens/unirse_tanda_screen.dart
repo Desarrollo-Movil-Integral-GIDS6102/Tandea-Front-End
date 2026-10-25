@@ -9,7 +9,7 @@ import 'package:tandea/features/tandas/domain/entities/tanda_entity.dart';
 import 'package:tandea/features/tandas/domain/entities/unirse_tanda_result.dart';
 import 'package:tandea/features/tandas/presentation/providers/unirse_tanda_provider.dart';
 
-/// Pantalla para unirse a una tanda activa mediante código de invitación de 8 caracteres.
+/// Pantalla para unirse a una tanda activa mediante código de invitación.
 class UnirseTandaScreen extends StatefulWidget {
   final String? initialCode;
 
@@ -54,6 +54,7 @@ class _UnirseTandaScreenState extends State<UnirseTandaScreen> {
     }
 
     final provider = context.read<UnirseTandaProvider>();
+    provider.setInviteCode(_codeController.text.trim());
     final tanda = await provider.consultarTanda();
 
     if (!mounted || tanda == null) {
@@ -67,7 +68,6 @@ class _UnirseTandaScreenState extends State<UnirseTandaScreen> {
       // Si es asignación por sorteo/automática, mostrar modal de confirmación antes de unirse
       _mostrarDialogoConfirmacionSorteo(tanda);
     }
-
   }
 
   void _mostrarDialogoConfirmacionSorteo(TandaEntity tanda) {
@@ -224,7 +224,6 @@ class _UnirseTandaScreenState extends State<UnirseTandaScreen> {
             Text('¡Te has unido!', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
           ],
         ),
-
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -361,7 +360,7 @@ class _UnirseTandaScreenState extends State<UnirseTandaScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Escribe el código de 8 caracteres que te compartió el organizador para consultar la tanda.',
+                    'Escribe el código de invitación que te compartió el organizador para consultar la tanda.',
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: AppColors.textSecondaryLight,
                     ),
@@ -392,7 +391,7 @@ class _UnirseTandaScreenState extends State<UnirseTandaScreen> {
 
                             // Etiqueta del campo
                             const Text(
-                              'Código de 8 caracteres',
+                              'Código de invitación',
                               style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
@@ -416,11 +415,11 @@ class _UnirseTandaScreenState extends State<UnirseTandaScreen> {
                               ),
                               inputFormatters: [
                                 UpperCaseTextFormatter(),
-                                LengthLimitingTextInputFormatter(8),
+                                LengthLimitingTextInputFormatter(UnirseTandaProvider.codigoMaxLength),
                                 FilteringTextInputFormatter.allow(RegExp(r'[A-Za-z0-9\-]')),
                               ],
                               decoration: InputDecoration(
-                                hintText: 'TND-7K9A',
+                                hintText: 'TND-7K9A2B',
                                 hintStyle: TextStyle(
                                   fontSize: 22,
                                   letterSpacing: 4.0,
@@ -447,7 +446,8 @@ class _UnirseTandaScreenState extends State<UnirseTandaScreen> {
                                   borderRadius: BorderRadius.circular(14),
                                   borderSide: const BorderSide(color: AppColors.primary, width: 2),
                                 ),
-                                counterText: '${_codeController.text.length}/8',
+                                counterText:
+                                    '${_codeController.text.length}/${UnirseTandaProvider.codigoMaxLength}',
                               ),
                               onChanged: (value) {
                                 final upper = value.toUpperCase();
@@ -465,8 +465,10 @@ class _UnirseTandaScreenState extends State<UnirseTandaScreen> {
                                 if (text.isEmpty) {
                                   return 'Ingresa el código de la tanda';
                                 }
-                                if (text.length != 8 || !UnirseTandaProvider.regexCodigo8.hasMatch(text)) {
-                                  return 'El código debe tener exactamente 8 caracteres';
+                                if (text.length < UnirseTandaProvider.codigoMinLength ||
+                                    text.length > UnirseTandaProvider.codigoMaxLength ||
+                                    !UnirseTandaProvider.regexCodigo.hasMatch(text)) {
+                                  return 'El código debe tener entre ${UnirseTandaProvider.codigoMinLength} y ${UnirseTandaProvider.codigoMaxLength} caracteres';
                                 }
                                 return null;
                               },
@@ -545,7 +547,6 @@ class _UnirseTandaScreenState extends State<UnirseTandaScreen> {
                         ),
                       ],
                     ),
-
                   ),
                 ],
               ),

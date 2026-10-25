@@ -1,0 +1,1609 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Guía de Implementación Backend — Tandea</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700;800&family=Fira+Code:wght@400;500;600&family=Source+Sans+3:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  box-sizing: border-box;
+  --bg: #f3f7f9;
+  --card: #ffffff;
+  --card-subtle: #f8fafc;
+  --ink: #12303f;
+  --mute: #5a7280;
+  --line: #d6e1e7;
+  --blue: #1b4f72;
+  --blue-light: #2a73b8;
+  --blue-bg: #eaf3fa;
+  --green: #1f8a4c;
+  --green-bg: #eaf7ef;
+  --gold: #b58900;
+  --gold-bg: #fdf8e6;
+  --red: #c0392b;
+  --red-bg: #fdeeed;
+  --purple: #6c5ce7;
+  --navy: #0d2b3e;
+  --onnavy: #e8f3f7;
+  --code-bg: #0b1a23;
+  --code-ink: #e6f0f4;
+  --radius: 10px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0b1a23;
+    --card: #12293a;
+    --card-subtle: #0d2232;
+    --ink: #e6f0f4;
+    --mute: #93aab6;
+    --line: #24435a;
+    --blue: #6fb3e0;
+    --blue-light: #4ea5e0;
+    --blue-bg: #14354c;
+    --green: #4cc47f;
+    --green-bg: #153c29;
+    --gold: #e5b92e;
+    --gold-bg: #3d3312;
+    --red: #ef7b6e;
+    --red-bg: #3e1b19;
+    --navy: #071219;
+    --onnavy: #e8f3f7;
+    --code-bg: #07131b;
+    --code-ink: #f0f6f9;
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg: #0b1a23;
+  --card: #12293a;
+  --card-subtle: #0d2232;
+  --ink: #e6f0f4;
+  --mute: #93aab6;
+  --line: #24435a;
+  --blue: #6fb3e0;
+  --blue-light: #4ea5e0;
+  --blue-bg: #14354c;
+  --green: #4cc47f;
+  --green-bg: #153c29;
+  --gold: #e5b92e;
+  --gold-bg: #3d3312;
+  --red: #ef7b6e;
+  --red-bg: #3e1b19;
+  --navy: #071219;
+  --onnavy: #e8f3f7;
+  --code-bg: #07131b;
+  --code-ink: #f0f6f9;
+}
+
+*, *::before, *::after { box-sizing: inherit; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.6 "Source Sans 3", system-ui, sans-serif; }
+h1, h2, h3, h4 { font-family: "Bricolage Grotesque", system-ui, sans-serif; line-height: 1.15; margin: 0; color: var(--ink); }
+code, pre { font-family: "Fira Code", monospace; font-size: 0.92rem; }
+
+.hero {
+  background: linear-gradient(135deg, var(--navy) 0%, #17384e 100%);
+  color: var(--onnavy);
+  padding: 48px 24px 40px;
+  border-bottom: 3px solid var(--blue);
+}
+.hero .in { max-width: 1100px; margin: 0 auto; }
+.hero h1 { font-size: clamp(2.1rem, 5vw, 3.2rem); font-weight: 800; color: #fff; margin-bottom: 12px; }
+.hero p { max-width: 72ch; opacity: 0.9; margin: 0 0 24px; font-size: 1.1rem; }
+
+.badge-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 99px; font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+.chip-be { background: #2a73b8; color: #fff; }
+.chip-int { background: #b58900; color: #fff; }
+.chip-solid { background: #6c5ce7; color: #fff; }
+.chip-test { background: #1f8a4c; color: #fff; }
+
+.controls-nav {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+  background: rgba(255,255,255,0.08);
+  padding: 12px 16px;
+  border-radius: var(--radius);
+  backdrop-filter: blur(8px);
+}
+.controls-nav button {
+  background: var(--blue);
+  color: #fff;
+  border: 0;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.controls-nav button:hover { opacity: 0.9; transform: translateY(-1px); }
+.theme-btn { background: transparent !important; border: 1px solid rgba(255,255,255,0.3) !important; }
+
+main { max-width: 1100px; margin: 0 auto; padding: 36px 20px 80px; }
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 24px;
+  margin-bottom: 32px;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.03);
+  transition: border-color 0.2s;
+}
+.card:hover { border-color: var(--blue); }
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding-bottom: 16px;
+  margin-bottom: 20px;
+  border-bottom: 2px solid var(--line);
+}
+.card-header h2 { font-size: 1.6rem; font-weight: 800; display: flex; align-items: center; gap: 10px; }
+.card-header .meta { display: flex; gap: 8px; align-items: center; font-size: 0.9rem; color: var(--mute); }
+
+.step {
+  background: var(--card-subtle);
+  border-left: 4px solid var(--blue);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  padding: 18px 20px;
+  margin: 18px 0;
+}
+.step.test-step { border-left-color: var(--green); }
+.step.warn-step { border-left-color: var(--gold); }
+.step.git-step { border-left-color: var(--purple); }
+
+.step-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-weight: 700;
+  font-size: 1.15rem;
+  margin-bottom: 8px;
+  color: var(--ink);
+}
+.step-path {
+  display: inline-block;
+  background: var(--bg);
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-family: "Fira Code", monospace;
+  font-size: 0.85rem;
+  color: var(--blue);
+  border: 1px solid var(--line);
+  margin-bottom: 10px;
+}
+.step p { margin: 6px 0 12px; color: var(--mute); }
+
+.code-wrapper {
+  position: relative;
+  margin: 12px 0;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--code-bg);
+  border: 1px solid #1a3344;
+}
+.code-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 14px;
+  background: rgba(255,255,255,0.05);
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  font-size: 0.82rem;
+  color: #8da4b3;
+  font-family: "Fira Code", monospace;
+}
+.copy-btn {
+  background: #1b4f72;
+  color: #fff;
+  border: 0;
+  border-radius: 4px;
+  padding: 4px 10px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.copy-btn:hover { background: #2a73b8; }
+.copy-btn.copied { background: var(--green); }
+
+pre {
+  margin: 0;
+  padding: 16px;
+  overflow-x: auto;
+  color: var(--code-ink);
+  line-height: 1.5;
+}
+
+.explanation {
+  background: var(--blue-bg);
+  border-radius: 6px;
+  padding: 12px 16px;
+  margin-top: 10px;
+  font-size: 0.92rem;
+  color: var(--ink);
+}
+.explanation b { color: var(--blue); }
+.explanation ul { margin: 6px 0 0; padding-left: 20px; }
+
+.alert {
+  padding: 14px 18px;
+  border-radius: 8px;
+  margin: 16px 0;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+.alert-warning { background: var(--gold-bg); border-left: 5px solid var(--gold); }
+.alert-success { background: var(--green-bg); border-left: 5px solid var(--green); }
+.alert-info { background: var(--blue-bg); border-left: 5px solid var(--blue); }
+
+.checklist {
+  list-style: none;
+  padding: 0;
+  margin: 16px 0;
+  display: grid;
+  gap: 10px;
+}
+.checklist label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: var(--card-subtle);
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.checklist label:hover { background: var(--bg); }
+.checklist input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--green); }
+.checklist input:checked + span { text-decoration: line-through; color: var(--mute); }
+
+.quick-nav {
+  position: sticky;
+  top: 16px;
+  z-index: 50;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 10px 16px;
+  margin-bottom: 24px;
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+}
+.quick-nav a {
+  text-decoration: none;
+  color: var(--ink);
+  font-weight: 600;
+  font-size: 0.9rem;
+  padding: 6px 12px;
+  border-radius: 6px;
+  white-space: nowrap;
+  transition: background 0.2s;
+}
+.quick-nav a:hover { background: var(--bg); color: var(--blue); }
+
+.table-schema {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 12px 0;
+  font-size: 0.9rem;
+}
+.table-schema th, .table-schema td {
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  text-align: left;
+}
+.table-schema th { background: var(--bg); font-weight: 700; }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="in">
+    <div class="badge-row">
+      <span class="chip chip-be">Backend & Nube</span>
+      <span class="chip chip-solid">Arquitectura Hexagonal & Limpia</span>
+      <span class="chip chip-int">Integración Brevo API</span>
+      <span class="chip chip-test">Vitest Tests</span>
+    </div>
+    <h1>Guía de Implementación Paso a Paso — Backend Tandea</h1>
+    <p>
+      Tutorial interactivo con código listo para copiar, explicaciones arquitectónicas detalladas, diseño de componentes reutilizables y pruebas automatizadas para completar las tareas del Sprint 2 y Sprint 6 sin errores.
+    </p>
+
+    <div class="controls-nav">
+      <button onclick="document.getElementById('sec-git').scrollIntoView({behavior:'smooth'})">1. Git & Ramas</button>
+      <button onclick="document.getElementById('sec-brevo').scrollIntoView({behavior:'smooth'})">2. Brevo Mail (Reutilizable)</button>
+      <button onclick="document.getElementById('sec-tanda').scrollIntoView({behavior:'smooth'})">3. Crear Tanda (AP-01)</button>
+      <button onclick="document.getElementById('sec-numeros').scrollIntoView({behavior:'smooth'})">4. Asignar Números</button>
+      <button onclick="document.getElementById('sec-unirse').scrollIntoView({behavior:'smooth'})">5. Unirse a Tanda (AP-02)</button>
+      <button onclick="document.getElementById('sec-pruebas').scrollIntoView({behavior:'smooth'})">6. Pruebas Vitest</button>
+      <button class="theme-btn" id="theme-toggle" onclick="toggleTheme()">🌓 Alternar Tema</button>
+    </div>
+  </div>
+</header>
+
+<main>
+
+  <nav class="quick-nav">
+    <a href="#sec-git">📌 0. Solución Error Git</a>
+    <a href="#sec-brevo">✉️ 1. Módulo Brevo Reutilizable</a>
+    <a href="#sec-tanda">🏦 2. Crear Tanda & Código</a>
+    <a href="#sec-numeros">🎲 3. Asignación de Números</a>
+    <a href="#sec-unirse">🤝 4. Unirse a Tanda</a>
+    <a href="#sec-pruebas">🧪 5. Pruebas Unitarias</a>
+    <a href="#sec-checklist">✅ Checklist DoD</a>
+  </nav>
+
+  <!-- ===================================================================== -->
+  <!-- SECCIÓN 0: GIT WORKFLOW & SOLUCIÓN ERROR                              -->
+  <!-- ===================================================================== -->
+  <section id="sec-git" class="card">
+    <div class="card-header">
+      <div>
+        <h2><span>📌</span> Paso 0: Flujo de Git y Corrección de Rama</h2>
+        <div class="meta">Convención de Ramas: feature/&lt;tipo&gt;-&lt;modulo&gt;-&lt;slug&gt;</div>
+      </div>
+    </div>
+
+    <div class="alert alert-warning">
+      <div>
+        <b>¿Por qué falló el comando anterior en tu terminal?</b><br>
+        Al ejecutar <code>git checkout -b feature/&lt;tipo&gt;-&lt;modulo&gt;-&lt;slug&gt;</code>, Windows rechazó el comando con el error:
+        <code>Unable to create '.../feature/&lt;tipo&gt;...lock': Invalid argument</code>.
+        <br>
+        En Windows, los caracteres <code>&lt;</code> y <code>&gt;</code> están estrictamente prohibidos en rutas y nombres de archivos. Esos símbolos solo eran una plantilla explicativa. Debes reemplazarlos por los nombres reales de la tarjeta.
+      </div>
+    </div>
+
+    <div class="step git-step">
+      <div class="step-title">
+        <span>Comandos exactos para iniciar la primera tarjeta (Brevo Mail)</span>
+      </div>
+      <p>Asegúrate de estar en <code>Tandea-Back-End</code>, sincronizar <code>develop</code> y crear la rama limpia:</p>
+
+      <div class="code-wrapper">
+        <div class="code-header"><span>Terminal (PowerShell / Bash)</span><button class="copy-btn" onclick="copyCode(this)">Copiar</button></div>
+        <pre><code># 1. Asegúrate de estar en la carpeta del Backend
+cd c:\Users\brand\Documentos\GIDS6102\Tandea\Tandea-Back-End
+
+# 2. Entrar a develop y traer últimos cambios del equipo
+git checkout develop
+git pull origin develop
+
+# 3. Crear y pasarte a la nueva rama para la tarjeta de correos con Brevo
+git checkout -b feature/int-auth-notificaciones-brevo</code></pre>
+      </div>
+
+      <div class="explanation">
+        <b>¿Qué hace este comando?</b>
+        <ul>
+          <li>Garantiza que partes con la versión más reciente aprobada por Brandon, Karen y Lizeth.</li>
+          <li>Aísla tu trabajo en una rama dedicada bajo el estándar del proyecto sin tocar <code>develop</code> hasta abrir el PR con Squash.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================================================================== -->
+  <!-- SECCIÓN 1: BREVO NOTIFICATIONS REUTILIZABLE                           -->
+  <!-- ===================================================================== -->
+  <section id="sec-brevo" class="card">
+    <div class="card-header">
+      <div>
+        <h2><span>✉️</span> Tarjeta 1: [INT-AUTH] Servicio de Notificaciones y Correo Reutilizable (Brevo API)</h2>
+        <div class="meta">Prioridad: Reutilizable en Auth, Tandas y Pagos | Arquitectura Hexagonal</div>
+      </div>
+      <span class="chip chip-int">INT-AUTH</span>
+    </div>
+
+    <div class="alert alert-info">
+      <div>
+        <b>Principio de Responsabilidad Única y Reusabilidad (SOLID):</b><br>
+        En lugar de acoplar una función fija <code>sendWelcomeEmail()</code>, creamos un <b>Puerto de Notificación por Correo</b> genérico (<code>MailPort</code>) con opciones tipadas (<code>SendEmailOptions</code>) y generadores de plantillas HTML corporativas de Tandea. Así el mismo adaptador enviará correos de bienvenida, invitaciones con código de tanda y avisos de pago.
+      </div>
+    </div>
+
+    <!-- 1.1 Puerto -->
+    <div class="step">
+      <div class="step-title"><span>1.1 Definir el Puerto Genérico en Dominio</span></div>
+      <span class="step-path">src/common/ports/out/mail.port.ts</span>
+      <p>Define el contrato agnóstico que cualquier proveedor de correo (Brevo, Resend, Mock) debe cumplir.</p>
+
+      <div class="code-wrapper">
+        <div class="code-header"><span>TypeScript — mail.port.ts</span><button class="copy-btn" onclick="copyCode(this)">Copiar</button></div>
+        <pre><code>export interface EmailRecipient {
+  email: string;
+  name?: string;
+}
+
+export interface SendEmailOptions {
+  to: string | EmailRecipient[];
+  subject: string;
+  htmlContent: string;
+  textContent?: string;
+}
+
+export interface MailPort {
+  /**
+   * Envía un correo genérico con asunto y contenido HTML/texto.
+   * Retorna true si fue aceptado por el proveedor o false si falló de forma controlada.
+   */
+  sendMail(options: SendEmailOptions): Promise<boolean>;
+}
+
+export const MAIL_PORT = Symbol('MAIL_PORT');
+</code></pre>
+      </div>
+
+      <div class="explanation">
+        <b>¿Qué hace este código?</b>
+        <ul>
+          <li>Usa una interfaz pura de TypeScript sin dependencias de librerías ni de NestJS.</li>
+          <li>Usa <code>Symbol('MAIL_PORT')</code> como token de inyección de dependencias en NestJS, facilitando reemplazar Brevo por mocks en pruebas.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- 1.2 Plantillas -->
+    <div class="step">
+      <div class="step-title"><span>1.2 Generador de Plantillas HTML Reutilizables</span></div>
+      <span class="step-path">src/common/templates/mail/email-templates.ts</span>
+      <p>Componente reutilizable que genera correos con estilos profesionales de Tandea (Bienvenida, Invitación, etc.).</p>
+
+      <div class="code-wrapper">
+        <div class="code-header"><span>TypeScript — email-templates.ts</span><button class="copy-btn" onclick="copyCode(this)">Copiar</button></div>
+        <pre><code>/**
+ * Envoltorio HTML corporativo de Tandea para garantizar diseño premium uniforme.
+ */
+function layout(content: string): string {
+  return `
+    &lt;div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 12px; border: 1px solid #d6e1e7; overflow: hidden;"&gt;
+      &lt;div style="background: #0d2b3e; padding: 24px; text-align: center;"&gt;
+        &lt;h1 style="color: #ffffff; margin: 0; font-size: 24px; letter-spacing: 1px;"&gt;TANDEA&lt;/h1&gt;
+        &lt;p style="color: #93aab6; margin: 4px 0 0; font-size: 13px;"&gt;Ahorro rotativo seguro y transparente&lt;/p&gt;
+      &lt;/div&gt;
+      &lt;div style="padding: 32px 24px; color: #12303f; line-height: 1.6;"&gt;
+        ${content}
+      &lt;/div&gt;
+      &lt;div style="background: #f3f7f9; padding: 16px 24px; text-align: center; font-size: 12px; color: #5a7280; border-top: 1px solid #d6e1e7;"&gt;
+        &copy; ${new Date().getFullYear()} Tandea Inc. Mensaje generado automáticamente.
+      &lt;/div&gt;
+    &lt;/div&gt;
+  `;
+}
+
+export const EmailTemplates = {
+  /**
+   * Plantilla reutilizable de bienvenida tras registro exitoso
+   */
+  welcome(name: string): { subject: string; html: string } {
+    return {
+      subject: `¡Bienvenido a Tandea, ${name}! 🎉`,
+      html: layout(`
+        &lt;h2 style="color: #1b4f72; margin-top: 0;"&gt;¡Hola, ${name}! 👋&lt;/h2&gt;
+        &lt;p&gt;Tu cuenta en &lt;b&gt;Tandea&lt;/b&gt; ha sido creada exitosamente. Ya puedes crear tandas de ahorro con tus amigos o unirte a una mediante su código de invitación.&lt;/p&gt;
+        &lt;div style="margin: 24px 0; text-align: center;"&gt;
+          &lt;a href="#" style="background: #1b4f72; color: #ffffff; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: bold; display: inline-block;"&gt;Comenzar ahora&lt;/a&gt;
+        &lt;/div&gt;
+        &lt;p style="font-size: 14px; color: #5a7280;"&gt;Si no te has registrado en Tandea, puedes ignorar este mensaje.&lt;/p&gt;
+      `),
+    };
+  },
+
+  /**
+   * Plantilla reutilizable para invitar participantes a una tanda
+   */
+  inviteToTanda(tandaName: string, inviteCode: string, adminName: string): { subject: string; html: string } {
+    return {
+      subject: `Has sido invitado a la tanda "${tandaName}" en Tandea`,
+      html: layout(`
+        &lt;h2 style="color: #1b4f72; margin-top: 0;"&gt;¡Únete a la tanda! 🤝&lt;/h2&gt;
+        &lt;p&gt;&lt;b&gt;${adminName}&lt;/b&gt; te ha invitado a formar parte de la tanda &lt;b&gt;${tandaName}&lt;/b&gt;.&lt;/p&gt;
+        &lt;div style="background: #eaf3fa; border: 2px dashed #1b4f72; border-radius: 8px; padding: 16px; text-align: center; margin: 20px 0;"&gt;
+          &lt;span style="font-size: 13px; color: #5a7280; display: block; margin-bottom: 4px;"&gt;CÓDIGO ÚNICO DE INVITACIÓN&lt;/span&gt;
+          &lt;strong style="font-size: 28px; letter-spacing: 4px; color: #1b4f72;"&gt;${inviteCode}&lt;/strong&gt;
+        &lt;/div&gt;
+        &lt;p&gt;Ingresa a la aplicación, selecciona &lt;i&gt;Unirse a una tanda&lt;/i&gt; e introduce este código para elegir tu número de cobro.&lt;/p&gt;
+      `),
+    };
+  },
+};
+</code></pre>
+      </div>
+
+      <div class="explanation">
+        <b>¿Qué hace este código?</b>
+        <ul>
+          <li>Centraliza el diseño visual de los correos para que cualquier módulo (Auth, Tandas, Pagos) reutilice la misma identidad gráfica.</li>
+          <li>Retorna el asunto y el HTML listo para enviar.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- 1.3 Adaptador Brevo -->
+    <div class="step">
+      <div class="step-title"><span>1.3 Adaptador de Infraestructura para Brevo API</span></div>
+      <span class="step-path">src/common/infrastructure/adapters/out/mail/brevo-mail.adapter.ts</span>
+      <p>Consume directamente el endpoint REST v3 de Brevo (<code>https://api.brevo.com/v3/smtp/email</code>) usando <code>fetch</code> nativo de Node 20+, con total resiliencia a fallos.</p>
+
+      <div class="code-wrapper">
+        <div class="code-header"><span>TypeScript — brevo-mail.adapter.ts</span><button class="copy-btn" onclick="copyCode(this)">Copiar</button></div>
+        <pre><code>import { Injectable, Logger } from '@nestjs/common';
+import { MailPort, SendEmailOptions, EmailRecipient } from '../../../../ports/out/mail.port';
+
+@Injectable()
+export class BrevoMailAdapter implements MailPort {
+  private readonly logger = new Logger(BrevoMailAdapter.name);
+  private readonly apiUrl = 'https://api.brevo.com/v3/smtp/email';
+
+  async sendMail(options: SendEmailOptions): Promise<boolean> {
+    const apiKey = process.env.BREVO_API_KEY;
+    const senderEmail = process.env.BREVO_SENDER_EMAIL || 'notificaciones@tandea.app';
+    const senderName = process.env.BREVO_SENDER_NAME || 'Tandea';
+
+    if (!apiKey) {
+      this.logger.warn('BREVO_API_KEY no configurada. Omitiendo envío de correo real.');
+      return false;
+    }
+
+    // Normalizar lista de destinatarios
+    const recipients: { email: string; name?: string }[] = Array.isArray(options.to)
+      ? options.to.map((r) => (typeof r === 'string' ? { email: r } : r))
+      : [{ email: options.to }];
+
+    const payload = {
+      sender: { name: senderName, email: senderEmail },
+      to: recipients,
+      subject: options.subject,
+      htmlContent: options.htmlContent,
+      textContent: options.textContent,
+    };
+
+    try {
+      const response = await fetch(this.apiUrl, {
+        method: 'POST',
+        headers: {
+          'accept': 'application/json',
+          'api-key': apiKey,
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const errorBody = await response.text();
+        this.logger.error(`Fallo en Brevo API (Status ${response.status}): ${errorBody}`);
+        return false;
+      }
+
+      this.logger.log(`Correo enviado exitosamente a: ${recipients.map((r) => r.email).join(', ')}`);
+      return true;
+    } catch (error: any) {
+      // Regla de oro del proyecto: el fallo de correo NUNCA debe romper la API
+      this.logger.error(`Error de red al conectar con Brevo API: ${error?.message || error}`);
+      return false;
+    }
+  }
+}
+</code></pre>
+      </div>
+
+      <div class="explanation">
+        <b>¿Por qué es superior esta implementación?</b>
+        <ul>
+          <li><b>Cero librerías pesadas adicionales:</b> Usa <code>fetch</code> estándar de Node.js 20+.</li>
+          <li><b>Resiliencia garantizada:</b> Atrapa errores en un <code>try/catch</code> y retorna <code>false</code> sin arrojar una excepción no controlada que tumbe el registro del usuario.</li>
+          <li><b>Variables ya configuradas:</b> Lee directamente tus variables <code>BREVO_API_KEY</code>, <code>BREVO_SENDER_EMAIL</code> y <code>BREVO_SENDER_NAME</code> de tu <code>.env</code>.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- 1.4 Integración en AuthService -->
+    <div class="step">
+      <div class="step-title"><span>1.4 Conectar el Servicio de Correo en el Registro de Usuarios</span></div>
+      <span class="step-path">src/auth/application/services/auth.service.ts</span>
+      <p>Modifica el método <code>register()</code> para invocar el envío de bienvenida en segundo plano sin bloquear la respuesta.</p>
+
+      <div class="code-wrapper">
+        <div class="code-header"><span>TypeScript — auth.service.ts (fragmento modificado)</span><button class="copy-btn" onclick="copyCode(this)">Copiar</button></div>
+        <pre><code>// 1. Agregar importaciones al inicio del archivo:
+import { MAIL_PORT, type MailPort } from '../../../common/ports/out/mail.port';
+import { EmailTemplates } from '../../../common/templates/mail/email-templates';
+
+// 2. Inyectar en el constructor de AuthService:
+constructor(
+  @Inject(AUTH_USER_REPOSITORY_PORT)
+  private readonly userRepository: AuthUserRepositoryPort,
+  @Inject(MAIL_PORT)
+  private readonly mailService: MailPort,
+  private readonly jwtService: JwtService,
+) {}
+
+// 3. Al final del método register():
+// Justo antes del return de register():
+const template = EmailTemplates.welcome(newUser.name);
+// Se dispara sin 'await' o con catch seguro para no frenar la respuesta HTTP 201
+this.mailService
+  .sendMail({
+    to: newUser.email,
+    subject: template.subject,
+    htmlContent: template.html,
+  })
+  .catch(() => {});
+
+return {
+  access_token: token,
+  user: { ... },
+};
+</code></pre>
+      </div>
+    </div>
+
+    <!-- 1.5 Proveer en Common / Auth Module -->
+    <div class="step">
+      <div class="step-title"><span>1.5 Registrar el Proveedor en AuthModule</span></div>
+      <span class="step-path">src/auth/auth.module.ts</span>
+      <p>Vincula el token <code>MAIL_PORT</code> con <code>BrevoMailAdapter</code> en la inyección de dependencias.</p>
+
+      <div class="code-wrapper">
+        <div class="code-header"><span>TypeScript — auth.module.ts</span><button class="copy-btn" onclick="copyCode(this)">Copiar</button></div>
+        <pre><code>import { MAIL_PORT } from '../common/ports/out/mail.port';
+import { BrevoMailAdapter } from '../common/infrastructure/adapters/out/mail/brevo-mail.adapter';
+
+@Module({
+  imports: [ ... ],
+  controllers: [ ... ],
+  providers: [
+    {
+      provide: MAIL_PORT,
+      useClass: BrevoMailAdapter,
+    },
+    // ... demás providers existentes
+  ],
+  exports: [MAIL_PORT],
+})
+export class AuthModule {}
+</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================================================================== -->
+  <!-- SECCIÓN 2: CREAR TANDA & CÓDIGO ÚNICO (AP-01)                         -->
+  <!-- ===================================================================== -->
+  <section id="sec-tanda" class="card">
+    <div class="card-header">
+      <div>
+        <h2><span>🏦</span> Tarjeta 2: [BE-TANDA] Crear Tanda y Generar Código Único de Invitación (AP-01)</h2>
+        <div class="meta">Sprint 2 | Historia AP-01 | Prioridad Alta (Crítica MVP)</div>
+      </div>
+      <span class="chip chip-be">BE-TANDA</span>
+    </div>
+
+    <p class="lead">Permite que un usuario autenticado (Organizador / Admin) configure y cree una nueva tanda, generando un código alfanumérico único para invitar a otros participantes.</p>
+
+    <!-- 2.1 Entidad Dominio -->
+    <div class="step">
+      <div class="step-title"><span>2.1 Entidad de Dominio: Tanda</span></div>
+      <span class="step-path">src/tandas/domain/entities/tanda.entity.ts</span>
+      <p>Representa el modelo de negocio con sus reglas invariantes.</p>
+
+      <div class="code-wrapper">
+        <div class="code-header"><span>TypeScript — tanda.entity.ts</span><button class="copy-btn" onclick="copyCode(this)">Copiar</button></div>
+        <pre><code>export type TandaStatus = 'PENDIENTE' | 'ACTIVA' | 'FINALIZADA' | 'SUSPENDIDA' | 'CANCELADA';
+
+export interface TandaProps {
+  idTanda?: number;
+  name: string;
+  description?: string | null;
+  startDate: string; // Formato YYYY-MM-DD
+  endDate?: string | null;
+  contributionAmount: number;
+  numParticipants: number;
+  numRounds: number;
+  graceDays: number;
+  hasDeadNumber: boolean;
+  idTandaType: number;
+  idAdmin: number;
+  status?: TandaStatus;
+  active?: boolean;
+  inviteCode: string;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+export class Tanda {
+  constructor(private readonly props: TandaProps) {
+    this.validate();
+  }
+
+  private validate(): void {
+    if (this.props.numParticipants < 2) {
+      throw new Error('Una tanda debe tener al menos 2 participantes');
+    }
+    if (this.props.contributionAmount <= 0) {
+      throw new Error('El monto de contribución debe ser mayor a 0');
+    }
+    if (this.props.graceDays < 0) {
+      throw new Error('Los días de gracia no pueden ser negativos');
+    }
+    if (this.props.numRounds < 1) {
+      throw new Error('Debe haber al menos 1 ronda');
+    }
+  }
+
+  get idTanda(): number | undefined { return this.props.idTanda; }
+  get name(): string { return this.props.name; }
+  get description(): string | null | undefined { return this.props.description; }
+  get startDate(): string { return this.props.startDate; }
+  get endDate(): string | null | undefined { return this.props.endDate; }
+  get contributionAmount(): number { return this.props.contributionAmount; }
+  get numParticipants(): number { return this.props.numParticipants; }
+  get numRounds(): number { return this.props.numRounds; }
+  get graceDays(): number { return this.props.graceDays; }
+  get hasDeadNumber(): boolean { return this.props.hasDeadNumber; }
+  get idTandaType(): number { return this.props.idTandaType; }
+  get idAdmin(): number { return this.props.idAdmin; }
+  get status(): TandaStatus { return this.props.status ?? 'PENDIENTE'; }
+  get active(): boolean { return this.props.active ?? true; }
+  get inviteCode(): string { return this.props.inviteCode; }
+
+  toPrimitives(): TandaProps {
+    return { ...this.props, status: this.status, active: this.active };
+  }
+}
+</code></pre>
+      </div>
+    </div>
+
+    <!-- 2.2 Generador de Código Único -->
+    <div class="step">
+      <div class="step-title"><span>2.2 Generador de Código de Invitación (Reutilizable)</span></div>
+      <span class="step-path">src/tandas/domain/utils/invite-code.generator.ts</span>
+      <p>Genera un código legible y sin caracteres ambiguos (como O, 0, I, 1) en formato <code>TND-XXXXXX</code>.</p>
+
+      <div class="code-wrapper">
+        <div class="code-header"><span>TypeScript — invite-code.generator.ts</span><button class="copy-btn" onclick="copyCode(this)">Copiar</button></div>
+        <pre><code>import * as crypto from 'crypto';
+
+export class InviteCodeGenerator {
+  // Caracteres seguros y legibles sin confusión visual
+  private static readonly CHARACTERS = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
+
+  /**
+   * Genera un código legible con prefijo TND (ej. TND-7K9A2B)
+   */
+  static generate(length: number = 6): string {
+    const bytes = crypto.randomBytes(length);
+    let result = '';
+    for (let i = 0; i < length; i++) {
+      result += this.CHARACTERS[bytes[i] % this.CHARACTERS.length];
+    }
+    return `TND-${result}`;
+  }
+}
+</code></pre>
+      </div>
+    </div>
+
+    <!-- 2.3 Puertos -->
+    <div class="step">
+      <div class="step-title"><span>2.3 Puertos de Entrada y Salida</span></div>
+      <span class="step-path">src/tandas/domain/ports/</span>
+      <p>Contratos para persistencia y casos de uso.</p>
+
+      <div class="code-wrapper">
+        <div class="code-header"><span>TypeScript — tanda-repository.port.ts</span><button class="copy-btn" onclick="copyCode(this)">Copiar</button></div>
+        <pre><code>// src/tandas/domain/ports/out/tanda-repository.port.ts
+import { Tanda } from '../entities/tanda.entity';
+
+export interface TandaRepositoryPort {
+  create(tanda: Tanda): Promise<Tanda>;
+  findByInviteCode(inviteCode: string): Promise<Tanda | null>;
+  findById(idTanda: number): Promise<Tanda | null>;
+  updateStatus(idTanda: number, status: string): Promise<void>;
+}
+
+export const TANDA_REPOSITORY_PORT = Symbol('TANDA_REPOSITORY_PORT');
+</code></pre>
+      </div>
+
+      <div class="code-wrapper">
+        <div class="code-header"><span>TypeScript — create-tanda-use-case.port.ts</span><button class="copy-btn" onclick="copyCode(this)">Copiar</button></div>
+        <pre><code>// src/tandas/domain/ports/in/create-tanda-use-case.port.ts
+import { Tanda } from '../entities/tanda.entity';
+
+export interface CreateTandaCommand {
+  name: string;
+  description?: string;
+  startDate: string;
+  contributionAmount: number;
+  numParticipants: number;
+  numRounds?: number;
+  graceDays?: number;
+  hasDeadNumber?: boolean;
+  idTandaType?: number;
+  idAdmin: number;
+}
+
+export interface CreateTandaUseCasePort {
+  crearTanda(command: CreateTandaCommand): Promise<Tanda>;
+}
+
+export const CREATE_TANDA_USE_CASE_PORT = Symbol('CREATE_TANDA_USE_CASE_PORT');
+</code></pre>
+      </div>
+    </div>
+
+    <!-- 2.4 DTO Zod -->
+    <div class="step">
+      <div class="step-title"><span>2.4 DTOs Validados con Zod</span></div>
+      <span class="step-path">src/tandas/application/dtos/create-tanda.dto.ts</span>
+      <p>Garantiza que la petición HTTP cumpla las reglas estrictas antes de llegar al servicio.</p>
+
+      <div class="code-wrapper">
+        <div class="code-header"><span>TypeScript — create-tanda.dto.ts</span><button class="copy-btn" onclick="copyCode(this)">Copiar</button></div>
+        <pre><code>import { z } from 'zod';
+
+export const zCreateTanda = z.object({
+  name: z.string().min(3, 'El nombre debe tener al menos 3 caracteres').max(150),
+  description: z.string().max(500).optional(),
+  startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'La fecha debe estar en formato YYYY-MM-DD'),
+  contributionAmount: z.number().positive('El monto debe ser un número positivo'),
+  numParticipants: z.number().int().min(2, 'Debe haber al menos 2 participantes').max(50),
+  numRounds: z.number().int().min(1).default(1),
+  graceDays: z.number().int().min(0).default(0),
+  hasDeadNumber: z.boolean().default(false),
+  idTandaType: z.number().int().positive().default(1),
+});
+
+export type CreateTandaDto = z.infer<typeof zCreateTanda>;
+</code></pre>
+      </div>
+    </div>
+
+    <!-- 2.5 Servicio -->
+    <div class="step">
+      <div class="step-title"><span>2.5 Servicio de Aplicación: TandaService</span></div>
+      <span class="step-path">src/tandas/application/services/tanda.service.ts</span>
+      <p>Orquesta la creación, asegura la unicidad del código de invitación y crea los números iniciales si aplica.</p>
+
+      <div class="code-wrapper">
+        <div class="code-header"><span>TypeScript — tanda.service.ts</span><button class="copy-btn" onclick="copyCode(this)">Copiar</button></div>
+        <pre><code>import { Injectable, Inject, ConflictException, NotFoundException, BadRequestException } from '@nestjs/common';
+import { CreateTandaUseCasePort, CreateTandaCommand } from '../../domain/ports/in/create-tanda-use-case.port';
+import { TANDA_REPOSITORY_PORT, type TandaRepositoryPort } from '../../domain/ports/out/tanda-repository.port';
+import { NUMBER_REPOSITORY_PORT, type NumberRepositoryPort } from '../../domain/ports/out/number-repository.port';
+import { Tanda } from '../../domain/entities/tanda.entity';
+import { InviteCodeGenerator } from '../../domain/utils/invite-code.generator';
+
+@Injectable()
+export class TandaService implements CreateTandaUseCasePort {
+  constructor(
+    @Inject(TANDA_REPOSITORY_PORT)
+    private readonly tandaRepository: TandaRepositoryPort,
+    @Inject(NUMBER_REPOSITORY_PORT)
+    private readonly numberRepository: NumberRepositoryPort,
+  ) {}
+
+  async crearTanda(command: CreateTandaCommand): Promise<Tanda> {
+    // 1. Generar código único y verificar colisión en BD
+    let inviteCode = '';
+    let isUnique = false;
+    let attempts = 0;
+
+    while (!isUnique && attempts < 5) {
+      inviteCode = InviteCodeGenerator.generate();
+      const existing = await this.tandaRepository.findByInviteCode(inviteCode);
+      if (!existing) {
+        isUnique = true;
+      }
+      attempts++;
+    }
+
+    if (!isUnique) {
+      throw new ConflictException('No se pudo generar un código único de tanda. Reintente.');
+    }
+
+    // 2. Instanciar y persistir entidad
+    const tanda = new Tanda({
+      name: command.name,
+      description: command.description,
+      startDate: command.startDate,
+      contributionAmount: command.contributionAmount,
+      numParticipants: command.numParticipants,
+      numRounds: command.numRounds ?? 1,
+      graceDays: command.graceDays ?? 0,
+      hasDeadNumber: command.hasDeadNumber ?? false,
+      idTandaType: command.idTandaType ?? 1,
+      idAdmin: command.idAdmin,
+      inviteCode,
+      status: 'PENDIENTE',
+    });
+
+    const tandaCreada = await this.tandaRepository.create(tanda);
+
+    // 3. Si tiene número muerto configurado, reservar el turno en la vuelta 1
+    if (tandaCreada.hasDeadNumber && tandaCreada.idTanda) {
+      await this.numberRepository.createNumber({
+        idTanda: tandaCreada.idTanda,
+        roundNumber: 1,
+        numberValue: tandaCreada.numParticipants, // Último turno para el número muerto
+        idUser: null,
+        isDeadNumber: true,
+        status: 'PENDIENTE',
+      });
+    }
+
+    return tandaCreada;
+  }
+}
+</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================================================================== -->
+  <!-- SECCIÓN 3: ASIGNAR NÚMEROS (MANUAL O AUTOMÁTICO)                      -->
+  <!-- ===================================================================== -->
+  <section id="sec-numeros" class="card">
+    <div class="card-header">
+      <div>
+        <h2><span>🎲</span> Tarjeta 3: [BE-TANDA] Asignar Números (Elección Manual vs Automática)</h2>
+        <div class="meta">Sprint 2 | Restricción [idTanda, roundNumber, numberValue]</div>
+      </div>
+      <span class="chip chip-be">BE-TANDA</span>
+    </div>
+
+    <!-- 3.1 Puerto Number Repository -->
+    <div class="step">
+      <div class="step-title"><span>3.1 Puerto del Repositorio de Turnos/Números</span></div>
+      <span class="step-path">src/tandas/domain/ports/out/number-repository.port.ts</span>
+      <p>Abstracción para consultar y asignar números en la tabla <code>number</code>.</p>
+
+      <div class="code-wrapper">
+        <div class="code-header"><span>TypeScript — number-repository.port.ts</span><button class="copy-btn" onclick="copyCode(this)">Copiar</button></div>
+        <pre><code>export interface NumberRecord {
+  idNumber?: number;
+  idTanda: number;
+  roundNumber: number;
+  numberValue: number;
+  idUser: number | null;
+  isDeadNumber: boolean;
+  status: 'PENDIENTE' | 'EN_RIESGO' | 'ENTREGA_PENDIENTE_CONFIRMACION' | 'ENTREGADO';
+}
+
+export interface NumberRepositoryPort {
+  createNumber(data: NumberRecord): Promise<NumberRecord>;
+  findOccupiedNumbers(idTanda: number, roundNumber: number): Promise<number[]>;
+  findByUserInTanda(idTanda: number, idUser: number): Promise<NumberRecord[]>;
+  countParticipants(idTanda: number): Promise<number>;
+}
+
+export const NUMBER_REPOSITORY_PORT = Symbol('NUMBER_REPOSITORY_PORT');
+</code></pre>
+      </div>
+    </div>
+
+    <!-- 3.2 Lógica de Asignación en TandaService -->
+    <div class="step">
+      <div class="step-title"><span>3.2 Lógica de Selección Manual vs Sorteo/Automático</span></div>
+      <span class="step-path">src/tandas/application/services/tanda.service.ts (método asignarNumero)</span>
+      <p>Algoritmo que valida que el número no esté ocupado o encuentra el primer turno libre.</p>
+
+      <div class="code-wrapper">
+        <div class="code-header"><span>TypeScript — Algoritmo de asignación</span><button class="copy-btn" onclick="copyCode(this)">Copiar</button></div>
+        <pre><code>/**
+ * Asigna un turno a un usuario en una tanda.
+ * Si selectedNumber viene definido -> Modalidad Manual (valida colisión).
+ * Si selectedNumber es null/undefined -> Modalidad Automática (primer número libre).
+ */
+async asignarNumero(
+  idTanda: number,
+  idUser: number,
+  roundNumber: number = 1,
+  selectedNumber?: number,
+): Promise<NumberRecord> {
+  const tanda = await this.tandaRepository.findById(idTanda);
+  if (!tanda) throw new NotFoundException('Tanda no encontrada');
+
+  const occupied = await this.numberRepository.findOccupiedNumbers(idTanda, roundNumber);
+
+  let chosenNumber: number;
+
+  if (selectedNumber !== undefined && selectedNumber !== null) {
+    // MODALIDAD MANUAL
+    if (selectedNumber < 1 || selectedNumber > tanda.numParticipants) {
+      throw new BadRequestException(
+        `El número debe estar entre 1 y ${tanda.numParticipants}`
+      );
+    }
+    if (occupied.includes(selectedNumber)) {
+      throw new ConflictException(
+        `El número ${selectedNumber} ya está tomado por otro participante`
+      );
+    }
+    chosenNumber = selectedNumber;
+  } else {
+    // MODALIDAD AUTOMÁTICA
+    const allNumbers = Array.from({ length: tanda.numParticipants }, (_, i) => i + 1);
+    const available = allNumbers.filter((n) => !occupied.includes(n));
+
+    if (available.length === 0) {
+      throw new ConflictException('No hay números disponibles en esta tanda');
+    }
+    chosenNumber = available[0]; // Primer número disponible
+  }
+
+  return await this.numberRepository.createNumber({
+    idTanda,
+    roundNumber,
+    numberValue: chosenNumber,
+    idUser,
+    isDeadNumber: false,
+    status: 'PENDIENTE',
+  });
+}
+</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================================================================== -->
+  <!-- SECCIÓN 4: UNIRSE A TANDA (AP-02)                                     -->
+  <!-- ===================================================================== -->
+  <section id="sec-unirse" class="card">
+    <div class="card-header">
+      <div>
+        <h2><span>🤝</span> Tarjeta 4: [BE-TANDA] Unirse a una Tanda con Código Único (AP-02)</h2>
+        <div class="meta">Sprint 2 | Historia AP-02 | POST /api/v1/tandas/unirse</div>
+      </div>
+      <span class="chip chip-be">BE-TANDA</span>
+    </div>
+
+    <!-- 4.1 DTO Unirse -->
+    <div class="step">
+      <div class="step-title"><span>4.1 DTO de Petición con Zod</span></div>
+      <span class="step-path">src/tandas/application/dtos/join-tanda.dto.ts</span>
+      <p>Valida el código de invitación y el número seleccionado (opcional).</p>
+
+      <div class="code-wrapper">
+        <div class="code-header"><span>TypeScript — join-tanda.dto.ts</span><button class="copy-btn" onclick="copyCode(this)">Copiar</button></div>
+        <pre><code>import { z } from 'zod';
+
+export const zJoinTanda = z.object({
+  inviteCode: z.string().trim().min(5, 'Código de invitación inválido'),
+  selectedNumber: z.number().int().positive().optional(),
+});
+
+export type JoinTandaDto = z.infer<typeof zJoinTanda>;
+</code></pre>
+      </div>
+    </div>
+
+    <!-- 4.2 Caso de Uso en TandaService -->
+    <div class="step">
+      <div class="step-title"><span>4.2 Método unirseATanda en TandaService</span></div>
+      <span class="step-path">src/tandas/application/services/tanda.service.ts</span>
+      <p>Verifica estado de tanda, cupos, participante duplicado y asigna el turno.</p>
+
+      <div class="code-wrapper">
+        <div class="code-header"><span>TypeScript — unirseATanda</span><button class="copy-btn" onclick="copyCode(this)">Copiar</button></div>
+        <pre><code>async unirseATanda(inviteCode: string, idUser: number, selectedNumber?: number) {
+  // 1. Buscar tanda por código
+  const tanda = await this.tandaRepository.findByInviteCode(inviteCode);
+  if (!tanda || !tanda.active) {
+    throw new NotFoundException('Código de invitación no válido o tanda inactiva');
+  }
+
+  // 2. Solo se pueden unir en estado PENDIENTE
+  if (tanda.status !== 'PENDIENTE') {
+    throw new BadRequestException('La tanda ya inició o no admite nuevos participantes');
+  }
+
+  // 3. Validar que el participante no esté ya unido
+  const existingRecords = await this.numberRepository.findByUserInTanda(tanda.idTanda!, idUser);
+  if (existingRecords.length > 0) {
+    throw new ConflictException('Ya estás registrado como participante de esta tanda');
+  }
+
+  // 4. Validar cupo
+  const currentCount = await this.numberRepository.countParticipants(tanda.idTanda!);
+  if (currentCount >= tanda.numParticipants) {
+    throw new BadRequestException('La tanda ha alcanzado el cupo máximo de participantes');
+  }
+
+  // 5. Asignar el turno
+  const assigned = await this.asignarNumero(tanda.idTanda!, idUser, 1, selectedNumber);
+
+  return {
+    mensaje: 'Te has unido exitosamente a la tanda',
+    tanda: {
+      idTanda: tanda.idTanda,
+      name: tanda.name,
+      contributionAmount: tanda.contributionAmount,
+      startDate: tanda.startDate,
+    },
+    turnoAsignado: assigned.numberValue,
+  };
+}
+</code></pre>
+      </div>
+    </div>
+
+    <!-- 4.3 Adaptador Drizzle -->
+    <div class="step">
+      <div class="step-title"><span>4.3 Adaptador de Persistencia Drizzle ORM</span></div>
+      <span class="step-path">src/tandas/infrastructure/adapters/out/database/drizzle-tanda.repository.ts</span>
+      <p>Implementa las consultas contra <code>tandaTable</code> y <code>numberTable</code> de <code>tandea.schema.ts</code>.</p>
+
+      <div class="code-wrapper">
+        <div class="code-header"><span>TypeScript — drizzle-tanda.repository.ts</span><button class="copy-btn" onclick="copyCode(this)">Copiar</button></div>
+        <pre><code>import { Injectable, Inject } from '@nestjs/common';
+import { NodePgDatabase } from 'drizzle-orm/node-postgres';
+import { eq, and, count } from 'drizzle-orm';
+import { DATABASE_TOKEN } from '../../../../common/tokens';
+import { tandaTable, numberTable } from '../../../../database/tandea.schema';
+import { Tanda } from '../../../domain/entities/tanda.entity';
+import { TandaRepositoryPort } from '../../../domain/ports/out/tanda-repository.port';
+import { NumberRepositoryPort, NumberRecord } from '../../../domain/ports/out/number-repository.port';
+
+@Injectable()
+export class DrizzleTandaRepository implements TandaRepositoryPort, NumberRepositoryPort {
+  constructor(
+    @Inject(DATABASE_TOKEN)
+    private readonly db: NodePgDatabase,
+  ) {}
+
+  // --- TANDA REPOSITORY ---
+  async create(tanda: Tanda): Promise<Tanda> {
+    const [row] = await this.db.insert(tandaTable).values({
+      name: tanda.name,
+      description: tanda.description,
+      startDate: tanda.startDate,
+      contributionAmount: tanda.contributionAmount.toString(),
+      numParticipants: tanda.numParticipants,
+      numRounds: tanda.numRounds,
+      graceDays: tanda.graceDays,
+      hasDeadNumber: tanda.hasDeadNumber,
+      idTandaType: tanda.idTandaType,
+      idAdmin: tanda.idAdmin,
+      status: tanda.status,
+      inviteCode: tanda.inviteCode,
+    }).returning();
+
+    return new Tanda({
+      idTanda: row.idTanda,
+      name: row.name,
+      description: row.description,
+      startDate: row.startDate,
+      contributionAmount: Number(row.contributionAmount),
+      numParticipants: row.numParticipants,
+      numRounds: row.numRounds,
+      graceDays: row.graceDays,
+      hasDeadNumber: row.hasDeadNumber,
+      idTandaType: row.idTandaType,
+      idAdmin: row.idAdmin,
+      status: row.status as any,
+      active: row.active,
+      inviteCode: row.inviteCode,
+    });
+  }
+
+  async findByInviteCode(inviteCode: string): Promise<Tanda | null> {
+    const [row] = await this.db.select().from(tandaTable).where(eq(tandaTable.inviteCode, inviteCode)).limit(1);
+    if (!row) return null;
+    return new Tanda({
+      idTanda: row.idTanda,
+      name: row.name,
+      description: row.description,
+      startDate: row.startDate,
+      contributionAmount: Number(row.contributionAmount),
+      numParticipants: row.numParticipants,
+      numRounds: row.numRounds,
+      graceDays: row.graceDays,
+      hasDeadNumber: row.hasDeadNumber,
+      idTandaType: row.idTandaType,
+      idAdmin: row.idAdmin,
+      status: row.status as any,
+      active: row.active,
+      inviteCode: row.inviteCode,
+    });
+  }
+
+  async findById(idTanda: number): Promise<Tanda | null> {
+    const [row] = await this.db.select().from(tandaTable).where(eq(tandaTable.idTanda, idTanda)).limit(1);
+    if (!row) return null;
+    return new Tanda({
+      idTanda: row.idTanda,
+      name: row.name,
+      description: row.description,
+      startDate: row.startDate,
+      contributionAmount: Number(row.contributionAmount),
+      numParticipants: row.numParticipants,
+      numRounds: row.numRounds,
+      graceDays: row.graceDays,
+      hasDeadNumber: row.hasDeadNumber,
+      idTandaType: row.idTandaType,
+      idAdmin: row.idAdmin,
+      status: row.status as any,
+      active: row.active,
+      inviteCode: row.inviteCode,
+    });
+  }
+
+  async updateStatus(idTanda: number, status: any): Promise<void> {
+    await this.db.update(tandaTable).set({ status }).where(eq(tandaTable.idTanda, idTanda));
+  }
+
+  // --- NUMBER REPOSITORY ---
+  async createNumber(data: NumberRecord): Promise<NumberRecord> {
+    const [row] = await this.db.insert(numberTable).values({
+      idTanda: data.idTanda,
+      roundNumber: data.roundNumber,
+      numberValue: data.numberValue,
+      idUser: data.idUser,
+      isDeadNumber: data.isDeadNumber,
+      status: data.status,
+    }).returning();
+    return {
+      idNumber: row.idNumber,
+      idTanda: row.idTanda,
+      roundNumber: row.roundNumber,
+      numberValue: row.numberValue,
+      idUser: row.idUser,
+      isDeadNumber: row.isDeadNumber,
+      status: row.status as any,
+    };
+  }
+
+  async findOccupiedNumbers(idTanda: number, roundNumber: number): Promise<number[]> {
+    const rows = await this.db
+      .select({ numberValue: numberTable.numberValue })
+      .from(numberTable)
+      .where(and(eq(numberTable.idTanda, idTanda), eq(numberTable.roundNumber, roundNumber)));
+    return rows.map((r) => r.numberValue);
+  }
+
+  async findByUserInTanda(idTanda: number, idUser: number): Promise<NumberRecord[]> {
+    const rows = await this.db
+      .select()
+      .from(numberTable)
+      .where(and(eq(numberTable.idTanda, idTanda), eq(numberTable.idUser, idUser)));
+    return rows as any;
+  }
+
+  async countParticipants(idTanda: number): Promise<number> {
+    const [res] = await this.db
+      .select({ total: count() })
+      .from(numberTable)
+      .where(eq(numberTable.idTanda, idTanda));
+    return Number(res?.total || 0);
+  }
+}
+</code></pre>
+      </div>
+    </div>
+
+    <!-- 4.4 Controlador HTTP -->
+    <div class="step">
+      <div class="step-title"><span>4.4 Controlador HTTP: TandaController</span></div>
+      <span class="step-path">src/tandas/infrastructure/adapters/in/http/tanda.controller.ts</span>
+      <p>Expone los endpoints protegidos con <code>JwtAuthGuard</code> para crear tanda y unirse.</p>
+
+      <div class="code-wrapper">
+        <div class="code-header"><span>TypeScript — tanda.controller.ts</span><button class="copy-btn" onclick="copyCode(this)">Copiar</button></div>
+        <pre><code>import { Controller, Post, Body, UseGuards, Request, HttpCode, HttpStatus } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
+import { TandaService } from '../../../application/services/tanda.service';
+import { zCreateTanda } from '../../../application/dtos/create-tanda.dto';
+import { zJoinTanda } from '../../../application/dtos/join-tanda.dto';
+
+@Controller('tandas')
+@UseGuards(AuthGuard('jwt'))
+export class TandaController {
+  constructor(private readonly tandaService: TandaService) {}
+
+  @Post()
+  @HttpCode(HttpStatus.CREATED)
+  async crearTanda(@Body() body: unknown, @Request() req: any) {
+    const dto = zCreateTanda.parse(body);
+    const userId = req.user.idUser || req.user.sub;
+
+    const tanda = await this.tandaService.crearTanda({
+      ...dto,
+      idAdmin: userId,
+    });
+
+    return {
+      statusCode: HttpStatus.CREATED,
+      mensaje: 'Tanda creada exitosamente',
+      data: tanda.toPrimitives(),
+    };
+  }
+
+  @Post('unirse')
+  @HttpCode(HttpStatus.OK)
+  async unirse(@Body() body: unknown, @Request() req: any) {
+    const dto = zJoinTanda.parse(body);
+    const userId = req.user.idUser || req.user.sub;
+
+    const resultado = await this.tandaService.unirseATanda(
+      dto.inviteCode,
+      userId,
+      dto.selectedNumber,
+    );
+
+    return {
+      statusCode: HttpStatus.OK,
+      ...resultado,
+    };
+  }
+}
+</code></pre>
+      </div>
+    </div>
+
+    <!-- 4.5 Módulo Tanda -->
+    <div class="step">
+      <div class="step-title"><span>4.5 Configuración de TandaModule</span></div>
+      <span class="step-path">src/tandas/tanda.module.ts</span>
+      <p>Registra puertos y adaptadores en el contenedor de inversión de control de NestJS.</p>
+
+      <div class="code-wrapper">
+        <div class="code-header"><span>TypeScript — tanda.module.ts</span><button class="copy-btn" onclick="copyCode(this)">Copiar</button></div>
+        <pre><code>import { Module } from '@nestjs/common';
+import { DatabaseModule } from '../database/database.module';
+import { TandaController } from './infrastructure/adapters/in/http/tanda.controller';
+import { TandaService } from './application/services/tanda.service';
+import { DrizzleTandaRepository } from './infrastructure/adapters/out/database/drizzle-tanda.repository';
+import { TANDA_REPOSITORY_PORT } from './domain/ports/out/tanda-repository.port';
+import { NUMBER_REPOSITORY_PORT } from './domain/ports/out/number-repository.port';
+import { CREATE_TANDA_USE_CASE_PORT } from './domain/ports/in/create-tanda-use-case.port';
+
+@Module({
+  imports: [DatabaseModule],
+  controllers: [TandaController],
+  providers: [
+    TandaService,
+    {
+      provide: TANDA_REPOSITORY_PORT,
+      useClass: DrizzleTandaRepository,
+    },
+    {
+      provide: NUMBER_REPOSITORY_PORT,
+      useClass: DrizzleTandaRepository,
+    },
+    {
+      provide: CREATE_TANDA_USE_CASE_PORT,
+      useClass: TandaService,
+    },
+  ],
+  exports: [TandaService],
+})
+export class TandaModule {}
+</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================================================================== -->
+  <!-- SECCIÓN 5: PRUEBAS AUTOMATIZADAS VITEST                               -->
+  <!-- ===================================================================== -->
+  <section id="sec-pruebas" class="card">
+    <div class="card-header">
+      <div>
+        <h2><span>🧪</span> Pruebas Automatizadas con Vitest</h2>
+        <div class="meta">Comando: npm run test</div>
+      </div>
+      <span class="chip chip-test">QA & Unit Tests</span>
+    </div>
+
+    <!-- Test Brevo -->
+    <div class="step test-step">
+      <div class="step-title"><span>5.1 Prueba Unitaria: BrevoMailAdapter</span></div>
+      <span class="step-path">src/common/infrastructure/adapters/out/mail/brevo-mail.adapter.spec.ts</span>
+      <p>Verifica que el adaptador procese correctamente los envíos y no lance excepciones si la API falla.</p>
+
+      <div class="code-wrapper">
+        <div class="code-header"><span>TypeScript — brevo-mail.adapter.spec.ts</span><button class="copy-btn" onclick="copyCode(this)">Copiar</button></div>
+        <pre><code>import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { BrevoMailAdapter } from './brevo-mail.adapter';
+
+describe('BrevoMailAdapter', () => {
+  let adapter: BrevoMailAdapter;
+
+  beforeEach(() => {
+    adapter = new BrevoMailAdapter();
+    process.env.BREVO_API_KEY = 'test-key';
+  });
+
+  it('debe retornar true cuando la API de Brevo responde 201/200', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 201,
+      json: async () => ({ messageId: '<test@brevo>' }),
+    } as any);
+
+    const result = await adapter.sendMail({
+      to: 'usuario@correo.com',
+      subject: 'Prueba',
+      htmlContent: '&lt;p&gt;Hola&lt;/p&gt;',
+    });
+
+    expect(result).toBe(true);
+    expect(globalThis.fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('debe retornar false y no arrojar excepción cuando la API falla con 400', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 400,
+      text: async () => 'Invalid email address',
+    } as any);
+
+    const result = await adapter.sendMail({
+      to: 'invalido',
+      subject: 'Fallo',
+      htmlContent: '&lt;p&gt;Fallo&lt;/p&gt;',
+    });
+
+    expect(result).toBe(false);
+  });
+});
+</code></pre>
+      </div>
+    </div>
+
+    <!-- Test TandaService -->
+    <div class="step test-step">
+      <div class="step-title"><span>5.2 Pruebas Unitarias: TandaService & Asignación de Números</span></div>
+      <span class="step-path">src/tandas/application/services/tanda.service.spec.ts</span>
+      <p>Cubre creación de tanda con código único y conflicto de número manual repetido.</p>
+
+      <div class="code-wrapper">
+        <div class="code-header"><span>TypeScript — tanda.service.spec.ts</span><button class="copy-btn" onclick="copyCode(this)">Copiar</button></div>
+        <pre><code>import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { ConflictException } from '@nestjs/common';
+import { TandaService } from './tanda.service';
+import { Tanda } from '../../domain/entities/tanda.entity';
+
+describe('TandaService', () => {
+  let service: TandaService;
+  const mockTandaRepo = {
+    create: vi.fn(),
+    findByInviteCode: vi.fn(),
+    findById: vi.fn(),
+    updateStatus: vi.fn(),
+  };
+  const mockNumberRepo = {
+    createNumber: vi.fn(),
+    findOccupiedNumbers: vi.fn(),
+    findByUserInTanda: vi.fn(),
+    countParticipants: vi.fn(),
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    service = new TandaService(mockTandaRepo as any, mockNumberRepo as any);
+  });
+
+  it('debe crear una tanda y generar un código que empieza con TND-', async () => {
+    mockTandaRepo.findByInviteCode.mockResolvedValue(null);
+    mockTandaRepo.create.mockImplementation((tanda: Tanda) => tanda);
+
+    const resultado = await service.crearTanda({
+      name: 'Tanda Navideña',
+      startDate: '2026-11-01',
+      contributionAmount: 1000,
+      numParticipants: 5,
+      idAdmin: 1,
+    });
+
+    expect(resultado.name).toBe('Tanda Navideña');
+    expect(resultado.inviteCode).toMatch(/^TND-[A-Z0-9]{6}$/);
+  });
+
+  it('debe arrojar ConflictException si un participante elige un número ya ocupado', async () => {
+    mockTandaRepo.findById.mockResolvedValue(
+      new Tanda({
+        idTanda: 1,
+        name: 'Tanda Amigos',
+        startDate: '2026-10-20',
+        contributionAmount: 500,
+        numParticipants: 5,
+        numRounds: 1,
+        graceDays: 0,
+        hasDeadNumber: false,
+        idTandaType: 1,
+        idAdmin: 1,
+        inviteCode: 'TND-ABC123',
+      })
+    );
+    // El número 2 ya está ocupado en la ronda 1
+    mockNumberRepo.findOccupiedNumbers.mockResolvedValue([2]);
+
+    await expect(
+      service.asignarNumero(1, 99, 1, 2)
+    ).rejects.toThrow(ConflictException);
+  });
+});
+</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================================================================== -->
+  <!-- SECCIÓN 6: CHECKLIST DEFINICIÓN DE HECHO (DoD)                         -->
+  <!-- ===================================================================== -->
+  <section id="sec-checklist" class="card">
+    <div class="card-header">
+      <div>
+        <h2><span>✅</span> Checklist de Definición de Hecho (DoD)</h2>
+        <div class="meta">Requisitos indispensables antes de abrir Pull Request a develop</div>
+      </div>
+    </div>
+
+    <ul class="checklist">
+      <li><label><input type="checkbox"> <span>Módulo de Brevo reutilizable con plantillas HTML corporativas creado</span></label></li>
+      <li><label><input type="checkbox"> <span>Envío de correo no bloquea ni rompe la respuesta del registro</span></label></li>
+      <li><label><input type="checkbox"> <span>Generador seguro de códigos <code>TND-XXXXXX</code> implementado</span></label></li>
+      <li><label><input type="checkbox"> <span>Restricción de unicidad de turno validada (error 409 si ya está tomado)</span></label></li>
+      <li><label><input type="checkbox"> <span>Asignación automática y manual funcionando correctamente</span></label></li>
+      <li><label><input type="checkbox"> <span>Linter aprobado: <code>npm run lint</code> (oxlint sin errores)</span></label></li>
+      <li><label><input type="checkbox"> <span>Pruebas unitarias aprobadas: <code>npm run test</code> (vitest en verde)</span></label></li>
+      <li><label><input type="checkbox"> <span>Commit con Conventional Commits: <code>feat(tanda): crear tanda y asignar numeros AP-01 AP-02</code></span></label></li>
+      <li><label><input type="checkbox"> <span>Push a la rama feature y Pull Request abierto hacia <code>develop</code></span></label></li>
+    </ul>
+  </section>
+
+</main>
+
+<script>
+function copyCode(btn) {
+  const wrapper = btn.closest('.code-wrapper');
+  const code = wrapper.querySelector('pre code').innerText;
+  navigator.clipboard.writeText(code).then(() => {
+    const originalText = btn.innerText;
+    btn.innerText = '¡Copiado!';
+    btn.classList.add('copied');
+    setTimeout(() => {
+      btn.innerText = originalText;
+      btn.classList.remove('copied');
+    }, 2000);
+  });
+}
+
+function toggleTheme() {
+  const root = document.documentElement;
+  const current = root.getAttribute('data-theme');
+  const next = current === 'dark' ? 'light' : 'dark';
+  root.setAttribute('data-theme', next);
+  localStorage.setItem('tandea_theme', next);
+}
+
+// Cargar preferencia
+const savedTheme = localStorage.getItem('tandea_theme');
+if (savedTheme) {
+  document.documentElement.setAttribute('data-theme', savedTheme);
+}
+</script>
+
+</body>
+</html>

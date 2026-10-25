@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:tandea/features/tandas/domain/entities/tanda_entity.dart';
 import 'package:tandea/features/tandas/domain/services/calcular_plan.dart';
 import 'package:tandea/features/tandas/domain/usecases/crear_tanda_usecase.dart';
+import 'package:tandea/features/tandas/presentation/utils/crear_tanda_validators.dart';
 
 /// Proveedor de estado para el formulario de Creación de Tanda con cálculo en tiempo real.
 class CrearTandaProvider extends ChangeNotifier {
@@ -156,8 +157,8 @@ class CrearTandaProvider extends ChangeNotifier {
       return false;
     }
 
-    if (_numParticipantes < 2) {
-      _errorMessage = 'Debe haber al menos 2 participantes en la tanda.';
+    if (_numParticipantes < CrearTandaValidators.minParticipantes) {
+      _errorMessage = CrearTandaValidators.mensajeMinParticipantes;
       notifyListeners();
       return false;
     }

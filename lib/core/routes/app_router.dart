@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import 'package:tandea/core/routes/route_names.dart';
 import 'package:tandea/features/admin/presentation/screens/admin_dashboard_screen.dart';
 import 'package:tandea/features/auth/presentation/providers/auth_session_provider.dart';
 import 'package:tandea/features/auth/presentation/screens/login_screen.dart';
 import 'package:tandea/features/auth/presentation/screens/register_screen.dart';
 import 'package:tandea/features/auth/presentation/screens/welcome_screen.dart';
+import 'package:tandea/features/pagos/presentation/providers/pago_provider.dart';
+import 'package:tandea/features/pagos/presentation/screens/registrar_pago_screen.dart';
 import 'package:tandea/features/tandas/domain/entities/tanda_entity.dart';
 import 'package:tandea/features/tandas/presentation/screens/compartir_codigo_tanda_screen.dart';
 import 'package:tandea/features/tandas/presentation/screens/crear_tanda_screen.dart';
@@ -26,7 +29,9 @@ class AppRouter {
 
       // Si el usuario ya está autenticado e intenta acceder a login o registro, redirigir
       if (session.isAuthenticated) {
-        if (loc == RouteNames.login || loc == RouteNames.register) {
+        if (loc == RouteNames.welcome ||
+            loc == RouteNames.login ||
+            loc == RouteNames.register) {
           return session.isAdminGlobal
               ? RouteNames.admin
               : RouteNames.tandasParticipante;
@@ -155,6 +160,26 @@ class AppRouter {
         builder: (context, state) => const RegisterScreen(),
       ),
 
+      // Registrar Pago (AP-03). Recibe RegistrarPagoArgs por `extra`.
+      // TODO: SP-2-[FE-CAL] Navegar aquí desde el detalle de la tanda con el número del usuario.
+      GoRoute(
+        path: RouteNames.registrarPago,
+        builder: (context, state) {
+          final extra = state.extra;
+          if (extra is RegistrarPagoArgs) {
+            return ChangeNotifierProvider<PagoProvider>(
+              create: (_) => sl<PagoProvider>(),
+              child: RegistrarPagoScreen(args: extra),
+            );
+          }
+          return const _PlaceholderScreen(
+            title: 'Registrar pago',
+            mensaje: 'Abre esta pantalla desde tu tanda para registrar el pago de tu turno.',
+          );
+        },
+      ),
+
+      // Rutas restantes del sistema
       GoRoute(
         path: RouteNames.pagos,
         builder: (context, state) => const _PlaceholderScreen(title: 'Pagos'),
@@ -181,8 +206,12 @@ class AppRouter {
 
 class _PlaceholderScreen extends StatelessWidget {
   final String title;
+  final String mensaje;
 
-  const _PlaceholderScreen({required this.title});
+  const _PlaceholderScreen({
+    required this.title,
+    this.mensaje = 'Pantalla en desarrollo bajo Clean Architecture',
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -197,7 +226,10 @@ class _PlaceholderScreen extends StatelessWidget {
               style: Theme.of(context).textTheme.headlineSmall,
             ),
             const SizedBox(height: 16),
-            const Text('Pantalla en desarrollo bajo Clean Architecture'),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Text(mensaje, textAlign: TextAlign.center),
+            ),
           ],
         ),
       ),

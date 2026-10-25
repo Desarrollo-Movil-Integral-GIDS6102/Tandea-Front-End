@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Backlog Tandea</title>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#f3f7f9;--card:#fff;--ink:#12303f;--mute:#5a7280;--line:#d6e1e7;--navy:#0d2b3e;--ac:#1b4f72}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0b1a23;--card:#12293a;--ink:#e6f0f4;--mute:#93aab6;--line:#24435a;--navy:#071219;--ac:#6fb3e0}}
+:root[data-theme="dark"]{--bg:#0b1a23;--card:#12293a;--ink:#e6f0f4;--mute:#93aab6;--line:#24435a;--navy:#071219;--ac:#6fb3e0}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}*{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,sans-serif}
+header{background:var(--navy);color:#e8f3f7;padding:26px 20px}
+header div,main{max-width:900px;margin:0 auto}
+h1{margin:0 0 4px;font-size:1.8rem}header p{margin:0;opacity:.8}
+main{padding:0 16px 50px}
+.bar{position:sticky;top:env(safe-area-inset-top,0px);background:var(--bg);padding:12px 0;z-index:2;display:flex;flex-wrap:wrap;gap:6px;border-bottom:1px solid var(--line)}
+button,select,input{font:inherit;border:1px solid var(--line);border-radius:6px;padding:6px 10px;background:var(--card);color:var(--ink)}
+button{cursor:pointer}button.on{background:var(--ac);color:#fff;border-color:var(--ac)}
+input{flex:1;min-width:140px}:focus-visible{outline:3px solid var(--ac);outline-offset:2px}
+h2{margin:28px 0 2px;font-size:1.3rem}.sub{color:var(--mute);margin:0 0 10px;font-size:.92rem}
+details{background:var(--card);border:1px solid var(--line);border-radius:8px;margin-bottom:8px}
+summary{cursor:pointer;padding:10px 12px;display:flex;gap:10px;align-items:flex-start;list-style:none}
+summary::-webkit-details-marker{display:none}
+.due{font-weight:700;white-space:nowrap;min-width:52px}
+.chip{color:#fff;border-radius:99px;padding:1px 9px;font-size:.8rem;font-weight:700;white-space:nowrap}
+.BD{background:#7d4fb3}.BE{background:#2a73b8}.FE{background:#1f8a4c}.QA{background:#d9741a}.INT{background:#b58900}.DEVOPS{background:#6b7b85}.DOC{background:#3b8c95}
+.tt{flex:1;word-break:break-word}
+.cm{padding:0 12px 12px 74px;color:var(--ink);word-break:break-word}.cm.no{color:var(--mute);font-style:italic}
+@media(max-width:560px){.cm{padding-left:12px}summary{flex-wrap:wrap}}
+.own{background:transparent;color:var(--ink);border:1px solid var(--line)}.st.ok{background:#1f8a4c}.st.rev{background:#b58900}.st.conf{background:#9a6200}
+#n{color:var(--mute);margin:10px 0}
+.ck{width:22px;height:22px;margin:1px 0 0;accent-color:#1f8a4c;flex:none;cursor:pointer}
+details.dn{opacity:.6}details.dn .tt{text-decoration:line-through}
+</style></head><body>
+<header><div><h1>Product Backlog de Tandea</h1><p>Sprints de 2 semanas · Entrega: 20 de noviembre. Toca una tarjeta para ver su comentario técnico.</p></div></header>
+<main>
+<div class="bar"><div id="fs" style="display:flex;flex-wrap:wrap;gap:6px"></div><select id="ft" aria-label="Tipo"><option value="">Todos los tipos</option></select><select id="fd" aria-label="Estado"><option value="">Todas</option><option value="p">Pendientes</option><option value="m">Ya modificadas</option></select><input id="q" placeholder="Buscar…" aria-label="Buscar"></div>
+<div id="n"></div><div id="l"></div>
+</main>
+<script>
+var S=[
+{n:1,f:"5 – 9 oct",t:"SETUP + BD completa + AUTH",c:[
+["5 oct","[DEVOPS-SETUP] Crear monorepo en GitHub (/backend, /app, /docs) y proteger main","Crear la organización y el repo tandea. En Settings → Branches, activar la regla de main: requerir PR, 1 aprobación y bloquear push directo. Crear /backend, /app y /docs con un README en cada una."],
+["6 oct","[DEVOPS-SETUP] Configurar ramas develop, feature/ y fix/ con .gitignore y .env.example","Crear develop desde main. Un .gitignore por carpeta (Node y Flutter) con .env, node_modules, build/ y .dart_tool/. .env.example con DATABASE_URL, JWT_SECRET, GOOGLE_VISION_KEY y FCM_KEY sin valores reales. Activar plantilla de PR y squash and merge."],
+["6 oct","[BE-SETUP] Inicializar NestJS con estructura hexagonal por módulo","nest new backend. Módulos auth, tandas, pagos, entregas, notificaciones y admin. Dentro de cada uno: domain/entities, domain/ports, application, infrastructure/controllers, infrastructure/repositories e infrastructure/adapters. ValidationPipe global, prefijo /api/v1 y ESLint con Prettier."],
+["6 oct","[FE-SETUP] Inicializar Flutter con Clean Architecture feature-first","flutter create app. lib/features/{auth,tandas,pagos,entregas,notificaciones,admin}, cada uno con domain, data y presentation. lib/core con tema, rutas y constantes. go_router para navegación y lints estrictos en analysis_options.yaml."],
+["6 oct","[BD-SETUP] Configurar PostgreSQL con Prisma y PrismaService","Instalar prisma y @prisma/client, ejecutar prisma init. Crear PrismaService extends PrismaClient con onModuleInit y enableShutdownHooks, exportado desde un PrismaModule global. Levantar PostgreSQL local con docker-compose.yml."],
+["7 oct","[FE-SETUP] Configurar get_it, Dio (ApiClient) y Provider","core/network/ApiClient.dart con interceptor que agrega Authorization: Bearer <token> y maneja el 401. injection.dart con registerLazySingleton para ApiClient, flutter_secure_storage y repositorios. Envolver la app con MultiProvider."],
+["8 oct","[BD-SETUP] Modelar las 12 tablas del anexo en schema.prisma con ENUMs, relaciones e índices (migración inicial)","Modelos: Role, User, TandaType, Tanda, Number, Payment, Payout, Evidence, Notification, Dispute, AuditLog y PlatformConfig. ENUMs de status para tanda, number, payment, payout y dispute. deletedAt solo en User, Tanda, Number y Role. @@unique([idTanda, roundNumber, numberValue]) en Number. inviteCode y email con @unique. Al crear todo junto, las FK cruzadas (Evidence → Payout, Dispute → Payment/Payout) se resuelven en una sola migración. Revisión obligatoria de los 3 integrantes."],
+["9 oct","[BD-SETUP] Agregar CHECK de evidence y seed de roles y Administrador Global","Prisma no soporta CHECK: editar el SQL de la migración con CHECK ((id_payment IS NOT NULL)::int + (id_payout IS NOT NULL)::int = 1). prisma/seed.ts inserta los roles usuario y admin_global, un Admin Global con contraseña hasheada desde variable de entorno y una fila por defecto de platform_config. Probar el CHECK insertando una evidencia sin destino."],
+["9 oct","[DEVOPS-SETUP] Definir hosting de backend y BD (Railway/Render/VPS/Supabase)","Desplegar un GET /health de prueba. Variables de entorno en el proveedor, DATABASE_URL con SSL y prisma migrate deploy en el arranque. Comprobar que el celular físico alcanza la URL pública por HTTPS."],
+["9 oct","[BE-AUTH] Implementar registro de usuario con contraseña cifrada","POST /api/v1/auth/register con RegisterDto (class-validator: @IsEmail, @MinLength(8)). Hash con bcrypt (10 rounds). Asignar siempre el rol usuario. 409 si el correo existe y nunca devolver password_hash."],
+["9 oct","[BE-AUTH] Implementar login con JWT y Passport","POST /api/v1/auth/login. LocalStrategy valida con bcrypt.compare. JwtModule firma {sub, role} con expiración de 1 día. Rechazar con 403 si active = false."],
+["9 oct","[BE-AUTH] Crear guards de acceso por rol (usuario / admin_global)","JwtAuthGuard con JwtStrategy. Decorador @Roles() y RolesGuard con Reflector. Decorador @CurrentUser(). Organizador y participante se resuelven después con un TandaMemberGuard que consulta tanda.id_admin o number."],
+["9 oct","[FE-AUTH] Diseñar pantalla de bienvenida","WelcomeScreen con logo, eslogan y botones Iniciar sesión / Registrarse. Colores en ThemeData tomados de Figma. Redirigir a Mis tandas si ya hay token."],
+["9 oct","[FE-AUTH] Implementar pantallas de registro e inicio de sesión","AuthProvider con estados loading, error y authenticated. AuthRepository (interfaz), AuthRepositoryImpl y AuthRemoteDataSource con Dio. UserModel.fromJson/toEntity. Formularios con Form y TextFormField. JWT en flutter_secure_storage."],
+["9 oct",'[FE-AUTH] Implementar navegación entre "Mis tandas (participante)" y "Mis tandas (organizador)"',"BottomNavigationBar con dos pestañas y su ruta en go_router. El Admin Global entra a otro flujo según el role del token. Solo estructura y pantallas vacías."],
+["13 nov","[INT-AUTH] Enviar correo de confirmación de registro (Resend/SendGrid)","Prioridad Baja. MailPort en el dominio y ResendMailAdapter en infraestructura. Escuchar usuario.registrado con @OnEvent. Si falla el envío, registrar el error sin romper el registro."]]},
+{n:2,f:"12 – 16 oct",t:"TANDA",c:[
+["13 oct","[BD-TANDA] Cargar seed de tanda_type y probar la restricción única de number"],
+["14 oct","[QA-TANDA] Probar unitariamente el cálculo de monto y total de pagos"],
+["15 oct","[BE-TANDA] Crear tanda y generar código único de invitación (AP-01)"],
+["15 oct","[BE-TANDA] Calcular automáticamente el total de pagos de la tanda (AP-01)"],
+["15 oct","[BE-TANDA] Asignar números automáticamente o por elección del participante"],
+["15 oct","[BE-TANDA] Unirse a una tanda con código único (AP-02)"],
+["15 oct","[BE-TANDA] Validar que un número elegido no pueda tomarse dos veces (AP-02)"],
+["16 oct","[FE-TANDA] Implementar formulario Crear tanda con resumen estimado en tiempo real (AP-01)"],
+["16 oct","[FE-TANDA] Implementar pantalla para compartir el código de la tanda"],
+["16 oct","[FE-TANDA] Implementar pantalla Unirse a tanda con validación de código (AP-02)"],
+["16 oct",'[FE-TANDA] Implementar pantalla principal "Mis tandas" con indicador pendiente / al día'],
+["16 oct","[QA-TANDA] Probar widget del formulario Crear tanda (campos obligatorios)"]]},
+{n:3,f:"19 – 23 oct",t:"PAGO: registro y OCR",c:[
+["20 oct","[BD-PAGO] Agregar índices de consulta en payment y evidence"],
+["21 oct","[BE-PAGO] Implementar entidad Pago y PagoFactory según método"],
+["21 oct","[BE-PAGO] Validar que transferencia + efectivo = cuota en pago híbrido (AP-03)"],
+["21 oct","[INT-PAGO] Integrar almacenamiento de comprobantes (Cloudinary/Firebase Storage)"],
+["22 oct","[BE-PAGO] Implementar endpoint POST /api/v1/pagos (AP-03)"],
+["22 oct","[INT-PAGO] Implementar OcrServicePort y OcrGoogleVisionAdapter (AP-04)"],
+["22 oct",'[BE-PAGO] Marcar "monto no coincide, requiere revisión manual" cuando OCR difiera (AP-04)'],
+["22 oct","[FE-PAGO] Implementar pantalla Registrar pago con selector de método (AP-03)"],
+["22 oct","[FE-PAGO] Agregar captura/subida de foto de comprobante"],
+["23 oct",'[FE-PAGO] Deshabilitar botón "Ya pagué" si la suma híbrida no coincide'],
+["23 oct",'[FE-PAGO] Implementar pantalla "Pago enviado, esperando confirmación"'],
+["23 oct","[QA-PAGO] Probar unitariamente la validación de pago híbrido"]]},
+{n:4,f:"26 – 30 oct",t:"PAGO (confirmación) y ENTREGA",c:[
+["26 oct","[BD-ENTREGA] Agregar índice en payout y validar flujo de doble confirmación"],
+["27 oct","[BE-PAGO] Implementar confirmación y rechazo de pago por el organizador (AP-05)"],
+["28 oct","[FE-PAGO] Implementar panel de seguimiento de la tanda (quién pagó / quién no)"],
+["28 oct","[FE-PAGO] Implementar pantalla Revisar pago con comprobante y resultado OCR (AP-05)"],
+["28 oct","[QA-PAGO] Probar unitariamente la doble confirmación (pendiente → confirmado)"],
+["28 oct","[BE-ENTREGA] Registrar entrega del dinero con evidencia por el organizador"],
+["29 oct","[BE-ENTREGA] Confirmar recepción por el participante y cerrar turno (AP-07)"],
+["29 oct","[FE-ENTREGA] Implementar pantalla Registrar entrega (organizador)"],
+["30 oct","[FE-ENTREGA] Implementar confirmación de recepción (participante) (AP-07)"],
+["30 oct","[QA-ENTREGA] Probar integración del flujo crear → pagar → confirmar → cerrar turno"]]},
+{n:5,f:"2 – 6 nov",t:"CAL y NOTIF",c:[
+["2 nov","[BD-NOTIF] Agregar fcmToken a user e índice en notification"],
+["3 nov","[BE-CAL] Calcular calendario de turnos y fechas de cobro por tanda (AP-06)"],
+["3 nov","[INT-NOTIF] Integrar Firebase Cloud Messaging (NotificacionFcmAdapter)"],
+["4 nov","[FE-CAL] Implementar pantalla Detalle de tanda con calendario de turnos (AP-06)"],
+["4 nov","[BE-NOTIF] Emitir y escuchar eventos internos (pago.registrado, pago.confirmado)"],
+["5 nov","[BE-NOTIF] Programar recordatorio antes de la fecha límite (AP-08)"],
+["5 nov","[BE-NOTIF] Notificar pago vencido y turno de cobro próximo"],
+["5 nov","[FE-NOTIF] Integrar recepción de push en Flutter"],
+["5 nov","[BE-CAL] Exponer historial de pagos y cobros por tanda (AP-09)"],
+["5 nov","[FE-CAL] Implementar historial dentro de la tanda (AP-09)"],
+["6 nov","[FE-NOTIF] Implementar bandeja de notificaciones con estado leído/no leído"],
+["6 nov","[QA-NOTIF] Probar integración evento PagoRegistrado → notificación generada"]]},
+{n:6,f:"9 – 13 nov",t:"AJUSTE y ADMIN",c:[
+["9 nov","[BD-ADMIN] Agregar índice en audit_log y datos de prueba para disputas"],
+["10 nov","[BE-AJUSTE] Descontar pagos faltantes del monto a recibir en el turno"],
+["10 nov","[BE-ADMIN] Calcular métricas globales (tandas activas, usuarios, monto gestionado) (AP-11)"],
+["11 nov","[BE-AJUSTE] Usar número muerto para cubrir pago faltante tras días de gracia (AP-10)"],
+["11 nov","[BE-AJUSTE] Bloquear cobro del número muerto hasta terminar la vuelta (AP-10)"],
+["11 nov",'[BE-AJUSTE] Marcar turno "en riesgo" y notificar si no hay número muerto'],
+["11 nov","[QA-AJUSTE] Probar unitariamente la lógica del número muerto"],
+["11 nov","[BE-ADMIN] Buscar y suspender usuarios"],
+["12 nov","[FE-AJUSTE] Mostrar número muerto y estado del turno en el panel de seguimiento"],
+["12 nov","[BE-ADMIN] Gestionar disputas y registrar la resolución en audit_log"],
+["12 nov","[BE-ADMIN] Configurar parámetros globales (máx. usuarios, tandas, días de gracia)"],
+["12 nov","[FE-ADMIN] Implementar panel global con métricas (AP-11)"],
+["13 nov","[QA-AJUSTE] Probar integración del flujo de número muerto con pago faltante"],
+["13 nov","[FE-ADMIN] Implementar gestión de usuarios y casos reportados"],
+["13 nov","[FE-ADMIN] Implementar detalle del caso con línea de tiempo y resolución"],
+["13 nov","[INT-ADMIN] Enviar correo de suspensión y resumen de disputa"]]},
+{n:7,f:"16 – 20 nov",t:"Cierre y entrega",c:[
+["17 nov","[QA-SETUP] Realizar pruebas manuales exploratorias del flujo completo","APK de release en 2 celulares Android distintos contra el backend desplegado. Errores como issues con etiqueta bug y pasos para reproducir."],
+["18 nov","[QA-SETUP] Validar flujo principal con 2-3 usuarios reales","15 minutos por persona sin explicación previa: crear o unirse, pagar y confirmar. Anotar dónde se traban y corregir solo lo crítico."],
+["19 nov","[DOC-SETUP] Documentar API y actualizar diagramas en /docs","@nestjs/swagger con decoradores en los DTO y /api/docs. Exportar ER y diagrama de arquitectura a /docs. README con instalación y variables de entorno."],
+["19 nov","[DEVOPS-SETUP] Congelar develop, fusionar a main y generar versión estable","PR develop → main con squash. Etiqueta v1.0.0. flutter build apk --release apuntando a producción. Verificar prisma migrate deploy en el hosting."],
+["20 nov","[DOC-SETUP] Entregar proyecto y preparar demostración","Script de seed con una tanda en curso y pagos en distintos estados. Probar la demo completa en el celular el día anterior. Entregar APK, enlace al repo y documentación."]]}
+];
+
+var old=S;
+function cat(){var a=[];[].slice.call(arguments).forEach(function(n){old.forEach(function(s){if(s.n===n)a=a.concat(s.c)})});return a}
+var CM={
+"Cargar seed de tanda_type":"Seed con tipos: familiar, laboral, amigos. Prueba rápida: insertar dos number iguales en la misma vuelta y verificar el error P2002; en otra vuelta debe permitirse.",
+"Probar unitariamente el cálculo":"Jest sobre calcularPlan: semanal, quincenal y mensual, con y sin número muerto, 1 y varias vueltas, valores límite. Replicar casos en flutter_test para el espejo de Dart.",
+"Crear tanda y generar código":"POST /api/v1/tandas con CreateTandaDto. inviteCode de 8 caracteres con crypto.randomBytes en base32, reintento si hay P2002. Guardar id_admin desde el JWT. Emitir tanda.creada.",
+"Calcular automáticamente el total":"Función pura en domain: calcularPlan(periodicidad, monto, participantes, vueltas) que devuelve total de pagos, monto por vuelta y fecha de fin. Con número muerto, participantes + 1. Sin imports de NestJS.",
+"Asignar números automáticamente":"Automática: Fisher-Yates al unirse el último participante. Por elección: PATCH /tandas/:id/numero. Crear las filas de number de la vuelta 1 y, si hay número muerto, una con is_dead_number = true e id_user nulo.",
+"Unirse a una tanda con código":"POST /api/v1/tandas/join con {inviteCode}. Validar que exista, que haya cupo y que el usuario no esté inscrito. 404 o 409 con mensaje claro.",
+"Validar que un número elegido":"prisma.$transaction con update condicionado a id_user IS NULL. Capturar P2002 o count = 0 y responder 409. Protege contra dos usuarios eligiendo a la vez.",
+"formulario Crear tanda con resumen":"CrearTandaScreen con CrearTandaProvider. Espejo de calcularPlan en Dart recalculado en onChanged. SegmentedButton para periodicidad, Switch para asignación y número muerto, stepper para días de gracia. Enviar a POST /tandas.",
+"compartir el código":"Código grande con botón de copiar (Clipboard) y compartir con share_plus, texto prellenado para WhatsApp.",
+"pantalla Unirse a tanda":"TextField con mayúsculas y regex de 8 caracteres antes de llamar al API. Mostrar el error del backend. Si es por elección, ir al selector de número.",
+"pantalla principal \"Mis tandas\"":"GET /tandas/mias?rol=participante|organizador. ListView.builder con chip de estado y Selector por tarjeta. Mock mientras no exista el endpoint de pagos.",
+"Probar widget del formulario":"testWidgets: sin monto el botón está deshabilitado, el resumen cambia al editar y aparece error con menos de 3 participantes."};
+var IN=[["Crear monorepo","Lizeth","ok"],["Configurar ramas","Karen","ok"],["[BE-SETUP] Inicializar NestJS","Gus","ok"],["[FE-SETUP] Inicializar Flutter","Gus y Karen","ok"],["[BD-SETUP] Configurar PostgreSQL","Lizeth","ok"],["Modelar las 12 tablas","Lizeth","ok"],["Definir hosting","Lizeth","ok"],["Agregar CHECK de evidence","Gus","rev"],["Implementar login con JWT","Gus","rev"],["Crear guards","Gus","rev"],["Implementar navegación entre","Gus","rev"],["Implementar registro de usuario","Gus","conf"],["Diseñar pantalla de bienvenida","Lizeth","conf"],["Implementar pantallas de registro","Karen","conf"],["Configurar get_it","","conf"],["Enviar correo de confirmación","Gus",""],
+["Cargar seed de tanda_type","Lizeth",""],["Probar unitariamente el cálculo","Lizeth",""],["Crear tanda y generar","Gus",""],["Calcular automáticamente el total","Lizeth",""],["Asignar números","Gus",""],["Unirse a una tanda con código","Gus",""],["Validar que un número elegido","Lizeth",""],["formulario Crear tanda","Karen",""],["compartir el código","Karen",""],["pantalla Unirse a tanda","Karen",""],["pantalla principal \"Mis tandas\"","Karen",""],["Probar widget del formulario","Lizeth",""]];
+function info(t){for(var i=0;i<IN.length;i++)if(t.indexOf(IN[i][0])>-1)return IN[i];return null}
+S=[{n:1,f:"5 – 9 oct (1 semana, cerrado)",t:"SETUP, BD y AUTH base",c:cat(1)},{n:2,f:"12 – 23 oct",t:"TANDA + PAGO (registro y OCR)",c:cat(2,3)},{n:3,f:"26 oct – 6 nov",t:"PAGO confirmación, ENTREGA, CAL y NOTIF",c:cat(4,5)},{n:4,f:"9 – 20 nov",t:"AJUSTE, ADMIN y cierre",c:cat(6,7)}];
+S.forEach(function(s){s.c.forEach(function(c){if(!c[2])for(var k in CM)if(c[1].indexOf(k)>-1){c[2]=CM[k];break}})});
+var sel=0,fs=document.getElementById("fs"),ft=document.getElementById("ft"),q=document.getElementById("q"),L=document.getElementById("l"),N=document.getElementById("n");
+function mk(t,c,x){var e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=x;return e}
+["BD","BE","FE","QA","INT","DEVOPS","DOC"].forEach(function(v){ft.add(new Option(v,v))});
+[["Todos",0]].concat(S.map(function(s){return["Sprint "+s.n,s.n]})).forEach(function(a){var b=mk("button","",a[0]);b.onclick=function(){sel=a[1];r()};b.dataset.s=a[1];fs.appendChild(b)});
+var DN={},shown=0,fd=document.getElementById("fd");
+try{DN=JSON.parse(localStorage.getItem("tandea-done")||"{}")}catch(e){DN={}}
+function save(){try{localStorage.setItem("tandea-done",JSON.stringify(DN))}catch(e){}}
+function upd(){var t=0,n=0;S.forEach(function(s){s.c.forEach(function(c){t++;if(DN[c[0]+"|"+c[1]])n++})});N.textContent=shown+" mostradas · "+n+" de "+t+" ya modificadas"}
+function r(){
+L.textContent="";var cnt=0,k=q.value.toLowerCase();
+[].forEach.call(fs.children,function(b){b.className=(+b.dataset.s===sel)?"on":""});
+S.forEach(function(s){
+if(sel&&s.n!==sel)return;
+var items=s.c.filter(function(c){var m=/^\[(\w+)-/.exec(c[1]);return(!fd.value||(fd.value==="m")===!!DN[c[0]+"|"+c[1]])&&(!ft.value||m&&m[1]===ft.value)&&(!k||(c[1]+" "+(c[2]||"")).toLowerCase().indexOf(k)>-1)});
+if(!items.length)return;
+L.appendChild(mk("h2","","Sprint "+s.n+": "+s.t));L.appendChild(mk("p","sub",s.f+" · "+items.length+" tarjetas"));
+items.forEach(function(c){cnt++;
+var d=document.createElement("details"),sm=document.createElement("summary"),m=/^\[(\w+)-(\w+)\]\s*(.*)$/.exec(c[1]);
+var dk=c[0]+"|"+c[1],cb=document.createElement("input");cb.type="checkbox";cb.className="ck";cb.checked=!!DN[dk];cb.setAttribute("aria-label","Ya modificada en Trello");cb.onclick=function(e){e.stopPropagation()};cb.onchange=function(){if(cb.checked)DN[dk]=1;else delete DN[dk];save();if(fd.value){r()}else{d.className=cb.checked?"dn":"";upd()}};if(cb.checked)d.className="dn";sm.appendChild(cb);sm.appendChild(mk("span","due",c[0]));
+sm.appendChild(mk("span","chip "+m[1],m[1]+"-"+m[2]));
+sm.appendChild(mk("span","tt",m[3]));var nf=info(c[1]);if(nf){if(nf[1])sm.appendChild(mk("span","chip own",nf[1]));if(nf[2])sm.appendChild(mk("span","chip st "+nf[2],{ok:"Hecho",rev:"En revisión",conf:"Confirmar estado"}[nf[2]]))}
+d.appendChild(sm);
+d.appendChild(c[2]?mk("div","cm",c[2]):mk("div","cm no","Comentario técnico por agregar."));
+L.appendChild(d)})});
+shown=cnt;upd();
+}
+ft.onchange=r;fd.onchange=r;q.oninput=r;r();
+</script></body></html>
