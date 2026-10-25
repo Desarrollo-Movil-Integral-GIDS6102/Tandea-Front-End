@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:tandea/core/utils/result.dart';
+import 'package:tandea/features/pagos/domain/entities/comprobante_archivo.dart';
 import 'package:tandea/features/pagos/domain/entities/metodo_pago.dart';
 import 'package:tandea/features/pagos/domain/entities/pago_entity.dart';
 import 'package:tandea/features/pagos/domain/repositories/pago_repository.dart';
@@ -14,6 +16,15 @@ const pagoRegistradoDePrueba = PagoEntity(
   totalAmount: 1500,
   status: 'PENDIENTE',
   confirmedByParticipant: true,
+);
+
+/// PNG de 1x1 para simular la foto del comprobante.
+final comprobanteDePrueba = ComprobanteArchivo(
+  bytes: base64Decode(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
+  ),
+  nombre: 'spei.png',
+  mimeType: 'image/png',
 );
 
 /// Repositorio de pagos falso para pruebas de provider y pantalla.
