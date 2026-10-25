@@ -2,6 +2,10 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>NSCameraUsageDescription</key>
+	<string>Tandea usa la cámara para tomar la foto del comprobante de pago.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Tandea abre tu galería para adjuntar el comprobante de pago.</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>

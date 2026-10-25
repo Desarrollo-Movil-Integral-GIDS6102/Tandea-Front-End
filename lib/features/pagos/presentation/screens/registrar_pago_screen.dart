@@ -7,7 +7,7 @@ import 'package:tandea/core/widgets/primary_button.dart';
 import 'package:tandea/features/pagos/domain/entities/metodo_pago.dart';
 import 'package:tandea/features/pagos/presentation/providers/pago_provider.dart';
 import 'package:tandea/features/pagos/presentation/widgets/campos_monto_hibrido.dart';
-import 'package:tandea/features/pagos/presentation/widgets/comprobante_placeholder.dart';
+import 'package:tandea/features/pagos/presentation/widgets/comprobante_selector.dart';
 import 'package:tandea/features/pagos/presentation/widgets/resumen_monto_card.dart';
 import 'package:tandea/features/pagos/presentation/widgets/selector_metodo_pago.dart';
 
@@ -66,14 +66,27 @@ class _RegistrarPagoScreenState extends State<RegistrarPagoScreen> {
       return;
     }
 
-    // TODO: SP-2-[FE-PAGO] Mostrar pantalla/diálogo "Pago enviado, esperando confirmación".
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Pago registrado. Queda pendiente de confirmación del organizador.'),
-        backgroundColor: AppColors.success,
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => AlertDialog(
+        key: const Key('dialogo_pago_enviado'),
+        icon: const Icon(Icons.hourglass_top_rounded, color: AppColors.success, size: 40),
+        title: const Text('Pago enviado'),
+        content: const Text(
+          'Tu pago quedó registrado y está esperando la confirmación del organizador.',
+        ),
+        actions: [
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Entendido'),
+          ),
+        ],
       ),
     );
-    if (context.canPop()) {
+
+    // "Entendido" regresa a la pantalla anterior (el provider ya notificó el pago nuevo)
+    if (mounted && context.canPop()) {
       context.pop();
     }
   }
@@ -122,12 +135,18 @@ class _RegistrarPagoScreenState extends State<RegistrarPagoScreen> {
                   habilitado: !enviando,
                   onTransferenciaChanged: provider.actualizarMontoTransferencia,
                   onEfectivoChanged: provider.actualizarMontoEfectivo,
+                  // Avisa solo cuando ya escribió algo y la suma no cuadra
+                  mensajeSuma: provider.sumaValida(args.cuota) ||
+                          (provider.montoTransferencia == null && provider.montoEfectivo == null)
+                      ? null
+                      : 'Los dos montos deben sumar ${formatearMonedaMxn(args.cuota)}',
                 )
               else
                 _MontoFijo(metodo: metodo, cuota: args.cuota),
               const SizedBox(height: 16),
-              ComprobantePlaceholder(
+              ComprobanteSelector(
                 requerido: metodo.requiereComprobante,
+                habilitado: !enviando,
                 comprobante: provider.comprobante,
                 onComprobanteSeleccionado: provider.seleccionarComprobante,
               ),
@@ -143,7 +162,7 @@ class _RegistrarPagoScreenState extends State<RegistrarPagoScreen> {
                 key: const Key('boton_ya_pague'),
                 text: 'Ya pagué',
                 isLoading: enviando,
-                onPressed: provider.sumaValida ? _registrarPago : null,
+                onPressed: provider.puedeEnviar(args.cuota) ? _registrarPago : null,
               ),
             ],
           ),

@@ -94,7 +94,7 @@ class AuthRepositoryImpl implements AuthRepository {
     } on NetworkException catch (e) {
       return Error(NetworkFailure(e.message));
     } on ServerException catch (e) {
-      return Error(ServerFailure(e.message, statusCode: e.statusCode));
+      return Error(ServerFailure(e.message, statusCode: e.statusCode, fieldErrors: e.fieldErrors));
     } catch (e) {
       return Error(ServerFailure('Error inesperado al registrar usuario: $e'));
     }

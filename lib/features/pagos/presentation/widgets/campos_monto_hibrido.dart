@@ -9,6 +9,9 @@ class CamposMontoHibrido extends StatelessWidget {
   final ValueChanged<String> onEfectivoChanged;
   final bool habilitado;
 
+  /// Aviso bajo los campos cuando la suma no coincide con la cuota (null = sin aviso).
+  final String? mensajeSuma;
+
   const CamposMontoHibrido({
     super.key,
     required this.transferenciaController,
@@ -16,6 +19,7 @@ class CamposMontoHibrido extends StatelessWidget {
     required this.onTransferenciaChanged,
     required this.onEfectivoChanged,
     this.habilitado = true,
+    this.mensajeSuma,
   });
 
   /// Solo dígitos con un punto decimal y máximo 2 decimales.
@@ -49,10 +53,11 @@ class CamposMontoHibrido extends StatelessWidget {
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           inputFormatters: _formatosMonto,
           textInputAction: TextInputAction.done,
-          decoration: const InputDecoration(
+          decoration: InputDecoration(
             labelText: 'Monto en efectivo',
             prefixText: r'$ ',
             hintText: '0.00',
+            errorText: mensajeSuma,
           ),
           onChanged: onEfectivoChanged,
         ),

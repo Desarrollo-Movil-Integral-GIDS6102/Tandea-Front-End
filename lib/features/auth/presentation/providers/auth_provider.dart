@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:tandea/core/errors/failures.dart';
 import 'package:tandea/features/auth/domain/entities/user_entity.dart';
 import 'package:tandea/features/auth/domain/entities/user_role.dart';
 import 'package:tandea/features/auth/domain/repositories/auth_repository.dart';
@@ -24,6 +25,7 @@ class AuthProvider extends ChangeNotifier {
   AuthStatus _status = AuthStatus.initial;
   UserEntity? _currentUser;
   String? _errorMessage;
+  Map<String, String> _fieldErrors = const {};
 
   AuthProvider({
     required this.authRepository,
@@ -62,6 +64,31 @@ class AuthProvider extends ChangeNotifier {
 
   UserEntity? get currentUser => _currentUser;
   String? get errorMessage => _errorMessage;
+
+  /// Errores del backend por campo del registro (`email`, `password`, `name`, `lastName`, `age`).
+  Map<String, String> get fieldErrors => _fieldErrors;
+
+  /// Mensaje para el registro según la respuesta del backend.
+  static String mensajeErrorRegistro(Failure failure) {
+    if (failure is ServerFailure) {
+      if (failure.statusCode == 409) {
+        return 'El correo electrónico ingresado ya está registrado. Intenta iniciar sesión.';
+      }
+      if (failure.statusCode == 422 && failure.fieldErrors.isNotEmpty) {
+        return 'Revisa los campos marcados en rojo.';
+      }
+    }
+    return failure.message;
+  }
+
+  /// Quita el error del backend de un campo cuando el usuario lo corrige.
+  void limpiarErrorCampo(String campo) {
+    if (!_fieldErrors.containsKey(campo)) {
+      return;
+    }
+    _fieldErrors = Map.of(_fieldErrors)..remove(campo);
+    notifyListeners();
+  }
 
   // ===================== ACCIONES DE AUTENTICACIÓN =====================
 
@@ -109,6 +136,7 @@ class AuthProvider extends ChangeNotifier {
   }) async {
     _status = AuthStatus.loading;
     _errorMessage = null;
+    _fieldErrors = const {};
     notifyListeners();
 
     final result = await authRepository.register(
@@ -132,7 +160,8 @@ class AuthProvider extends ChangeNotifier {
         return true;
       },
       failure: (failure) {
-        _errorMessage = failure.message;
+        _errorMessage = mensajeErrorRegistro(failure);
+        _fieldErrors = failure is ServerFailure ? failure.fieldErrors : const {};
         _status = AuthStatus.error;
         notifyListeners();
         return false;
