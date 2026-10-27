@@ -39,3 +39,15 @@ class UnauthorizedFailure extends Failure {
 class ValidationFailure extends Failure {
   const ValidationFailure(super.message);
 }
+
+class PermissionFailure extends Failure {
+  const PermissionFailure([
+    super.message = 'No se otorgaron los permisos necesarios.',
+  ]);
+}
+
+class MediaFailure extends Failure {
+  const MediaFailure([
+    super.message = 'Error al procesar el archivo o comprobante.',
+  ]);
+}
