@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:tandea/core/constants/app_colors.dart';
 import 'package:tandea/core/routes/route_names.dart';
+import 'package:tandea/features/pagos/presentation/screens/registrar_pago_screen.dart';
 import 'package:tandea/features/tandas/domain/entities/tanda_entity.dart';
 import 'package:tandea/features/tandas/presentation/providers/tandas_provider.dart';
 
@@ -23,6 +24,28 @@ class TandaCardItem extends StatelessWidget {
   });
 
   bool get isOrganizador => rol == 'organizador' || rol == 'dueno';
+
+  void _navegarAccion(BuildContext context) {
+    if (onTap != null) {
+      onTap!();
+      return;
+    }
+    if (isOrganizador && (tanda.inviteCode != null && tanda.inviteCode!.isNotEmpty)) {
+      context.push(RouteNames.compartirCodigo, extra: tanda);
+    } else if (!isOrganizador) {
+      final idNum = int.tryParse(tanda.id) ?? 1;
+      context.push(
+        RouteNames.registrarPago,
+        extra: RegistrarPagoArgs(
+          nombreTanda: tanda.nombre,
+          idNumber: idNum,
+          cuota: tanda.monto > 0 ? tanda.monto : 500.0,
+          numeroTurno: 1,
+          vuelta: 1,
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -46,12 +69,7 @@ class TandaCardItem extends StatelessWidget {
       color: AppColors.surfaceLight,
       child: InkWell(
         borderRadius: BorderRadius.circular(20),
-        onTap: onTap ??
-            () {
-              if (isOrganizador && (tanda.inviteCode != null && tanda.inviteCode!.isNotEmpty)) {
-                context.push(RouteNames.compartirCodigo, extra: tanda);
-              }
-            },
+        onTap: () => _navegarAccion(context),
         child: Padding(
           padding: const EdgeInsets.all(18.0),
           child: Column(
@@ -202,17 +220,8 @@ class TandaCardItem extends StatelessWidget {
                   else
                     TextButton.icon(
                       key: Key('btn_detalle_${tanda.id}'),
-                      onPressed: onTap ??
-                          () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('Tanda "${tanda.nombre}" seleccionada.'),
-                                duration: const Duration(seconds: 1),
-                                behavior: SnackBarBehavior.floating,
-                              ),
-                            );
-                          },
-                      icon: const Icon(Icons.visibility_outlined, size: 16),
+                      onPressed: () => _navegarAccion(context),
+                      icon: const Icon(Icons.payment_outlined, size: 16),
                       label: const Text('Ver detalle', style: TextStyle(fontSize: 12.5)),
                       style: TextButton.styleFrom(
                         foregroundColor: AppColors.primary,
@@ -241,11 +250,11 @@ class TandaCardItem extends StatelessWidget {
             color: AppColors.textSecondaryLight,
           ),
         ),
-        const SizedBox(height: 2),
+        const SizedBox(height: 3),
         Text(
           value,
           style: TextStyle(
-            fontSize: 14,
+            fontSize: 13.5,
             fontWeight: FontWeight.bold,
             color: isHighlight ? AppColors.primary : AppColors.textPrimaryLight,
           ),
