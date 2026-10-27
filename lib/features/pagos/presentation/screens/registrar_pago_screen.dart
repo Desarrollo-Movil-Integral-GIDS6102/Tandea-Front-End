@@ -5,6 +5,7 @@ import 'package:tandea/core/constants/app_colors.dart';
 import 'package:tandea/core/utils/formato_moneda.dart';
 import 'package:tandea/core/widgets/primary_button.dart';
 import 'package:tandea/features/pagos/domain/entities/metodo_pago.dart';
+import 'package:tandea/features/pagos/domain/entities/origen_imagen.dart';
 import 'package:tandea/features/pagos/presentation/providers/pago_provider.dart';
 import 'package:tandea/features/pagos/presentation/widgets/campos_monto_hibrido.dart';
 import 'package:tandea/features/pagos/presentation/widgets/comprobante_placeholder.dart';
@@ -129,7 +130,11 @@ class _RegistrarPagoScreenState extends State<RegistrarPagoScreen> {
               ComprobantePlaceholder(
                 requerido: metodo.requiereComprobante,
                 comprobante: provider.comprobante,
+                procesando: provider.procesandoComprobante,
                 onComprobanteSeleccionado: provider.seleccionarComprobante,
+                onTomarFoto: () => provider.capturarComprobante(OrigenImagen.camara),
+                onSeleccionarGaleria: () => provider.capturarComprobante(OrigenImagen.galeria),
+                onEliminar: provider.eliminarComprobante,
               ),
               if (provider.errorMessage != null) ...[
                 const SizedBox(height: 16),
@@ -143,7 +148,7 @@ class _RegistrarPagoScreenState extends State<RegistrarPagoScreen> {
                 key: const Key('boton_ya_pague'),
                 text: 'Ya pagué',
                 isLoading: enviando,
-                onPressed: provider.sumaValida ? _registrarPago : null,
+                onPressed: provider.puedeRegistrar ? _registrarPago : null,
               ),
             ],
           ),
