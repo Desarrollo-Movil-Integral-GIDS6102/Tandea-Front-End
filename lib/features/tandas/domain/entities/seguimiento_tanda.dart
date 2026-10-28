@@ -44,6 +44,9 @@ class ParticipanteSeguimiento extends Equatable {
   final bool isDeadNumber;
   final EstadoPagoSeguimiento estadoPago;
 
+  /// Pago registrado en la vuelta (para abrir "Revisar pago"); null si no hay.
+  final int? idPayment;
+
   /// Monto pagado en la vuelta; 0 si no hay pago.
   final double montoPagado;
   final DateTime? fechaPago;
@@ -54,6 +57,7 @@ class ParticipanteSeguimiento extends Equatable {
     required this.nombre,
     required this.estadoPago,
     this.isDeadNumber = false,
+    this.idPayment,
     this.montoPagado = 0,
     this.fechaPago,
   });
@@ -65,6 +69,7 @@ class ParticipanteSeguimiento extends Equatable {
         nombre,
         isDeadNumber,
         estadoPago,
+        idPayment,
         montoPagado,
         fechaPago,
       ];

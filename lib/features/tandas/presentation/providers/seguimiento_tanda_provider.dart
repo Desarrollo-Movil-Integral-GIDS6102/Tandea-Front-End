@@ -29,6 +29,7 @@ class SeguimientoTandaProvider extends ChangeNotifier {
   final ObtenerSeguimientoTandaUseCase obtenerSeguimientoUseCase;
 
   EstadoCarga _estado = EstadoCarga.inicial;
+  String? _idTanda;
   SeguimientoTanda? _seguimiento;
   String? _errorMessage;
   FiltroSeguimiento _filtro = FiltroSeguimiento.todos;
@@ -56,6 +57,7 @@ class SeguimientoTandaProvider extends ChangeNotifier {
   double get progreso => _seguimiento?.progreso ?? 0;
 
   Future<void> cargar(String idTanda) async {
+    _idTanda = idTanda;
     _estado = EstadoCarga.cargando;
     _errorMessage = null;
     notifyListeners();
@@ -74,6 +76,14 @@ class SeguimientoTandaProvider extends ChangeNotifier {
         notifyListeners();
       },
     );
+  }
+
+  /// Vuelve a consultar la última tanda cargada (p. ej. al regresar de "Revisar pago").
+  Future<void> recargar() async {
+    final idTanda = _idTanda;
+    if (idTanda != null) {
+      await cargar(idTanda);
+    }
   }
 
   void cambiarFiltro(FiltroSeguimiento filtro) {

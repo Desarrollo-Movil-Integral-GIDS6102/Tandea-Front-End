@@ -12,6 +12,10 @@ abstract class PagoRemoteDataSource {
 
   /// `POST /api/v1/pagos` como `multipart/form-data`.
   Future<PagoModel> registrarPago(RegistrarPagoParams params);
+
+  Future<PagoModel> obtenerPago(int idPayment);
+  Future<PagoModel> confirmarPago(int idPayment);
+  Future<PagoModel> rechazarPago(int idPayment, String motivo);
 }
 
 class PagoRemoteDataSourceImpl implements PagoRemoteDataSource {
@@ -96,5 +100,48 @@ class PagoRemoteDataSourceImpl implements PagoRemoteDataSource {
       }
       NetworkErrorHandler.handleDioException(e, fallbackMessage: 'Error al registrar pago');
     }
+  }
+
+  @override
+  Future<PagoModel> obtenerPago(int idPayment) async {
+    try {
+      final response = await apiClient.get<dynamic>('${ApiConstants.pagosEndpoint}/$idPayment');
+      return _leerPago(response.data);
+    } on DioException catch (e) {
+      NetworkErrorHandler.handleDioException(e, fallbackMessage: 'Error al consultar el pago');
+    }
+  }
+
+  @override
+  Future<PagoModel> confirmarPago(int idPayment) async {
+    try {
+      final response = await apiClient.patch<dynamic>('${ApiConstants.pagosEndpoint}/$idPayment/confirmar');
+      return _leerPago(response.data);
+    } on DioException catch (e) {
+      NetworkErrorHandler.handleDioException(e, fallbackMessage: 'Error al confirmar el pago');
+    }
+  }
+
+  @override
+  Future<PagoModel> rechazarPago(int idPayment, String motivo) async {
+    try {
+      final response = await apiClient.patch<dynamic>(
+        '${ApiConstants.pagosEndpoint}/$idPayment/rechazar',
+        data: <String, dynamic>{'motivo': motivo},
+      );
+      return _leerPago(response.data);
+    } on DioException catch (e) {
+      NetworkErrorHandler.handleDioException(e, fallbackMessage: 'Error al rechazar el pago');
+    }
+  }
+
+  static PagoModel _leerPago(dynamic rawData) {
+    if (rawData is Map<String, dynamic>) {
+      final pagoData = rawData['data'] is Map<String, dynamic>
+          ? rawData['data'] as Map<String, dynamic>
+          : rawData;
+      return PagoModel.fromJson(pagoData);
+    }
+    throw const ServerException(message: 'Formato de pago inválido');
   }
 }

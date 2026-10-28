@@ -30,6 +30,21 @@ El participante registra el pago de su turno (transferencia, efectivo o híbrido
 
 ---
 
+## 🔎 Pantalla `RevisarPagoScreen` (AP-05)
+
+El organizador revisa un pago pendiente y lo confirma o rechaza.
+
+* **Ruta**: `RouteNames.revisarPago` (`/pagos/:id/revisar`); `RouteNames.revisarPagoDe(idPayment)` arma la URL. `extra` opcional: `RevisarPagoArgs` (nombre del participante, turno, cuota y el pago si ya se tiene).
+* **Acceso**: tocar una fila con pago en el panel de seguimiento de la tanda. Al regresar, el panel se recarga.
+* **Contenido**:
+  * Comprobante (`evidenceUrl`) dentro de un `InteractiveViewer` (pellizcar para zoom, hasta 5x) y botón para verlo en pantalla completa (hasta 6x). En efectivo se indica que no requiere comprobante.
+  * Monto **detectado** por el OCR contra el **esperado** con chip `Coincide` / `No coincide` / `Sin lectura`. Igual que el backend, el esperado es la parte por transferencia (`transferAmount`) con tolerancia de $1 (`ResultadoOcr`).
+  * Desglose de transferencia, efectivo, total y cuota de la tanda.
+  * Botones **Rechazar** (pide motivo de 5 a 500 caracteres) y **Confirmar**. Llaman a `PATCH /pagos/:id/rechazar` y `PATCH /pagos/:id/confirmar`; la pantalla se actualiza con el pago que devuelve el backend (chip de estado y resultado en lugar de los botones).
+  * Errores en un banner rojo (403: no es organizador; 409/422: mensaje del backend, p. ej. pago ya confirmado).
+
+---
+
 ## 📷 Captura y Subida de Comprobante (AP-04)
 
 ### 1. Arquitectura Clean Architecture + Feature First

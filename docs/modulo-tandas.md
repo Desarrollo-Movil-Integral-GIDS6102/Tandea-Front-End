@@ -81,10 +81,11 @@ El módulo de Tandas orquesta la creación, configuración financiera, invitaci�
     "vueltaActual": 2,
     "participantes": [
       { "idNumber": 11, "numberValue": 1, "nombre": "Ana López", "isDeadNumber": false,
-        "estadoPago": "PAGADO", "montoPagado": "1000.00", "fechaPago": "2026-10-20T10:00:00Z" }
+        "estadoPago": "PAGADO", "idPayment": 45, "montoPagado": "1000.00", "fechaPago": "2026-10-20T10:00:00Z" }
     ]
   }
   ```
+  `idPayment` (opcional) permite abrir "Revisar pago" al tocar la fila.
   `estadoPago`: `PAGADO` | `PENDIENTE` | `ATRASADO`. Si no viene, se usa `pago.status` (`CONFIRMADO` = pagado; `PENDIENTE`/`RECHAZADO` = pendiente).
 
 ---

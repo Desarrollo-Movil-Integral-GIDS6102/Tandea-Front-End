@@ -18,6 +18,9 @@ class RouteNames {
 
   static const String pagos = '/pagos';
   static const String registrarPago = '/pagos/nuevo';
+  static const String revisarPago = '/pagos/:id/revisar';
+
+  static String revisarPagoDe(int idPayment) => '/pagos/$idPayment/revisar';
 
   static const String entregas = '/entregas';
   static const String entregaDetail = '/entregas/:id';

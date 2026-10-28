@@ -8,7 +8,9 @@ import 'package:tandea/features/auth/presentation/screens/login_screen.dart';
 import 'package:tandea/features/auth/presentation/screens/register_screen.dart';
 import 'package:tandea/features/auth/presentation/screens/welcome_screen.dart';
 import 'package:tandea/features/pagos/presentation/providers/pago_provider.dart';
+import 'package:tandea/features/pagos/presentation/providers/revisar_pago_provider.dart';
 import 'package:tandea/features/pagos/presentation/screens/registrar_pago_screen.dart';
+import 'package:tandea/features/pagos/presentation/screens/revisar_pago_screen.dart';
 import 'package:tandea/features/tandas/domain/entities/tanda_entity.dart';
 import 'package:tandea/features/tandas/presentation/screens/compartir_codigo_tanda_screen.dart';
 import 'package:tandea/features/tandas/presentation/screens/crear_tanda_screen.dart';
@@ -195,6 +197,20 @@ class AppRouter {
           return ChangeNotifierProvider<PagoProvider>(
             create: (_) => sl<PagoProvider>(),
             child: RegistrarPagoScreen(args: args),
+          );
+        },
+      ),
+
+      // Revisar pago (AP-05). `extra` opcional: RevisarPagoArgs.
+      GoRoute(
+        path: RouteNames.revisarPago,
+        builder: (context, state) {
+          final extra = state.extra;
+          final idPayment = int.tryParse(state.pathParameters['id'] ?? '') ?? 0;
+          final args = extra is RevisarPagoArgs ? extra : RevisarPagoArgs(idPayment: idPayment);
+          return ChangeNotifierProvider<RevisarPagoProvider>(
+            create: (_) => sl<RevisarPagoProvider>(param1: args.pago),
+            child: RevisarPagoScreen(args: args),
           );
         },
       ),

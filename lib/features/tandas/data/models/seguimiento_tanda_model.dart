@@ -56,6 +56,7 @@ class SeguimientoTandaModel extends SeguimientoTanda {
       numeroTurno: _toIntOrNull(json['numeroTurno'] ?? json['numberValue'] ?? json['number_value']) ?? 0,
       nombre: nombre,
       isDeadNumber: isDeadNumber,
+      idPayment: _toIntOrNull(json['idPayment'] ?? json['id_payment'] ?? pagoMap['idPayment']),
       estadoPago: atrasado ? EstadoPagoSeguimiento.atrasado : EstadoPagoSeguimiento.fromValor(rawEstado?.toString()),
       montoPagado: _toDouble(json['montoPagado'] ?? pagoMap['totalAmount']),
       fechaPago: fecha == null ? null : DateTime.tryParse(fecha.toString()),
