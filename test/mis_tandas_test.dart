@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:tandea/core/errors/failures.dart';
 import 'package:tandea/core/utils/result.dart';
 import 'package:tandea/features/auth/presentation/providers/auth_provider.dart';
+import 'package:tandea/features/pagos/presentation/screens/registrar_pago_screen.dart';
+import 'package:tandea/features/tandas/data/models/tanda_model.dart';
+import 'package:tandea/features/tandas/domain/entities/seguimiento_tanda.dart';
 import 'package:tandea/features/tandas/domain/entities/tanda_entity.dart';
 import 'package:tandea/features/tandas/domain/entities/unirse_tanda_result.dart';
 import 'package:tandea/features/tandas/domain/repositories/tandas_repository.dart';
@@ -95,6 +99,10 @@ class MockTandasRepository implements TandasRepository {
         ),
         numeroAsignado: 1,
       ));
+
+  @override
+  Future<Result<SeguimientoTanda>> getSeguimiento(String idTanda) async =>
+      const Error(ServerFailure('No implementado'));
 }
 
 void main() {
@@ -237,6 +245,58 @@ void main() {
 
       expect(find.byKey(const Key('btn_detalle_1')), findsOneWidget);
       expect(find.text('Ver detalle'), findsOneWidget);
+    });
+
+    testWidgets('participante con turno ve "Pagar" y abre Registrar pago con su número y la cuota',
+        (tester) async {
+      RegistrarPagoArgs? recibidos;
+      final router = GoRouter(
+        routes: [
+          GoRoute(
+            path: '/',
+            builder: (_, _) => Scaffold(
+              body: ChangeNotifierProvider<TandasProvider>.value(
+                value: provider,
+                child: TandaCardItem(
+                  tanda: tandaAlDia.copyWith(idNumberUsuario: 101, numeroTurnoUsuario: 3),
+                ),
+              ),
+            ),
+          ),
+          GoRoute(
+            path: '/pagos/nuevo',
+            builder: (_, state) {
+              recibidos = state.extra as RegistrarPagoArgs;
+              return const Scaffold(body: Text('PANTALLA_PAGO'));
+            },
+          ),
+        ],
+      );
+      addTearDown(router.dispose);
+      await tester.pumpWidget(MaterialApp.router(routerConfig: router));
+
+      expect(find.byKey(const Key('btn_detalle_1')), findsNothing);
+      await tester.tap(find.byKey(const Key('btn_pagar_1')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('PANTALLA_PAGO'), findsOneWidget);
+      expect(recibidos!.idNumber, 101);
+      expect(recibidos!.numeroTurno, 3);
+      expect(recibidos!.cuota, 1500.0);
+    });
+
+    test('TandaModel lee miNumero de GET /tandas/mias', () {
+      final tanda = TandaModel.fromJson(const {
+        'idTanda': 7,
+        'name': 'Tanda Oficina',
+        'contributionAmount': 500,
+        'numParticipants': 5,
+        'status': 'ACTIVA',
+        'miNumero': {'idNumber': 42, 'numberValue': 2, 'roundNumber': 1},
+      });
+
+      expect(tanda.idNumberUsuario, 42);
+      expect(tanda.numeroTurnoUsuario, 2);
     });
   });
 

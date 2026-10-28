@@ -167,4 +167,40 @@ void main() {
       expect(provider.errorMessage, isNull);
     });
   });
+
+  group('PagoProvider - validación antes de enviar', () {
+    test('híbrido: la suma exacta en centavos es válida (0.10 + 0.20 = 0.30)', () {
+      provider.seleccionarMetodo(MetodoPago.hibrido);
+      provider.actualizarMontoTransferencia('0.10');
+      provider.actualizarMontoEfectivo('0.20');
+
+      expect(provider.sumaValida(0.30), isTrue);
+    });
+
+    test('híbrido: suma mayor, menor o con un monto en cero no es válida', () {
+      provider.seleccionarMetodo(MetodoPago.hibrido);
+
+      provider.actualizarMontoTransferencia('1000');
+      provider.actualizarMontoEfectivo('600');
+      expect(provider.sumaValida(1500), isFalse);
+
+      provider.actualizarMontoEfectivo('400');
+      expect(provider.sumaValida(1500), isFalse);
+
+      provider.actualizarMontoTransferencia('1500');
+      provider.actualizarMontoEfectivo('0');
+      expect(provider.sumaValida(1500), isFalse);
+    });
+
+    test('transferencia exige comprobante; efectivo no', () {
+      expect(provider.puedeEnviar(1500), isFalse);
+
+      provider.seleccionarComprobante(comprobanteDePrueba);
+      expect(provider.puedeEnviar(1500), isTrue);
+
+      provider.seleccionarComprobante(null);
+      provider.seleccionarMetodo(MetodoPago.efectivo);
+      expect(provider.puedeEnviar(1500), isTrue);
+    });
+  });
 }

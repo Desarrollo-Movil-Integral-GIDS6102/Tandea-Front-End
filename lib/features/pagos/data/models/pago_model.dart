@@ -17,6 +17,7 @@ class PagoModel extends PagoEntity {
     super.ocrVerified,
     super.ocrDetectedAmount,
     super.evidenceUrl,
+    super.rejectionReason,
     super.createdAt,
   });
 
@@ -51,6 +52,7 @@ class PagoModel extends PagoEntity {
       ocrVerified: json['ocrVerified'] == true,
       ocrDetectedAmount: ocrDetectedAmount == null ? null : _toDouble(ocrDetectedAmount),
       evidenceUrl: json['evidenceUrl'] as String?,
+      rejectionReason: json['rejectionReason'] as String?,
       createdAt: createdAt == null ? null : DateTime.tryParse(createdAt.toString()),
     );
   }
@@ -69,6 +71,7 @@ class PagoModel extends PagoEntity {
       'ocrVerified': ocrVerified,
       'ocrDetectedAmount': ocrDetectedAmount,
       'evidenceUrl': evidenceUrl,
+      'rejectionReason': rejectionReason,
       if (createdAt != null) 'createdAt': createdAt!.toIso8601String(),
     };
   }

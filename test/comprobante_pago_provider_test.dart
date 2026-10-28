@@ -8,7 +8,7 @@ import 'package:tandea/features/pagos/domain/entities/origen_imagen.dart';
 import 'package:tandea/features/pagos/presentation/providers/pago_provider.dart';
 
 import 'comprobante_fakes.dart';
-import 'pago_fakes.dart';
+import 'pago_fakes.dart' hide comprobanteDePrueba;
 
 void main() {
   late FakePagoRepository fakeRepo;

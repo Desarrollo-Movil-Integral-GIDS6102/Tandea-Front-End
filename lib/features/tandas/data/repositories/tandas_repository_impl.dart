@@ -3,6 +3,7 @@ import 'package:tandea/core/errors/failures.dart';
 import 'package:tandea/core/utils/result.dart';
 import 'package:tandea/features/tandas/data/datasources/tandas_remote_data_source.dart';
 import 'package:tandea/features/tandas/data/models/tanda_model.dart';
+import 'package:tandea/features/tandas/domain/entities/seguimiento_tanda.dart';
 import 'package:tandea/features/tandas/domain/entities/tanda_entity.dart';
 import 'package:tandea/features/tandas/domain/entities/unirse_tanda_result.dart';
 import 'package:tandea/features/tandas/domain/repositories/tandas_repository.dart';
@@ -126,6 +127,22 @@ class TandasRepositoryImpl implements TandasRepository {
       return Error(ServerFailure(e.message, statusCode: e.statusCode));
     } catch (e) {
       return Error(ServerFailure('Error inesperado al unirse a la tanda: $e'));
+    }
+  }
+
+  @override
+  Future<Result<SeguimientoTanda>> getSeguimiento(String idTanda) async {
+    try {
+      final seguimiento = await remoteDataSource.getSeguimiento(idTanda);
+      return Success(seguimiento);
+    } on UnauthorizedException catch (e) {
+      return Error(UnauthorizedFailure(e.message));
+    } on NetworkException catch (e) {
+      return Error(NetworkFailure(e.message));
+    } on ServerException catch (e) {
+      return Error(ServerFailure(e.message, statusCode: e.statusCode));
+    } catch (e) {
+      return Error(ServerFailure('Error al obtener el seguimiento: $e'));
     }
   }
 }

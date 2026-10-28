@@ -44,13 +44,28 @@ class PagoProvider extends ChangeNotifier {
   bool get enviando => _estado == EstadoCarga.cargando;
   bool get procesandoComprobante => _procesandoComprobante;
 
-  /// Indica si la suma del pago híbrido coincide con la cuota.
-  // TODO: SP-2-[FE-PAGO] Deshabilitar "Ya pagué" si la suma híbrida no coincide con la cuota
-  // (comparar en centavos con montoACentavos y recibir la cuota).
-  bool get sumaValida => true;
+  /// En híbrido, ambos montos deben ser mayores a cero y sumar exactamente la [cuota]
+  /// (comparado en centavos). En transferencia y efectivo el monto es la cuota.
+  bool sumaValida(double cuota) {
+    if (!_metodoPago.esHibrido) {
+      return true;
+    }
+    final transferencia = _montoTransferencia ?? 0;
+    final efectivo = _montoEfectivo ?? 0;
+    return transferencia > 0 &&
+        efectivo > 0 &&
+        montoACentavos(transferencia) + montoACentavos(efectivo) == montoACentavos(cuota);
+  }
 
-  /// Determina si las condiciones del formulario permiten intentar el registro.
-  bool get puedeRegistrar => !enviando && !_procesandoComprobante && sumaValida;
+  /// Transferencia e híbrido exigen comprobante; efectivo no.
+  bool get comprobanteListo => !_metodoPago.requiereComprobante || _comprobante != null;
+
+  /// "Ya pagué" solo se habilita con la suma correcta y el comprobante adjunto.
+  bool puedeEnviar(double cuota) =>
+      puedeRegistrar && sumaValida(cuota) && comprobanteListo;
+
+  /// No hay un envío ni una captura de comprobante en curso.
+  bool get puedeRegistrar => !enviando && !_procesandoComprobante;
 
   Future<void> fetchPagos(String tandaId) async {
     _estado = EstadoCarga.cargando;

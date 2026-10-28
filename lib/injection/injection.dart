@@ -16,17 +16,21 @@ import 'package:tandea/features/pagos/data/repositories/pago_repository_impl.dar
 import 'package:tandea/features/pagos/data/services/comprobante_service_impl.dart';
 import 'package:tandea/features/pagos/data/services/image_compressor_service.dart';
 import 'package:tandea/features/pagos/data/services/permission_service.dart';
+import 'package:tandea/features/pagos/domain/entities/pago_entity.dart';
 import 'package:tandea/features/pagos/domain/repositories/pago_repository.dart';
 import 'package:tandea/features/pagos/domain/services/comprobante_service.dart';
 import 'package:tandea/features/pagos/domain/usecases/seleccionar_comprobante_usecase.dart';
 import 'package:tandea/features/pagos/presentation/providers/pago_provider.dart';
+import 'package:tandea/features/pagos/presentation/providers/revisar_pago_provider.dart';
 import 'package:tandea/features/tandas/data/datasources/tandas_remote_data_source.dart';
 import 'package:tandea/features/tandas/data/repositories/tandas_repository_impl.dart';
 import 'package:tandea/features/tandas/domain/repositories/tandas_repository.dart';
 import 'package:tandea/features/tandas/domain/usecases/crear_tanda_usecase.dart';
+import 'package:tandea/features/tandas/domain/usecases/obtener_seguimiento_tanda_usecase.dart';
 import 'package:tandea/features/tandas/domain/usecases/obtener_tanda_por_codigo_usecase.dart';
 import 'package:tandea/features/tandas/domain/usecases/unirse_tanda_usecase.dart';
 import 'package:tandea/features/tandas/presentation/providers/crear_tanda_provider.dart';
+import 'package:tandea/features/tandas/presentation/providers/seguimiento_tanda_provider.dart';
 import 'package:tandea/features/tandas/presentation/providers/tandas_provider.dart';
 import 'package:tandea/features/tandas/presentation/providers/unirse_tanda_provider.dart';
 
@@ -141,6 +145,10 @@ Future<void> initDependencies() async {
     () => UnirseTandaUseCase(repository: sl<TandasRepository>()),
   );
 
+  sl.registerLazySingleton<ObtenerSeguimientoTandaUseCase>(
+    () => ObtenerSeguimientoTandaUseCase(repository: sl<TandasRepository>()),
+  );
+
   sl.registerLazySingleton<SeleccionarComprobanteUseCase>(
     () => SeleccionarComprobanteUseCase(comprobanteService: sl<ComprobanteService>()),
   );
@@ -172,6 +180,20 @@ Future<void> initDependencies() async {
     () => UnirseTandaProvider(
       obtenerTandaPorCodigoUseCase: sl<ObtenerTandaPorCodigoUseCase>(),
       unirseTandaUseCase: sl<UnirseTandaUseCase>(),
+    ),
+  );
+
+  sl.registerFactory<SeguimientoTandaProvider>(
+    () => SeguimientoTandaProvider(
+      obtenerSeguimientoUseCase: sl<ObtenerSeguimientoTandaUseCase>(),
+    ),
+  );
+
+  // Recibe el pago ya conocido (si lo hay) para mostrarlo mientras se refresca.
+  sl.registerFactoryParam<RevisarPagoProvider, PagoEntity?, void>(
+    (pagoInicial, _) => RevisarPagoProvider(
+      pagoRepository: sl<PagoRepository>(),
+      pagoInicial: pagoInicial,
     ),
   );
 

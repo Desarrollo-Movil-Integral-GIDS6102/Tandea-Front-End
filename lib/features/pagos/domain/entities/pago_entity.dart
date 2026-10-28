@@ -17,6 +17,9 @@ class PagoEntity extends Equatable {
   final bool ocrVerified;
   final double? ocrDetectedAmount;
   final String? evidenceUrl;
+
+  /// Motivo que capturó el organizador al rechazar.
+  final String? rejectionReason;
   final DateTime? createdAt;
 
   const PagoEntity({
@@ -32,10 +35,16 @@ class PagoEntity extends Equatable {
     this.ocrVerified = false,
     this.ocrDetectedAmount,
     this.evidenceUrl,
+    this.rejectionReason,
     this.createdAt,
   });
 
   bool get estaPendiente => status.toUpperCase() == 'PENDIENTE';
+  bool get estaConfirmado => status.toUpperCase() == 'CONFIRMADO';
+  bool get estaRechazado => status.toUpperCase() == 'RECHAZADO';
+
+  /// El organizador solo puede confirmar o rechazar un pago pendiente que aún no confirmó.
+  bool get puedeRevisarse => estaPendiente && !confirmedByAdmin;
 
   @override
   List<Object?> get props => [
@@ -51,6 +60,7 @@ class PagoEntity extends Equatable {
         ocrVerified,
         ocrDetectedAmount,
         evidenceUrl,
+        rejectionReason,
         createdAt,
       ];
 }

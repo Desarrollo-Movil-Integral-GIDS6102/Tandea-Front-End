@@ -2,9 +2,13 @@ class ServerException implements Exception {
   final String message;
   final int? statusCode;
 
+  /// Errores de validación por campo (`details` del 422 del backend): campo → mensaje.
+  final Map<String, String> fieldErrors;
+
   const ServerException({
     required this.message,
     this.statusCode,
+    this.fieldErrors = const {},
   });
 
   @override

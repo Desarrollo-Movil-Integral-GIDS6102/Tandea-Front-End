@@ -42,4 +42,30 @@ class PagoRepositoryImpl implements PagoRepository {
       return Error(ServerFailure('Error al registrar pago: $e'));
     }
   }
+
+  @override
+  Future<Result<PagoEntity>> obtenerPago(int idPayment) =>
+      _ejecutar(() => remoteDataSource.obtenerPago(idPayment), 'Error al consultar el pago');
+
+  @override
+  Future<Result<PagoEntity>> confirmarPago(int idPayment) =>
+      _ejecutar(() => remoteDataSource.confirmarPago(idPayment), 'Error al confirmar el pago');
+
+  @override
+  Future<Result<PagoEntity>> rechazarPago(int idPayment, String motivo) =>
+      _ejecutar(() => remoteDataSource.rechazarPago(idPayment, motivo), 'Error al rechazar el pago');
+
+  Future<Result<PagoEntity>> _ejecutar(Future<PagoEntity> Function() accion, String mensaje) async {
+    try {
+      return Success(await accion());
+    } on UnauthorizedException catch (e) {
+      return Error(UnauthorizedFailure(e.message));
+    } on NetworkException catch (e) {
+      return Error(NetworkFailure(e.message));
+    } on ServerException catch (e) {
+      return Error(ServerFailure(e.message, statusCode: e.statusCode));
+    } catch (e) {
+      return Error(ServerFailure('$mensaje: $e'));
+    }
+  }
 }
