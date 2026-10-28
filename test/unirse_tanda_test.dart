@@ -6,6 +6,7 @@ import 'package:tandea/core/errors/failures.dart';
 import 'package:tandea/core/routes/route_names.dart';
 import 'package:tandea/core/utils/result.dart';
 import 'package:tandea/core/utils/uppercase_text_formatter.dart';
+import 'package:tandea/features/tandas/domain/entities/seguimiento_tanda.dart';
 import 'package:tandea/features/tandas/domain/entities/tanda_entity.dart';
 import 'package:tandea/features/tandas/domain/entities/unirse_tanda_result.dart';
 import 'package:tandea/features/tandas/domain/repositories/tandas_repository.dart';
@@ -87,6 +88,10 @@ class MockUnirseTandasRepository implements TandasRepository {
           ),
         );
   }
+
+  @override
+  Future<Result<SeguimientoTanda>> getSeguimiento(String idTanda) async =>
+      const Error(ServerFailure('No implementado'));
 }
 
 void main() {

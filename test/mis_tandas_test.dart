@@ -7,6 +7,7 @@ import 'package:tandea/core/utils/result.dart';
 import 'package:tandea/features/auth/presentation/providers/auth_provider.dart';
 import 'package:tandea/features/pagos/presentation/screens/registrar_pago_screen.dart';
 import 'package:tandea/features/tandas/data/models/tanda_model.dart';
+import 'package:tandea/features/tandas/domain/entities/seguimiento_tanda.dart';
 import 'package:tandea/features/tandas/domain/entities/tanda_entity.dart';
 import 'package:tandea/features/tandas/domain/entities/unirse_tanda_result.dart';
 import 'package:tandea/features/tandas/domain/repositories/tandas_repository.dart';
@@ -98,6 +99,10 @@ class MockTandasRepository implements TandasRepository {
         ),
         numeroAsignado: 1,
       ));
+
+  @override
+  Future<Result<SeguimientoTanda>> getSeguimiento(String idTanda) async =>
+      const Error(ServerFailure('No implementado'));
 }
 
 void main() {

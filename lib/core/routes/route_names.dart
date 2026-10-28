@@ -12,6 +12,9 @@ class RouteNames {
   static const String seleccionarNumero = '/tandas/seleccionar-numero';
   static const String compartirCodigo = '/tandas/compartir';
   static const String tandaDetail = '/tandas/:id';
+  static const String seguimientoTanda = '/tandas/:id/seguimiento';
+
+  static String seguimientoTandaDe(String idTanda) => '/tandas/$idTanda/seguimiento';
 
   static const String pagos = '/pagos';
   static const String registrarPago = '/pagos/nuevo';

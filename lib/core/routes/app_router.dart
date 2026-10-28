@@ -14,6 +14,8 @@ import 'package:tandea/features/tandas/presentation/screens/compartir_codigo_tan
 import 'package:tandea/features/tandas/presentation/screens/crear_tanda_screen.dart';
 import 'package:tandea/features/tandas/presentation/screens/mis_tandas_organizador_screen.dart';
 import 'package:tandea/features/tandas/presentation/screens/mis_tandas_participante_screen.dart';
+import 'package:tandea/features/tandas/presentation/providers/seguimiento_tanda_provider.dart';
+import 'package:tandea/features/tandas/presentation/screens/seguimiento_tanda_screen.dart';
 import 'package:tandea/features/tandas/presentation/screens/seleccionar_numero_screen.dart';
 import 'package:tandea/features/tandas/presentation/screens/tandas_navigation_screen.dart';
 import 'package:tandea/features/tandas/presentation/screens/unirse_tanda_screen.dart';
@@ -145,6 +147,21 @@ class AppRouter {
       ),
 
       // Flujo del Administrador Global
+      // Panel de seguimiento de pagos de la vuelta. `extra` opcional: nombre de la tanda.
+      GoRoute(
+        path: RouteNames.seguimientoTanda,
+        builder: (context, state) {
+          final extra = state.extra;
+          return ChangeNotifierProvider<SeguimientoTandaProvider>(
+            create: (_) => sl<SeguimientoTandaProvider>(),
+            child: SeguimientoTandaScreen(
+              idTanda: state.pathParameters['id']!,
+              nombreTanda: extra is TandaEntity ? extra.nombre : null,
+            ),
+          );
+        },
+      ),
+
       GoRoute(
         path: RouteNames.admin,
         builder: (context, state) => const AdminDashboardScreen(),
