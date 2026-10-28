@@ -71,6 +71,9 @@ class MockTandasRepository implements TandasRepository {
   }
 
   @override
+  Future<Result<TandaEntity>> iniciarTanda(String id) async => getTandaById(id);
+
+  @override
   Future<Result<UnirseTandaResult>> joinTanda(JoinTandaParams params) async {
     return const Success(UnirseTandaResult(
       tanda: TandaEntity(

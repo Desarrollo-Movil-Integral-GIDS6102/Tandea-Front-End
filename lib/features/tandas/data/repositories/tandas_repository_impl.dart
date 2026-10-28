@@ -95,6 +95,21 @@ class TandasRepositoryImpl implements TandasRepository {
   }
 
   @override
+  Future<Result<TandaEntity>> iniciarTanda(String id) async {
+    try {
+      return Success(await remoteDataSource.updateStatus(id, 'ACTIVA'));
+    } on UnauthorizedException catch (e) {
+      return Error(UnauthorizedFailure(e.message));
+    } on NetworkException catch (e) {
+      return Error(NetworkFailure(e.message));
+    } on ServerException catch (e) {
+      return Error(ServerFailure(e.message, statusCode: e.statusCode));
+    } catch (e) {
+      return Error(ServerFailure('Error al iniciar la tanda: $e'));
+    }
+  }
+
+  @override
   Future<Result<UnirseTandaResult>> joinTanda(JoinTandaParams params) async {
     try {
       final rawData = await remoteDataSource.joinTanda(params.toJson());
@@ -106,7 +121,12 @@ class TandasRepositoryImpl implements TandasRepository {
           : data;
       final tanda = TandaModel.fromJson(tandaJson);
       final numeroAsignado =
-          (data['numeroAsignado'] as num?)?.toInt() ?? (params.selectedNumber ?? 1);
+          (data['numeroAsignado'] as num?)?.toInt() ??
+              (params.selectedNumbers.isNotEmpty ? params.selectedNumbers.first : 1);
+      final numerosAsignados = (data['numerosAsignados'] as List?)
+              ?.map((n) => (n as num).toInt())
+              .toList() ??
+          [numeroAsignado];
       final isDeadNumber = (data['isDeadNumber'] as bool?) ?? false;
       final mensaje = (rawData['mensaje'] ?? 'Te has unido exitosamente a la tanda').toString();
 
@@ -114,6 +134,7 @@ class TandasRepositoryImpl implements TandasRepository {
         UnirseTandaResult(
           tanda: tanda,
           numeroAsignado: numeroAsignado,
+          numerosAsignados: numerosAsignados,
           isDeadNumber: isDeadNumber,
           mensaje: mensaje,
         ),

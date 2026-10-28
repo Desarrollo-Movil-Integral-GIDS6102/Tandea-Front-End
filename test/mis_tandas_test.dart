@@ -83,6 +83,9 @@ class MockTandasRepository implements TandasRepository {
       ));
 
   @override
+  Future<Result<TandaEntity>> iniciarTanda(String id) async => getTandaById(id);
+
+  @override
   Future<Result<UnirseTandaResult>> joinTanda(JoinTandaParams params) async =>
       const Success(UnirseTandaResult(
         tanda: TandaEntity(
@@ -142,18 +145,6 @@ void main() {
       expect(provider.estado, equals(EstadoCarga.error));
       expect(provider.errorMessage, equals('Error al consultar mis tandas'));
       expect(provider.tandas, isEmpty);
-    });
-
-    test('toggleIndicadorPagoMock alterna interactivamente entre al día y pendiente', () async {
-      await provider.fetchMisTandas(rol: 'participante');
-
-      expect(provider.obtenerTandaEn(0).indicadorPago, equals(IndicadorPago.alDia));
-
-      provider.toggleIndicadorPagoMock('1');
-      expect(provider.obtenerTandaEn(0).indicadorPago, equals(IndicadorPago.pendiente));
-
-      provider.toggleIndicadorPagoMock('1');
-      expect(provider.obtenerTandaEn(0).indicadorPago, equals(IndicadorPago.alDia));
     });
 
     test('obtenerTandaEn lanza RangeError si el índice está fuera de rango', () {

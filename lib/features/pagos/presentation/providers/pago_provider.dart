@@ -22,6 +22,8 @@ class PagoProvider extends ChangeNotifier {
   MetodoPago _metodoPago = MetodoPago.transferencia;
   double? _montoTransferencia;
   double? _montoEfectivo;
+  double? _montoUnico;
+  double? _cuota;
   ComprobanteArchivo? _comprobante;
   PagoEntity? _pagoRegistrado;
 
@@ -44,10 +46,18 @@ class PagoProvider extends ChangeNotifier {
   bool get enviando => _estado == EstadoCarga.cargando;
   bool get procesandoComprobante => _procesandoComprobante;
 
-  /// Indica si la suma del pago híbrido coincide con la cuota.
-  // TODO: SP-2-[FE-PAGO] Deshabilitar "Ya pagué" si la suma híbrida no coincide con la cuota
-  // (comparar en centavos con montoACentavos y recibir la cuota).
-  bool get sumaValida => true;
+  /// Cuota del número que se va a pagar; la usa [sumaValida].
+  void configurarCuota(double cuota) => _cuota = cuota;
+
+  /// En híbrido, transferencia + efectivo deben sumar la cuota (comparado en centavos).
+  bool get sumaValida {
+    final cuota = _cuota;
+    if (!_metodoPago.esHibrido || cuota == null) return true;
+    final transferencia = _montoTransferencia;
+    final efectivo = _montoEfectivo;
+    if (transferencia == null || efectivo == null) return false;
+    return montoACentavos(transferencia) + montoACentavos(efectivo) == montoACentavos(cuota);
+  }
 
   /// Determina si las condiciones del formulario permiten intentar el registro.
   bool get puedeRegistrar => !enviando && !_procesandoComprobante && sumaValida;
@@ -88,6 +98,12 @@ class PagoProvider extends ChangeNotifier {
 
   void actualizarMontoEfectivo(String texto) {
     _montoEfectivo = parsearMonto(texto);
+    notifyListeners();
+  }
+
+  /// Monto capturado en transferencia o efectivo (por defecto, la cuota).
+  void actualizarMontoUnico(String texto) {
+    _montoUnico = parsearMonto(texto);
     notifyListeners();
   }
 
@@ -138,8 +154,8 @@ class PagoProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Registra el pago del turno [idNumber]. En transferencia y efectivo el monto
-  /// enviado es la [cuota]; en híbrido, los montos capturados por el usuario.
+  /// Registra el pago del turno [idNumber]. En transferencia y efectivo se envía el
+  /// monto capturado (la [cuota] si no se editó); en híbrido, los dos montos capturados.
   ///
   /// Devuelve `true` si el backend lo aceptó. Ignora llamadas mientras ya hay un envío en curso
   /// o mientras se está procesando la imagen del comprobante.
@@ -162,12 +178,12 @@ class PagoProvider extends ChangeNotifier {
       idNumber: idNumber,
       metodoPago: _metodoPago,
       transferAmount: switch (_metodoPago) {
-        MetodoPago.transferencia => cuota,
+        MetodoPago.transferencia => _montoUnico ?? cuota,
         MetodoPago.hibrido => _montoTransferencia,
         MetodoPago.efectivo => null,
       },
       cashAmount: switch (_metodoPago) {
-        MetodoPago.efectivo => cuota,
+        MetodoPago.efectivo => _montoUnico ?? cuota,
         MetodoPago.hibrido => _montoEfectivo,
         MetodoPago.transferencia => null,
       },

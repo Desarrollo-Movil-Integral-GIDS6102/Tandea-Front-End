@@ -84,7 +84,7 @@ void main() {
 
     expect(find.byKey(const Key('campo_monto_transferencia')), findsNothing);
     expect(find.byKey(const Key('campo_monto_efectivo')), findsNothing);
-    expect(find.byKey(const Key('monto_fijo')), findsOneWidget);
+    expect(find.byKey(const Key('campo_monto_unico')), findsOneWidget);
 
     await tester.tap(find.byKey(const Key('metodo_hibrido')));
     await tester.pumpAndSettle();
@@ -93,7 +93,7 @@ void main() {
     expect(find.text('Monto en efectivo'), findsOneWidget);
     expect(find.byKey(const Key('campo_monto_transferencia')), findsOneWidget);
     expect(find.byKey(const Key('campo_monto_efectivo')), findsOneWidget);
-    expect(find.byKey(const Key('monto_fijo')), findsNothing);
+    expect(find.byKey(const Key('campo_monto_unico')), findsNothing);
 
     await tester.tap(find.byKey(const Key('metodo_efectivo')));
     await tester.pumpAndSettle();
@@ -125,11 +125,13 @@ void main() {
     repository.pendiente!.complete(const Success(pagoRegistradoDePrueba));
     await tester.pumpAndSettle();
 
-    // Al registrarse, regresa a la pantalla anterior y avisa con un SnackBar
-    expect(find.byType(RegistrarPagoScreen), findsNothing);
+    // Al registrarse, muestra "Pago enviado, esperando confirmación"
+    expect(find.byKey(const Key('vista_pago_enviado')), findsOneWidget);
+    expect(find.text('Pago enviado, esperando confirmación'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('boton_volver_tanda')));
+    await tester.pumpAndSettle();
     expect(find.text('Inicio'), findsOneWidget);
-    expect(find.text('Pago registrado. Queda pendiente de confirmación del organizador.'),
-        findsOneWidget);
   });
 
   testWidgets('envía los montos del híbrido capturados en los campos', (tester) async {

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:tandea/core/constants/app_colors.dart';
@@ -48,35 +49,29 @@ class RegistrarPagoScreen extends StatefulWidget {
 class _RegistrarPagoScreenState extends State<RegistrarPagoScreen> {
   final _transferenciaController = TextEditingController();
   final _efectivoController = TextEditingController();
+  late final _montoController =
+      TextEditingController(text: widget.args.cuota.toStringAsFixed(2));
+
+  @override
+  void initState() {
+    super.initState();
+    context.read<PagoProvider>().configurarCuota(widget.args.cuota);
+  }
 
   @override
   void dispose() {
     _transferenciaController.dispose();
     _efectivoController.dispose();
+    _montoController.dispose();
     super.dispose();
   }
 
   Future<void> _registrarPago() async {
-    final provider = context.read<PagoProvider>();
-    final registrado = await provider.registrarPago(
+    // Si se registra, build() muestra la vista "Pago enviado, esperando confirmación"
+    await context.read<PagoProvider>().registrarPago(
       idNumber: widget.args.idNumber,
       cuota: widget.args.cuota,
     );
-
-    if (!mounted || !registrado) {
-      return;
-    }
-
-    // TODO: SP-2-[FE-PAGO] Mostrar pantalla/diálogo "Pago enviado, esperando confirmación".
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Pago registrado. Queda pendiente de confirmación del organizador.'),
-        backgroundColor: AppColors.success,
-      ),
-    );
-    if (context.canPop()) {
-      context.pop();
-    }
   }
 
   @override
@@ -85,6 +80,10 @@ class _RegistrarPagoScreenState extends State<RegistrarPagoScreen> {
     final args = widget.args;
     final metodo = provider.metodoPago;
     final enviando = provider.enviando;
+
+    if (provider.pagoRegistrado != null) {
+      return _PagoEnviado(args: args, total: provider.pagoRegistrado!.totalAmount);
+    }
 
     return Scaffold(
       appBar: AppBar(title: const Text('Registrar pago')),
@@ -125,7 +124,21 @@ class _RegistrarPagoScreenState extends State<RegistrarPagoScreen> {
                   onEfectivoChanged: provider.actualizarMontoEfectivo,
                 )
               else
-                _MontoFijo(metodo: metodo, cuota: args.cuota),
+                _MontoUnico(
+                  metodo: metodo,
+                  controller: _montoController,
+                  habilitado: !enviando,
+                  onChanged: provider.actualizarMontoUnico,
+                ),
+              if (metodo.esHibrido && !provider.sumaValida)
+                Padding(
+                  key: const Key('aviso_suma_hibrida'),
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text(
+                    'Transferencia + efectivo deben sumar ${formatearMonedaMxn(args.cuota)}.',
+                    style: const TextStyle(color: AppColors.error, fontSize: 13),
+                  ),
+                ),
               const SizedBox(height: 16),
               ComprobantePlaceholder(
                 requerido: metodo.requiereComprobante,
@@ -158,38 +171,81 @@ class _RegistrarPagoScreenState extends State<RegistrarPagoScreen> {
   }
 }
 
-/// Monto (igual a la cuota) para transferencia o efectivo.
-class _MontoFijo extends StatelessWidget {
+/// Monto para transferencia o efectivo; empieza con la cuota y se puede editar.
+class _MontoUnico extends StatelessWidget {
   final MetodoPago metodo;
-  final double cuota;
+  final TextEditingController controller;
+  final bool habilitado;
+  final ValueChanged<String> onChanged;
 
-  const _MontoFijo({required this.metodo, required this.cuota});
+  const _MontoUnico({
+    required this.metodo,
+    required this.controller,
+    required this.habilitado,
+    required this.onChanged,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final etiqueta =
-        metodo == MetodoPago.efectivo ? 'Monto en efectivo' : 'Monto por transferencia';
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.border),
+    return TextField(
+      key: const Key('campo_monto_unico'),
+      controller: controller,
+      enabled: habilitado,
+      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+      inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}'))],
+      decoration: InputDecoration(
+        labelText:
+            metodo == MetodoPago.efectivo ? 'Monto en efectivo' : 'Monto por transferencia',
+        prefixText: r'$ ',
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(etiqueta, style: const TextStyle(color: AppColors.textSecondary)),
-          Text(
-            formatearMonedaMxn(cuota),
-            key: const Key('monto_fijo'),
-            style: const TextStyle(
-              color: AppColors.textPrimary,
-              fontWeight: FontWeight.w600,
-            ),
+      onChanged: onChanged,
+    );
+  }
+}
+
+/// Confirmación tras registrar el pago: queda pendiente de que el organizador lo confirme.
+class _PagoEnviado extends StatelessWidget {
+  final RegistrarPagoArgs args;
+  final double total;
+
+  const _PagoEnviado({required this.args, required this.total});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Pago enviado'), automaticallyImplyLeading: false),
+      body: SafeArea(
+        child: Padding(
+          key: const Key('vista_pago_enviado'),
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Icon(Icons.hourglass_top_rounded, size: 72, color: AppColors.primary),
+              const SizedBox(height: 20),
+              const Text(
+                'Pago enviado, esperando confirmación',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Registraste ${formatearMonedaMxn(total)} de "${args.nombreTanda}"'
+                '${args.numeroTurno != null ? ' (número #${args.numeroTurno})' : ''}. '
+                'El organizador debe confirmarlo.',
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: AppColors.textSecondary),
+              ),
+              const SizedBox(height: 32),
+              PrimaryButton(
+                key: const Key('boton_volver_tanda'),
+                text: 'Volver a la tanda',
+                onPressed: () => context.canPop() ? context.pop() : null,
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

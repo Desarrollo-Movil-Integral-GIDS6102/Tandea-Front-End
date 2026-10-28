@@ -167,4 +167,26 @@ void main() {
       expect(provider.errorMessage, isNull);
     });
   });
+
+  group('PagoProvider.sumaValida (híbrido)', () {
+    test('deshabilita "Ya pagué" hasta que transferencia + efectivo sumen la cuota', () {
+      provider
+        ..configurarCuota(1500)
+        ..seleccionarMetodo(MetodoPago.hibrido)
+        ..actualizarMontoTransferencia('1000.10');
+      expect(provider.puedeRegistrar, isFalse);
+
+      provider.actualizarMontoEfectivo('499.80');
+      expect(provider.sumaValida, isFalse);
+
+      provider.actualizarMontoEfectivo('499.90');
+      expect(provider.sumaValida, isTrue);
+      expect(provider.puedeRegistrar, isTrue);
+    });
+
+    test('en transferencia o efectivo no aplica la regla de suma', () {
+      provider.configurarCuota(1500);
+      expect(provider.sumaValida, isTrue);
+    });
+  });
 }

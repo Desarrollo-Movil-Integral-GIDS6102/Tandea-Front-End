@@ -41,6 +41,12 @@ class TandasNavigationScreen extends StatelessWidget {
             label: 'Organizador',
             tooltip: 'Mis tandas (organizador)',
           ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person_outline_rounded),
+            activeIcon: Icon(Icons.person_rounded),
+            label: 'Perfil',
+            tooltip: 'Mi perfil',
+          ),
         ],
       ),
     );

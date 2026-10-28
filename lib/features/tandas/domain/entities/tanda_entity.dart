@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:tandea/features/tandas/domain/entities/numero_tanda.dart';
 
 /// Indicador del estado de pago de la tanda para el usuario.
 enum IndicadorPago {
@@ -26,6 +27,15 @@ class TandaEntity extends Equatable {
   final IndicadorPago indicadorPago;
   final String? rolUsuario;
 
+  /// Números apartados de la tanda (solo viene en el detalle).
+  final List<NumeroTanda> numeros;
+
+  /// Números del usuario autenticado (solo viene en el detalle).
+  final List<NumeroTanda> misNumeros;
+
+  /// Números libres para apartar; `null` si el backend no los envió.
+  final List<int>? numerosDisponibles;
+
   const TandaEntity({
     required this.id,
     required this.nombre,
@@ -40,7 +50,18 @@ class TandaEntity extends Equatable {
     this.idTandaType,
     this.indicadorPago = IndicadorPago.alDia,
     this.rolUsuario,
+    this.numeros = const [],
+    this.misNumeros = const [],
+    this.numerosDisponibles,
   });
+
+  bool get esPendiente => estado.toUpperCase() == 'PENDIENTE';
+  bool get esActiva => estado.toUpperCase() == 'ACTIVA';
+  bool get esOrganizador =>
+      rolUsuario == 'DUENO' || rolUsuario == 'AMBOS' || rolUsuario == 'ADMIN_GLOBAL';
+
+  /// Solo se puede apartar número mientras la tanda está pendiente y queda alguno libre.
+  bool get aceptaNumeros => esPendiente && (numerosDisponibles?.isNotEmpty ?? true);
 
   TandaEntity copyWith({
     String? id,
@@ -71,6 +92,9 @@ class TandaEntity extends Equatable {
       idTandaType: idTandaType ?? this.idTandaType,
       indicadorPago: indicadorPago ?? this.indicadorPago,
       rolUsuario: rolUsuario ?? this.rolUsuario,
+      numeros: numeros,
+      misNumeros: misNumeros,
+      numerosDisponibles: numerosDisponibles,
     );
   }
 
@@ -89,6 +113,9 @@ class TandaEntity extends Equatable {
         idTandaType,
         indicadorPago,
         rolUsuario,
+        numeros,
+        misNumeros,
+        numerosDisponibles,
       ];
 }
 

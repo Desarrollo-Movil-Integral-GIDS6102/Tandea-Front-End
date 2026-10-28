@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:tandea/core/routes/route_names.dart';
 
 class AdminDashboardScreen extends StatelessWidget {
   const AdminDashboardScreen({super.key});
@@ -11,6 +13,14 @@ class AdminDashboardScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Panel Administrador Global'),
         elevation: 0,
+        actions: [
+          IconButton(
+            key: const Key('btn_admin_perfil'),
+            tooltip: 'Mi perfil',
+            icon: const Icon(Icons.account_circle_outlined),
+            onPressed: () => context.push(RouteNames.perfil),
+          ),
+        ],
       ),
       body: Center(
         child: Padding(

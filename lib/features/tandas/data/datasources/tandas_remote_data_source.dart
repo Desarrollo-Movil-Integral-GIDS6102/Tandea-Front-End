@@ -12,6 +12,7 @@ abstract class TandasRemoteDataSource {
   Future<TandaModel> createTanda(Map<String, dynamic> tandaData);
   Future<TandaModel> getTandaByInviteCode(String inviteCode);
   Future<Map<String, dynamic>> joinTanda(Map<String, dynamic> data);
+  Future<TandaModel> updateStatus(String id, String status);
 }
 
 class TandasRemoteDataSourceImpl implements TandasRemoteDataSource {
@@ -158,6 +159,23 @@ class TandasRemoteDataSourceImpl implements TandasRemoteDataSource {
       throw const ServerException(message: 'Formato de respuesta inválido al unirse a la tanda');
     } on DioException catch (e) {
       NetworkErrorHandler.handleDioException(e, fallbackMessage: 'Error al unirse a la tanda');
+    }
+  }
+
+  @override
+  Future<TandaModel> updateStatus(String id, String status) async {
+    try {
+      final response = await apiClient.patch<dynamic>(
+        '${ApiConstants.tandasEndpoint}/$id/status',
+        data: {'status': status},
+      );
+      final rawData = response.data;
+      if (rawData is Map<String, dynamic> && rawData['data'] is Map<String, dynamic>) {
+        return TandaModel.fromJson(rawData['data'] as Map<String, dynamic>);
+      }
+      throw const ServerException(message: 'Formato de respuesta inválido al actualizar la tanda');
+    } on DioException catch (e) {
+      NetworkErrorHandler.handleDioException(e, fallbackMessage: 'Error al actualizar la tanda');
     }
   }
 }

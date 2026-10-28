@@ -28,6 +28,9 @@ class ApiConstants {
   static const String registerEndpoint = '/auth/register';
   static const String profileEndpoint = '/auth/profile';
   static const String meEndpoint = '/auth/profile';
+  static const String perfilEndpoint = '/auth/perfil';
+  static const String perfilCodigoPasswordEndpoint = '/auth/perfil/password/codigo';
+  static const String perfilPasswordEndpoint = '/auth/perfil/password';
 
   // Tandas endpoints
   static const String tandasEndpoint = '/tandas';

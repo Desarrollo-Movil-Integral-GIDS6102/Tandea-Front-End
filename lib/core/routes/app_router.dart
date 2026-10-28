@@ -4,6 +4,9 @@ import 'package:provider/provider.dart';
 import 'package:tandea/core/routes/route_names.dart';
 import 'package:tandea/features/admin/presentation/screens/admin_dashboard_screen.dart';
 import 'package:tandea/features/auth/presentation/providers/auth_session_provider.dart';
+import 'package:tandea/features/auth/presentation/providers/perfil_provider.dart';
+import 'package:tandea/features/auth/presentation/screens/cambiar_password_screen.dart';
+import 'package:tandea/features/auth/presentation/screens/perfil_screen.dart';
 import 'package:tandea/features/auth/presentation/screens/login_screen.dart';
 import 'package:tandea/features/auth/presentation/screens/register_screen.dart';
 import 'package:tandea/features/auth/presentation/screens/welcome_screen.dart';
@@ -14,7 +17,10 @@ import 'package:tandea/features/tandas/presentation/screens/compartir_codigo_tan
 import 'package:tandea/features/tandas/presentation/screens/crear_tanda_screen.dart';
 import 'package:tandea/features/tandas/presentation/screens/mis_tandas_organizador_screen.dart';
 import 'package:tandea/features/tandas/presentation/screens/mis_tandas_participante_screen.dart';
+import 'package:tandea/features/tandas/presentation/providers/tanda_detalle_provider.dart';
+import 'package:tandea/features/tandas/presentation/providers/tandas_provider.dart';
 import 'package:tandea/features/tandas/presentation/screens/seleccionar_numero_screen.dart';
+import 'package:tandea/features/tandas/presentation/screens/tanda_detalle_screen.dart';
 import 'package:tandea/features/tandas/presentation/screens/tandas_navigation_screen.dart';
 import 'package:tandea/features/tandas/presentation/screens/unirse_tanda_screen.dart';
 import 'package:tandea/injection/injection.dart';
@@ -71,8 +77,11 @@ class AppRouter {
             routes: [
               GoRoute(
                 path: RouteNames.tandasParticipante,
-                builder: (context, state) =>
-                    const MisTandasParticipanteScreen(),
+                // Cada pestaña con su propia lista; compartida, una pisaba a la otra
+                builder: (context, state) => ChangeNotifierProvider(
+                  create: (_) => sl<TandasProvider>(),
+                  child: const MisTandasParticipanteScreen(),
+                ),
               ),
             ],
           ),
@@ -80,8 +89,21 @@ class AppRouter {
             routes: [
               GoRoute(
                 path: RouteNames.tandasOrganizador,
-                builder: (context, state) =>
-                    const MisTandasOrganizadorScreen(),
+                builder: (context, state) => ChangeNotifierProvider(
+                  create: (_) => sl<TandasProvider>(),
+                  child: const MisTandasOrganizadorScreen(),
+                ),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: RouteNames.perfil,
+                builder: (context, state) => ChangeNotifierProvider(
+                  create: (_) => sl<PerfilProvider>()..cargar(),
+                  child: const PerfilScreen(),
+                ),
               ),
             ],
           ),
@@ -115,6 +137,27 @@ class AppRouter {
         },
       ),
 
+
+      // Cambiar contraseña con código de 6 dígitos enviado por correo
+      GoRoute(
+        path: RouteNames.cambiarPassword,
+        builder: (context, state) => ChangeNotifierProvider(
+          create: (_) => sl<PerfilProvider>(),
+          child: CambiarPasswordScreen(correo: state.extra as String?),
+        ),
+      ),
+
+      // Detalle de Tanda (participante y organizador, solo lectura)
+      GoRoute(
+        path: RouteNames.tandaDetail,
+        builder: (context, state) {
+          final id = state.pathParameters['id']!;
+          return ChangeNotifierProvider(
+            create: (_) => sl<TandaDetalleProvider>()..cargar(id),
+            child: TandaDetalleScreen(idTanda: id),
+          );
+        },
+      ),
 
       // Compartir Código de Tanda
       GoRoute(

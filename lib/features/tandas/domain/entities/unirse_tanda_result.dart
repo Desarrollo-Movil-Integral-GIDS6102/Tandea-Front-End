@@ -5,16 +5,18 @@ import 'package:tandea/features/tandas/domain/entities/tanda_entity.dart';
 class UnirseTandaResult extends Equatable {
   final TandaEntity tanda;
   final int numeroAsignado;
+  final List<int> numerosAsignados;
   final bool isDeadNumber;
   final String mensaje;
 
   const UnirseTandaResult({
     required this.tanda,
     required this.numeroAsignado,
+    this.numerosAsignados = const [],
     this.isDeadNumber = false,
     this.mensaje = 'Te has unido exitosamente a la tanda',
   });
 
   @override
-  List<Object?> get props => [tanda, numeroAsignado, isDeadNumber, mensaje];
+  List<Object?> get props => [tanda, numeroAsignado, numerosAsignados, isDeadNumber, mensaje];
 }

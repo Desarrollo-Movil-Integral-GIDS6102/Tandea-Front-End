@@ -7,22 +7,22 @@ import 'package:tandea/features/tandas/domain/repositories/tandas_repository.dar
 /// Parámetros para unirse a una tanda activa.
 class JoinTandaParams extends Equatable {
   final String inviteCode;
-  final int? selectedNumber;
+  final List<int> selectedNumbers;
 
   const JoinTandaParams({
     required this.inviteCode,
-    this.selectedNumber,
+    this.selectedNumbers = const [],
   });
 
   Map<String, dynamic> toJson() {
     return <String, dynamic>{
       'inviteCode': inviteCode.trim().toUpperCase(),
-      if (selectedNumber != null) 'selectedNumber': selectedNumber,
+      if (selectedNumbers.isNotEmpty) 'selectedNumbers': selectedNumbers,
     };
   }
 
   @override
-  List<Object?> get props => [inviteCode, selectedNumber];
+  List<Object?> get props => [inviteCode, selectedNumbers];
 }
 
 /// Caso de uso para unirse a una tanda en el backend (POST /tandas/unirse).

@@ -69,6 +69,9 @@ class MockUnirseTandasRepository implements TandasRepository {
   }
 
   @override
+  Future<Result<TandaEntity>> iniciarTanda(String id) async => getTandaById(id);
+
+  @override
   Future<Result<UnirseTandaResult>> joinTanda(JoinTandaParams params) async {
     lastJoinParams = params;
     return joinTandaResult ??
@@ -82,7 +85,8 @@ class MockUnirseTandasRepository implements TandasRepository {
               periodo: 'quincenal',
               estado: 'PENDIENTE',
             ),
-            numeroAsignado: params.selectedNumber ?? 2,
+            numeroAsignado: params.selectedNumbers.isNotEmpty ? params.selectedNumbers.first : 2,
+            numerosAsignados: params.selectedNumbers,
             mensaje: 'Te has unido exitosamente a la tanda',
           ),
         );
@@ -247,47 +251,65 @@ void main() {
       expect(provider.isLoading, isFalse);
     });
 
-    test('consultarTanda exitoso detecta correctamente si es por elección (idTandaType == 1)', () async {
+    test('consultarTanda deja continuar si la tanda está pendiente y tiene números libres', () async {
       provider.setInviteCode('TND-ELEC10');
       mockRepo.getTandaResult = const Success(
         TandaEntity(
           id: '1',
-          nombre: 'Tanda Por Elección',
+          nombre: 'Tanda Abierta',
           monto: 1000.0,
           totalParticipantes: 5,
           periodo: 'quincenal',
           estado: 'PENDIENTE',
           inviteCode: 'TND-ELEC10',
-          idTandaType: 1,
+          numerosDisponibles: [2, 4],
         ),
       );
 
       final tanda = await provider.consultarTanda();
 
       expect(tanda, isNotNull);
-      expect(provider.isPorEleccion, isTrue);
       expect(provider.backendError, isNull);
     });
 
-    test('consultarTanda exitoso detecta cuando es por sorteo (idTandaType == 2)', () async {
+    test('consultarTanda no deja intentar unirse si la tanda ya inició', () async {
       provider.setInviteCode('TND-SORT10');
       mockRepo.getTandaResult = const Success(
         TandaEntity(
           id: '2',
-          nombre: 'Tanda Sorteo',
+          nombre: 'Tanda Iniciada',
           monto: 500.0,
           totalParticipantes: 10,
           periodo: 'semanal',
-          estado: 'PENDIENTE',
+          estado: 'ACTIVA',
           inviteCode: 'TND-SORT10',
-          idTandaType: 2,
+          numerosDisponibles: [],
         ),
       );
 
       final tanda = await provider.consultarTanda();
 
-      expect(tanda, isNotNull);
-      expect(provider.isPorEleccion, isFalse);
+      expect(tanda, isNull);
+      expect(provider.backendError, contains('ya inició'));
+    });
+
+    test('consultarTanda no deja intentar unirse si ya no quedan números libres', () async {
+      provider.setInviteCode('TND-LLENA1');
+      mockRepo.getTandaResult = const Success(
+        TandaEntity(
+          id: '3',
+          nombre: 'Tanda Llena',
+          monto: 500.0,
+          totalParticipantes: 3,
+          periodo: 'semanal',
+          estado: 'PENDIENTE',
+          inviteCode: 'TND-LLENA1',
+          numerosDisponibles: [],
+        ),
+      );
+
+      expect(await provider.consultarTanda(), isNull);
+      expect(provider.backendError, isNotNull);
     });
 
     test('unirse expone el error de backend si el turno seleccionado ya está ocupado', () async {
@@ -296,7 +318,7 @@ void main() {
         ServerFailure('El turno número 3 ya está ocupado', statusCode: 409),
       );
 
-      final resultado = await provider.unirse(selectedNumber: 3);
+      final resultado = await provider.unirse(selectedNumbers: [3]);
 
       expect(resultado, isNull);
       expect(provider.backendError, equals('El turno número 3 ya está ocupado'));
@@ -305,7 +327,7 @@ void main() {
     test('unirse completa exitosamente y almacena joinResult con número asignado', () async {
       provider.setInviteCode('TND-7K9A2B');
 
-      final resultado = await provider.unirse(selectedNumber: 4);
+      final resultado = await provider.unirse(selectedNumbers: [4]);
 
       expect(resultado, isNotNull);
       expect(resultado!.numeroAsignado, equals(4));
@@ -499,7 +521,7 @@ void main() {
       await tester.tap(find.byKey(const Key('btn_seleccionar_numero_3')));
       await tester.pump();
 
-      expect(find.text('Confirmar Turno #3 y Unirme'), findsOneWidget);
+      expect(find.text('Apartar número #3'), findsOneWidget);
 
       final btn = tester.widget<ElevatedButton>(find.byKey(const Key('btn_confirmar_turno')));
       expect(btn.onPressed, isNotNull);
@@ -530,6 +552,7 @@ void main() {
         UnirseTandaResult(
           tanda: testTanda,
           numeroAsignado: 3,
+          numerosAsignados: [3],
         ),
       );
 
@@ -548,6 +571,41 @@ void main() {
         findsOneWidget,
       );
       expect(find.byKey(const Key('btn_exito_selector_ir_tandas')), findsOneWidget);
+    });
+
+    testWidgets('solo muestra los números libres y permite apartar varios', (tester) async {
+      const tandaConOcupados = TandaEntity(
+        id: '1',
+        nombre: 'Tanda Familiar 2026',
+        monto: 1500.0,
+        totalParticipantes: 6,
+        periodo: 'quincenal',
+        estado: 'PENDIENTE',
+        inviteCode: 'TND-7K9A2B',
+        numerosDisponibles: [2, 5, 6],
+      );
+      await tester.pumpWidget(MaterialApp(
+        home: ChangeNotifierProvider<UnirseTandaProvider>.value(
+          value: provider,
+          child: const SeleccionarNumeroScreen(tanda: tandaConOcupados),
+        ),
+      ));
+      await tester.pump();
+
+      expect(find.byKey(const Key('btn_seleccionar_numero_1')), findsNothing);
+      expect(find.byKey(const Key('btn_seleccionar_numero_3')), findsNothing);
+
+      await tester.tap(find.byKey(const Key('btn_seleccionar_numero_6')));
+      await tester.tap(find.byKey(const Key('btn_seleccionar_numero_2')));
+      await tester.pump();
+      expect(find.text('Apartar 2 números'), findsOneWidget);
+
+      await tester.ensureVisible(find.byKey(const Key('btn_confirmar_turno')));
+      await tester.tap(find.byKey(const Key('btn_confirmar_turno')));
+      await tester.pumpAndSettle();
+
+      expect(mockRepo.lastJoinParams?.selectedNumbers, equals([2, 6]));
+      expect(mockRepo.lastJoinParams?.inviteCode, equals('TND-7K9A2B'));
     });
   });
 }

@@ -11,6 +11,9 @@ abstract class TandasRepository {
   Future<Result<TandaEntity>> createTanda(Map<String, dynamic> tandaData);
   Future<Result<TandaEntity>> getTandaByInviteCode(String inviteCode);
   Future<Result<UnirseTandaResult>> joinTanda(JoinTandaParams params);
+
+  /// Pasa la tanda de PENDIENTE a ACTIVA (solo organizador).
+  Future<Result<TandaEntity>> iniciarTanda(String id);
 }
 
 

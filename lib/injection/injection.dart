@@ -8,9 +8,12 @@ import 'package:tandea/core/network/server_health_service.dart';
 import 'package:tandea/core/services/share_service.dart';
 import 'package:tandea/features/auth/data/datasources/auth_remote_data_source.dart';
 import 'package:tandea/features/auth/data/repositories/auth_repository_impl.dart';
+import 'package:tandea/features/auth/data/repositories/perfil_repository_impl.dart';
 import 'package:tandea/features/auth/domain/repositories/auth_repository.dart';
+import 'package:tandea/features/auth/domain/repositories/perfil_repository.dart';
 import 'package:tandea/features/auth/presentation/providers/auth_provider.dart';
 import 'package:tandea/features/auth/presentation/providers/auth_session_provider.dart';
+import 'package:tandea/features/auth/presentation/providers/perfil_provider.dart';
 import 'package:tandea/features/pagos/data/datasources/pago_remote_data_source.dart';
 import 'package:tandea/features/pagos/data/repositories/pago_repository_impl.dart';
 import 'package:tandea/features/pagos/data/services/comprobante_service_impl.dart';
@@ -27,6 +30,7 @@ import 'package:tandea/features/tandas/domain/usecases/crear_tanda_usecase.dart'
 import 'package:tandea/features/tandas/domain/usecases/obtener_tanda_por_codigo_usecase.dart';
 import 'package:tandea/features/tandas/domain/usecases/unirse_tanda_usecase.dart';
 import 'package:tandea/features/tandas/presentation/providers/crear_tanda_provider.dart';
+import 'package:tandea/features/tandas/presentation/providers/tanda_detalle_provider.dart';
 import 'package:tandea/features/tandas/presentation/providers/tandas_provider.dart';
 import 'package:tandea/features/tandas/presentation/providers/unirse_tanda_provider.dart';
 
@@ -120,6 +124,10 @@ Future<void> initDependencies() async {
     ),
   );
 
+  sl.registerLazySingleton<PerfilRepository>(
+    () => PerfilRepositoryImpl(apiClient: sl<ApiClient>()),
+  );
+
   sl.registerLazySingleton<PagoRepository>(
     () => PagoRepositoryImpl(
       remoteDataSource: sl<PagoRemoteDataSource>(),
@@ -162,6 +170,14 @@ Future<void> initDependencies() async {
 
   sl.registerFactory<TandasProvider>(
     () => TandasProvider(tandasRepository: sl<TandasRepository>()),
+  );
+
+  sl.registerFactory<PerfilProvider>(
+    () => PerfilProvider(perfilRepository: sl<PerfilRepository>()),
+  );
+
+  sl.registerFactory<TandaDetalleProvider>(
+    () => TandaDetalleProvider(tandasRepository: sl<TandasRepository>()),
   );
 
   sl.registerFactory<CrearTandaProvider>(

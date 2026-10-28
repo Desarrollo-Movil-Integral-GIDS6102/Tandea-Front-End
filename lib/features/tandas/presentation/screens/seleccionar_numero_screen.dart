@@ -7,7 +7,8 @@ import 'package:tandea/features/tandas/domain/entities/tanda_entity.dart';
 import 'package:tandea/features/tandas/domain/entities/unirse_tanda_result.dart';
 import 'package:tandea/features/tandas/presentation/providers/unirse_tanda_provider.dart';
 
-/// Pantalla para seleccionar el número o turno de cobro en tandas por elección.
+/// Pantalla para apartar uno o varios números (turnos de cobro) de una tanda.
+/// Solo muestra los números que siguen libres.
 class SeleccionarNumeroScreen extends StatefulWidget {
   final TandaEntity tanda;
 
@@ -21,27 +22,33 @@ class SeleccionarNumeroScreen extends StatefulWidget {
 }
 
 class _SeleccionarNumeroScreenState extends State<SeleccionarNumeroScreen> {
-  int? _selectedNumber;
+  final Set<int> _seleccionados = {};
+
+  List<int> get _disponibles =>
+      widget.tanda.numerosDisponibles ??
+      List<int>.generate(widget.tanda.totalParticipantes, (i) => i + 1);
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final provider = context.read<UnirseTandaProvider>();
-      provider.clearErrors();
-      if (provider.selectedNumber != null) {
-        setState(() {
-          _selectedNumber = provider.selectedNumber;
-        });
+      // Al llegar desde el detalle (organizador) no hubo búsqueda por código
+      final code = widget.tanda.inviteCode;
+      if (code != null && code.isNotEmpty) {
+        provider.setInviteCode(code);
       }
+      provider.clearErrors();
     });
   }
 
   Future<void> _handleConfirmarNumero() async {
-    if (_selectedNumber == null) return;
+    if (_seleccionados.isEmpty) return;
 
     final provider = context.read<UnirseTandaProvider>();
-    final resultado = await provider.unirse(selectedNumber: _selectedNumber);
+    final resultado = await provider.unirse(
+      selectedNumbers: _seleccionados.toList()..sort(),
+    );
 
     if (!mounted || resultado == null) {
       return;
@@ -69,7 +76,7 @@ class _SeleccionarNumeroScreenState extends State<SeleccionarNumeroScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Te uniste exitosamente a "${result.tanda.nombre}".',
+              'Apartaste ${result.numerosAsignados.length == 1 ? 'tu número' : 'tus números'} en "${result.tanda.nombre}".',
               style: const TextStyle(fontSize: 14, color: AppColors.textPrimaryLight),
             ),
             const SizedBox(height: 16),
@@ -83,12 +90,12 @@ class _SeleccionarNumeroScreenState extends State<SeleccionarNumeroScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Text(
-                    'Tu Turno de Cobro: ',
-                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+                  Text(
+                    result.numerosAsignados.length == 1 ? 'Tu número: ' : 'Tus números: ',
+                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
                   ),
                   Text(
-                    '#${result.numeroAsignado}',
+                    result.numerosAsignados.map((n) => '#$n').join(', '),
                     style: const TextStyle(
                       fontWeight: FontWeight.w900,
                       fontSize: 24,
@@ -105,14 +112,14 @@ class _SeleccionarNumeroScreenState extends State<SeleccionarNumeroScreen> {
             key: const Key('btn_exito_selector_ir_tandas'),
             onPressed: () {
               Navigator.of(dialogCtx).pop();
-              context.go(RouteNames.tandasParticipante);
+              context.go(RouteNames.tandaDetalle(widget.tanda.id));
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
-            child: const Text('Ver Mis Tandas'),
+            child: const Text('Ver detalle de la tanda'),
           ),
         ],
       ),
@@ -182,7 +189,7 @@ class _SeleccionarNumeroScreenState extends State<SeleccionarNumeroScreen> {
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
-                                    'Tanda por elección • ${widget.tanda.periodo.toUpperCase()}',
+                                    widget.tanda.periodo.toUpperCase(),
                                     style: const TextStyle(
                                       fontSize: 12.5,
                                       color: AppColors.textSecondaryLight,
@@ -217,16 +224,16 @@ class _SeleccionarNumeroScreenState extends State<SeleccionarNumeroScreen> {
 
                 // Instrucción
                 Text(
-                  'Selecciona el turno en el que deseas cobrar:',
+                  'Elige uno o varios números para cobrar:',
                   style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,
                     color: AppColors.textPrimaryLight,
                   ),
                 ),
                 const SizedBox(height: 6),
-                const Text(
-                  'Elige un número del 1 al total de participantes.',
-                  style: TextStyle(fontSize: 13, color: AppColors.textSecondaryLight),
+                Text(
+                  'Quedan ${_disponibles.length} de $totalNumeros números libres. Puedes apartar más de uno.',
+                  style: const TextStyle(fontSize: 13, color: AppColors.textSecondaryLight),
                 ),
                 const SizedBox(height: 16),
 
@@ -234,7 +241,7 @@ class _SeleccionarNumeroScreenState extends State<SeleccionarNumeroScreen> {
                 GridView.builder(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
-                  itemCount: totalNumeros,
+                  itemCount: _disponibles.length,
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 4,
                     mainAxisSpacing: 12,
@@ -242,8 +249,8 @@ class _SeleccionarNumeroScreenState extends State<SeleccionarNumeroScreen> {
                     childAspectRatio: 1.05,
                   ),
                   itemBuilder: (context, index) {
-                    final numero = index + 1;
-                    final isSelected = _selectedNumber == numero;
+                    final numero = _disponibles[index];
+                    final isSelected = _seleccionados.contains(numero);
 
                     return InkWell(
                       key: Key('btn_seleccionar_numero_$numero'),
@@ -251,9 +258,11 @@ class _SeleccionarNumeroScreenState extends State<SeleccionarNumeroScreen> {
                           ? null
                           : () {
                               setState(() {
-                                _selectedNumber = numero;
+                                isSelected
+                                    ? _seleccionados.remove(numero)
+                                    : _seleccionados.add(numero);
                               });
-                              provider.setSelectedNumber(numero);
+                              provider.clearErrors();
                             },
                       borderRadius: BorderRadius.circular(16),
                       child: AnimatedContainer(
@@ -301,7 +310,7 @@ class _SeleccionarNumeroScreenState extends State<SeleccionarNumeroScreen> {
                 // Botón de Confirmación
                 ElevatedButton(
                   key: const Key('btn_confirmar_turno'),
-                  onPressed: (_selectedNumber == null || isLoading)
+                  onPressed: (_seleccionados.isEmpty || isLoading)
                       ? null
                       : _handleConfirmarNumero,
                   style: ElevatedButton.styleFrom(
@@ -322,9 +331,11 @@ class _SeleccionarNumeroScreenState extends State<SeleccionarNumeroScreen> {
                           ),
                         )
                       : Text(
-                          _selectedNumber == null
-                              ? 'Selecciona un turno para continuar'
-                              : 'Confirmar Turno #$_selectedNumber y Unirme',
+                          _seleccionados.isEmpty
+                              ? 'Selecciona al menos un número'
+                              : _seleccionados.length == 1
+                                  ? 'Apartar número #${_seleccionados.first}'
+                                  : 'Apartar ${_seleccionados.length} números',
                           style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                         ),
                 ),
