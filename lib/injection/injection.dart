@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get_it/get_it.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:tandea/core/network/api_client.dart';
 import 'package:tandea/core/network/dio_client.dart';
 import 'package:tandea/core/network/server_health_service.dart';
@@ -12,7 +13,12 @@ import 'package:tandea/features/auth/presentation/providers/auth_provider.dart';
 import 'package:tandea/features/auth/presentation/providers/auth_session_provider.dart';
 import 'package:tandea/features/pagos/data/datasources/pago_remote_data_source.dart';
 import 'package:tandea/features/pagos/data/repositories/pago_repository_impl.dart';
+import 'package:tandea/features/pagos/data/services/comprobante_service_impl.dart';
+import 'package:tandea/features/pagos/data/services/image_compressor_service.dart';
+import 'package:tandea/features/pagos/data/services/permission_service.dart';
 import 'package:tandea/features/pagos/domain/repositories/pago_repository.dart';
+import 'package:tandea/features/pagos/domain/services/comprobante_service.dart';
+import 'package:tandea/features/pagos/domain/usecases/seleccionar_comprobante_usecase.dart';
 import 'package:tandea/features/pagos/presentation/providers/pago_provider.dart';
 import 'package:tandea/features/tandas/data/datasources/tandas_remote_data_source.dart';
 import 'package:tandea/features/tandas/data/repositories/tandas_repository_impl.dart';
@@ -61,6 +67,28 @@ Future<void> initDependencies() async {
   sl.registerLazySingleton<ShareService>(
     () => ShareServiceImpl(),
   );
+
+  // Servicios de captura, permisos y compresión de comprobantes (AP-04)
+  sl.registerLazySingleton<ImagePicker>(
+    () => ImagePicker(),
+  );
+
+  sl.registerLazySingleton<ImageCompressorService>(
+    () => FlutterImageCompressorServiceImpl(),
+  );
+
+  sl.registerLazySingleton<PermissionService>(
+    () => PermissionServiceImpl(),
+  );
+
+  sl.registerLazySingleton<ComprobanteService>(
+    () => ComprobanteServiceImpl(
+      imagePicker: sl<ImagePicker>(),
+      compressorService: sl<ImageCompressorService>(),
+      permissionService: sl<PermissionService>(),
+    ),
+  );
+
   // ----------------------------------------------------
   // 3. DataSources
   // ----------------------------------------------------
@@ -113,6 +141,10 @@ Future<void> initDependencies() async {
     () => UnirseTandaUseCase(repository: sl<TandasRepository>()),
   );
 
+  sl.registerLazySingleton<SeleccionarComprobanteUseCase>(
+    () => SeleccionarComprobanteUseCase(comprobanteService: sl<ComprobanteService>()),
+  );
+
   // ----------------------------------------------------
   // 6. Providers / State Management
   // ----------------------------------------------------
@@ -144,9 +176,11 @@ Future<void> initDependencies() async {
   );
 
   sl.registerFactory<PagoProvider>(
-    () => PagoProvider(pagoRepository: sl<PagoRepository>()),
+    () => PagoProvider(
+      pagoRepository: sl<PagoRepository>(),
+      seleccionarComprobanteUseCase: sl<SeleccionarComprobanteUseCase>(),
+    ),
   );
-
 }
 
 /// Alias para conveniencia

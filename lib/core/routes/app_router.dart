@@ -161,20 +161,23 @@ class AppRouter {
       ),
 
       // Registrar Pago (AP-03). Recibe RegistrarPagoArgs por `extra`.
-      // TODO: SP-2-[FE-CAL] Navegar aquí desde el detalle de la tanda con el número del usuario.
+      // Navegar a la pantalla de registrar pago (AP-03 & AP-04)
       GoRoute(
         path: RouteNames.registrarPago,
         builder: (context, state) {
           final extra = state.extra;
-          if (extra is RegistrarPagoArgs) {
-            return ChangeNotifierProvider<PagoProvider>(
-              create: (_) => sl<PagoProvider>(),
-              child: RegistrarPagoScreen(args: extra),
-            );
-          }
-          return const _PlaceholderScreen(
-            title: 'Registrar pago',
-            mensaje: 'Abre esta pantalla desde tu tanda para registrar el pago de tu turno.',
+          final args = extra is RegistrarPagoArgs
+              ? extra
+              : const RegistrarPagoArgs(
+                  nombreTanda: 'Tanda de prueba',
+                  idNumber: 1,
+                  cuota: 1500,
+                  numeroTurno: 1,
+                  vuelta: 1,
+                );
+          return ChangeNotifierProvider<PagoProvider>(
+            create: (_) => sl<PagoProvider>(),
+            child: RegistrarPagoScreen(args: args),
           );
         },
       ),
@@ -206,11 +209,11 @@ class AppRouter {
 
 class _PlaceholderScreen extends StatelessWidget {
   final String title;
-  final String mensaje;
+
 
   const _PlaceholderScreen({
     required this.title,
-    this.mensaje = 'Pantalla en desarrollo bajo Clean Architecture',
+
   });
 
   @override
@@ -226,9 +229,12 @@ class _PlaceholderScreen extends StatelessWidget {
               style: Theme.of(context).textTheme.headlineSmall,
             ),
             const SizedBox(height: 16),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Text(mensaje, textAlign: TextAlign.center),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 24),
+              child: Text(
+                'Pantalla en desarrollo bajo Clean Architecture',
+                textAlign: TextAlign.center,
+              ),
             ),
           ],
         ),

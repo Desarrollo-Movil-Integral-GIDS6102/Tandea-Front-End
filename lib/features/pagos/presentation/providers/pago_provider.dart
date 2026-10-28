@@ -4,25 +4,33 @@ import 'package:tandea/core/utils/formato_moneda.dart';
 import 'package:tandea/features/auth/presentation/providers/auth_provider.dart';
 import 'package:tandea/features/pagos/domain/entities/comprobante_archivo.dart';
 import 'package:tandea/features/pagos/domain/entities/metodo_pago.dart';
+import 'package:tandea/features/pagos/domain/entities/origen_imagen.dart';
 import 'package:tandea/features/pagos/domain/entities/pago_entity.dart';
 import 'package:tandea/features/pagos/domain/repositories/pago_repository.dart';
+import 'package:tandea/features/pagos/domain/usecases/seleccionar_comprobante_usecase.dart';
 
 /// Proveedor de estado para la gestión de pagos.
 class PagoProvider extends ChangeNotifier {
   final PagoRepository pagoRepository;
+  final SeleccionarComprobanteUseCase? seleccionarComprobanteUseCase;
 
   EstadoCarga _estado = EstadoCarga.inicial;
   List<PagoEntity> _pagos = const [];
   String? _errorMessage;
 
-  // Estado del formulario "Registrar pago" (AP-03)
+  // Estado del formulario "Registrar pago" (AP-03 y AP-04)
   MetodoPago _metodoPago = MetodoPago.transferencia;
   double? _montoTransferencia;
   double? _montoEfectivo;
   ComprobanteArchivo? _comprobante;
   PagoEntity? _pagoRegistrado;
 
-  PagoProvider({required this.pagoRepository});
+  bool _procesandoComprobante = false;
+
+  PagoProvider({
+    required this.pagoRepository,
+    this.seleccionarComprobanteUseCase,
+  });
 
   EstadoCarga get estado => _estado;
   List<PagoEntity> get pagos => _pagos;
@@ -34,6 +42,7 @@ class PagoProvider extends ChangeNotifier {
   ComprobanteArchivo? get comprobante => _comprobante;
   PagoEntity? get pagoRegistrado => _pagoRegistrado;
   bool get enviando => _estado == EstadoCarga.cargando;
+  bool get procesandoComprobante => _procesandoComprobante;
 
   /// En híbrido, ambos montos deben ser mayores a cero y sumar exactamente la [cuota]
   /// (comparado en centavos). En transferencia y efectivo el monto es la cuota.
@@ -52,7 +61,11 @@ class PagoProvider extends ChangeNotifier {
   bool get comprobanteListo => !_metodoPago.requiereComprobante || _comprobante != null;
 
   /// "Ya pagué" solo se habilita con la suma correcta y el comprobante adjunto.
-  bool puedeEnviar(double cuota) => !enviando && sumaValida(cuota) && comprobanteListo;
+  bool puedeEnviar(double cuota) =>
+      puedeRegistrar && sumaValida(cuota) && comprobanteListo;
+
+  /// No hay un envío ni una captura de comprobante en curso.
+  bool get puedeRegistrar => !enviando && !_procesandoComprobante;
 
   Future<void> fetchPagos(String tandaId) async {
     _estado = EstadoCarga.cargando;
@@ -95,7 +108,44 @@ class PagoProvider extends ChangeNotifier {
 
   void seleccionarComprobante(ComprobanteArchivo? comprobante) {
     _comprobante = comprobante;
+    _errorMessage = null;
     notifyListeners();
+  }
+
+  void eliminarComprobante() {
+    _comprobante = null;
+    notifyListeners();
+  }
+
+  /// Captura desde cámara o selecciona de galería el comprobante de pago.
+  /// Maneja estados de carga, compresión y errores.
+  Future<void> capturarComprobante(OrigenImagen origen) async {
+    if (seleccionarComprobanteUseCase == null || _procesandoComprobante) {
+      return;
+    }
+
+    _procesandoComprobante = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    final result = await seleccionarComprobanteUseCase!(origen);
+
+    result.when(
+      success: (archivo) {
+        if (archivo != null) {
+          _comprobante = archivo;
+        }
+        // Si el usuario canceló la selección, archivo es null; conservamos
+        // el comprobante previo y no generamos error.
+        _procesandoComprobante = false;
+        notifyListeners();
+      },
+      failure: (failure) {
+        _errorMessage = failure.message;
+        _procesandoComprobante = false;
+        notifyListeners();
+      },
+    );
   }
 
   void clearError() {
@@ -106,12 +156,20 @@ class PagoProvider extends ChangeNotifier {
   /// Registra el pago del turno [idNumber]. En transferencia y efectivo el monto
   /// enviado es la [cuota]; en híbrido, los montos capturados por el usuario.
   ///
-  /// Devuelve `true` si el backend lo aceptó. Ignora llamadas mientras ya hay un envío en curso.
+  /// Devuelve `true` si el backend lo aceptó. Ignora llamadas mientras ya hay un envío en curso
+  /// o mientras se está procesando la imagen del comprobante.
   Future<bool> registrarPago({
     required int idNumber,
     required double cuota,
   }) async {
-    if (enviando) {
+    if (enviando || _procesandoComprobante) {
+      return false;
+    }
+
+    if (_comprobante != null && _comprobante!.bytes.isEmpty) {
+      _errorMessage = 'El comprobante seleccionado está vacío o no es válido.';
+      _estado = EstadoCarga.error;
+      notifyListeners();
       return false;
     }
 
