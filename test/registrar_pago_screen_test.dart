@@ -141,6 +141,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.enterText(find.byKey(const Key('campo_monto_transferencia')), '1000.50');
     await tester.enterText(find.byKey(const Key('campo_monto_efectivo')), '499.50');
+    await tester.pump(); // "Ya pagué" se habilita cuando la suma coincide con la cuota
     await tester.tap(botonYaPague());
     await tester.pumpAndSettle();
 

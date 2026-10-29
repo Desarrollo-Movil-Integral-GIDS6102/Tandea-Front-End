@@ -51,11 +51,11 @@ TandaEntity _detalle({required String status, List<int> disponibles = const []})
       'hasDeadNumber': false,
       'rolUsuario': 'AMBOS',
       'numerosDisponibles': disponibles,
-      'participantes': [
+      'participantes': const [
         {'idNumber': 11, 'numberValue': 1, 'roundNumber': 1, 'idUser': 5, 'isDeadNumber': false, 'userName': 'Ana'},
         {'idNumber': 13, 'numberValue': 3, 'roundNumber': 1, 'idUser': 5, 'isDeadNumber': false, 'userName': 'Ana'},
       ],
-      'misNumeros': [
+      'misNumeros': const [
         {'idNumber': 11, 'numberValue': 1, 'roundNumber': 1, 'isDeadNumber': false},
         {'idNumber': 13, 'numberValue': 3, 'roundNumber': 1, 'isDeadNumber': false},
       ],

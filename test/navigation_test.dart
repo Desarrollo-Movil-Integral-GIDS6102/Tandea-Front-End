@@ -4,7 +4,10 @@ import 'package:tandea/core/routes/app_router.dart';
 import 'package:tandea/core/routes/route_names.dart';
 import 'package:tandea/features/auth/domain/entities/user_role.dart';
 import 'package:tandea/features/auth/presentation/providers/auth_session_provider.dart';
+import 'package:tandea/features/tandas/presentation/providers/tandas_provider.dart';
 import 'package:tandea/injection/injection.dart';
+
+import 'tandas_repository_fake.dart';
 
 void main() {
   setUp(() async {
@@ -12,6 +15,12 @@ void main() {
       sl.unregister<AuthSessionProvider>();
     }
     sl.registerLazySingleton<AuthSessionProvider>(() => AuthSessionProvider());
+    // Cada pestaña de Mis tandas crea su propio TandasProvider desde sl
+    if (!sl.isRegistered<TandasProvider>()) {
+      sl.registerFactory<TandasProvider>(
+        () => TandasProvider(tandasRepository: TandasRepositoryFake()),
+      );
+    }
   });
 
   tearDown(() {

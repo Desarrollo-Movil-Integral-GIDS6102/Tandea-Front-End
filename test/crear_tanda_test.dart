@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
@@ -437,13 +439,13 @@ void main() {
         routes: [
           GoRoute(
             path: RouteNames.tandasOrganizador,
-            builder: (_, __) => const Scaffold(body: Text('MIS TANDAS ORG')),
+            builder: (_, _) => const Scaffold(body: Text('MIS TANDAS ORG')),
           ),
-          GoRoute(path: RouteNames.crearTanda, builder: (_, __) => const CrearTandaScreen()),
+          GoRoute(path: RouteNames.crearTanda, builder: (_, _) => const CrearTandaScreen()),
         ],
       );
       await tester.pumpWidget(MaterialApp.router(routerConfig: router));
-      router.push(RouteNames.crearTanda);
+      unawaited(router.push(RouteNames.crearTanda));
       await tester.pumpAndSettle();
 
       await tester.enterText(find.widgetWithText(TextFormField, 'Nombre de la tanda *'), 'Tanda A1');
