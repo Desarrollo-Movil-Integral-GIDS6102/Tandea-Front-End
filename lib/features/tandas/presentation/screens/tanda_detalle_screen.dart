@@ -354,7 +354,8 @@ class _TablaNumeros extends StatelessWidget {
     final porNumero = {
       for (final n in tanda.numeros.where((n) => n.roundNumber == 1)) n.numberValue: n,
     };
-    final total = tanda.totalParticipantes + (tanda.hasDeadNumber == true ? 1 : 0);
+    // El número muerto siempre es el #0; los participantes van de #1 a #N
+    final primero = tanda.hasDeadNumber == true ? 0 : 1;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -364,14 +365,14 @@ class _TablaNumeros extends StatelessWidget {
           style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 8),
-        for (var valor = 1; valor <= total; valor++)
+        for (var valor = primero; valor <= tanda.totalParticipantes; valor++)
           ListTile(
             key: Key('fila_numero_$valor'),
             dense: true,
             leading: Text('#$valor', style: const TextStyle(fontWeight: FontWeight.bold)),
             title: Text(switch (porNumero[valor]) {
+              _ when valor == 0 => 'Número muerto (caja)',
               null => 'Disponible',
-              final n when n.isDeadNumber => 'Número muerto (caja)',
               final n => n.userName ?? 'Apartado',
             }),
           ),

@@ -40,7 +40,11 @@ class _FakeRepo implements TandasRepository {
 }
 
 /// Respuesta de `GET /tandas/:id` para un usuario con los números #1 y #3.
-TandaEntity _detalle({required String status, List<int> disponibles = const []}) =>
+TandaEntity _detalle({
+  required String status,
+  List<int> disponibles = const [],
+  bool numeroMuerto = false,
+}) =>
     TandaModel.fromJson({
       'idTanda': 7,
       'name': 'Tanda Oficina',
@@ -48,7 +52,7 @@ TandaEntity _detalle({required String status, List<int> disponibles = const []})
       'numParticipants': 3,
       'status': status,
       'inviteCode': 'TND-ABC123',
-      'hasDeadNumber': false,
+      'hasDeadNumber': numeroMuerto,
       'rolUsuario': 'AMBOS',
       'numerosDisponibles': disponibles,
       'participantes': const [
@@ -112,5 +116,23 @@ void main() {
     expect(pagar.onPressed, isNotNull);
     expect(find.byKey(const Key('btn_iniciar_tanda')), findsNothing);
     expect(find.byKey(const Key('btn_apartar_numeros')), findsNothing);
+  });
+
+  testWidgets('BUG-P4: con número muerto la lista es #0 (caja), #1..#N', (tester) async {
+    await _pump(tester, _detalle(status: 'PENDIENTE', disponibles: [2], numeroMuerto: true));
+
+    expect(find.byKey(const Key('fila_numero_0')), findsOneWidget);
+    expect(find.text('Número muerto (caja)'), findsOneWidget);
+    expect(find.byKey(const Key('fila_numero_3')), findsOneWidget);
+    expect(find.byKey(const Key('fila_numero_4')), findsNothing);
+  });
+
+  testWidgets('BUG-P4: sin número muerto no existe el #0', (tester) async {
+    await _pump(tester, _detalle(status: 'PENDIENTE', disponibles: [2]));
+
+    expect(find.byKey(const Key('fila_numero_0')), findsNothing);
+    expect(find.byKey(const Key('fila_numero_1')), findsOneWidget);
+    expect(find.byKey(const Key('fila_numero_3')), findsOneWidget);
+    expect(find.byKey(const Key('fila_numero_4')), findsNothing);
   });
 }
