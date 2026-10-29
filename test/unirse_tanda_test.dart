@@ -618,5 +618,44 @@ void main() {
       final btn = tester.widget<ElevatedButton>(find.byKey(const Key('btn_confirmar_turno')));
       expect(btn.onPressed, isNull, reason: 'un número ocupado no se puede seleccionar');
     });
+
+    testWidgets('BUG-P2: selecciona y deselecciona varios números y aparta todos', (tester) async {
+      mockRepo.getTandaResult = const Success(TandaEntity(
+        id: '1',
+        nombre: 'Tanda Familiar 2026',
+        monto: 1500.0,
+        totalParticipantes: 6,
+        periodo: 'quincenal',
+        estado: 'PENDIENTE',
+        inviteCode: 'TND-7K9A2B',
+        numerosDisponibles: [2, 5, 6],
+      ));
+      await tester.pumpWidget(buildTestScreen(provider));
+      await tester.pumpAndSettle();
+
+      ElevatedButton confirmar() =>
+          tester.widget<ElevatedButton>(find.byKey(const Key('btn_confirmar_turno')));
+      expect(confirmar().onPressed, isNull);
+      expect(find.text('Selecciona al menos un número'), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('btn_seleccionar_numero_2')));
+      await tester.tap(find.byKey(const Key('btn_seleccionar_numero_5')));
+      await tester.pump();
+      await tester.tap(find.byKey(const Key('btn_seleccionar_numero_2'))); // deselecciona
+      await tester.tap(find.byKey(const Key('btn_seleccionar_numero_6')));
+      await tester.pump();
+      expect(find.text('Apartar 2 números'), findsOneWidget);
+      expect(confirmar().onPressed, isNotNull);
+
+      await tester.ensureVisible(find.byKey(const Key('btn_confirmar_turno')));
+      await tester.tap(find.byKey(const Key('btn_confirmar_turno')));
+      await tester.pumpAndSettle();
+
+      expect(mockRepo.lastJoinParams?.selectedNumbers, equals([5, 6]));
+      expect(
+        find.descendant(of: find.byType(AlertDialog), matching: find.text('#5, #6')),
+        findsOneWidget,
+      );
+    });
   });
 }
