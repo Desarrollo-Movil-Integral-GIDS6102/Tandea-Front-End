@@ -657,5 +657,41 @@ void main() {
         findsOneWidget,
       );
     });
+
+    testWidgets('BUG-P3: si otro toma el número, no asigna nada, avisa y marca el ocupado', (tester) async {
+      await tester.pumpWidget(buildTestScreen(provider));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key('btn_seleccionar_numero_3')));
+      await tester.pump();
+
+      // Mientras tanto otro participante apartó el #3
+      mockRepo.joinTandaResult = const Error(ServerFailure(
+        'El número #3 ya fue tomado por otro participante. Elige otro.',
+        statusCode: 409,
+      ));
+      mockRepo.getTandaResult = const Success(TandaEntity(
+        id: '1',
+        nombre: 'Tanda Familiar 2026',
+        monto: 1500.0,
+        totalParticipantes: 6,
+        periodo: 'quincenal',
+        estado: 'PENDIENTE',
+        inviteCode: 'TND-7K9A2B',
+        numerosDisponibles: [1, 2, 4, 5, 6],
+      ));
+
+      await tester.ensureVisible(find.byKey(const Key('btn_confirmar_turno')));
+      await tester.tap(find.byKey(const Key('btn_confirmar_turno')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('¡Turno Reservado!'), findsNothing);
+      expect(
+        find.text('El número #3 ya fue tomado por otro participante. Elige otro.'),
+        findsOneWidget,
+      );
+      expect(find.byKey(const Key('etiqueta_ocupado_3')), findsOneWidget);
+      expect(find.text('Selecciona al menos un número'), findsOneWidget);
+    });
   });
 }

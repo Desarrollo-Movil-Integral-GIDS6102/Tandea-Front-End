@@ -63,7 +63,10 @@ class _SeleccionarNumeroScreenState extends State<SeleccionarNumeroScreen> {
       selectedNumbers: _seleccionados.toList()..sort(),
     );
 
-    if (!mounted || resultado == null) {
+    if (!mounted) return;
+    if (resultado == null) {
+      // Alguien tomó un número mientras tanto: el banner muestra cuál y la cuadrícula se actualiza
+      await _refrescarDisponibles();
       return;
     }
 
