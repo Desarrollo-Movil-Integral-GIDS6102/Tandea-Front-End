@@ -1,7 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:tandea/core/errors/failures.dart';
+import 'package:tandea/core/routes/route_names.dart';
 import 'package:tandea/core/utils/result.dart';
 import 'package:tandea/features/auth/presentation/providers/auth_provider.dart';
 import 'package:tandea/features/tandas/domain/entities/tanda_entity.dart';
@@ -13,6 +17,8 @@ import 'package:tandea/features/tandas/presentation/screens/mis_tandas_organizad
 import 'package:tandea/features/tandas/presentation/screens/mis_tandas_participante_screen.dart';
 import 'package:tandea/features/tandas/presentation/widgets/mis_tandas_list_view.dart';
 import 'package:tandea/features/tandas/presentation/widgets/tanda_card_item.dart';
+
+import 'tandas_repository_fake.dart';
 
 class MockTandasRepository implements TandasRepository {
   Result<List<TandaEntity>>? getMisTandasResult;
@@ -318,6 +324,35 @@ void main() {
 
       expect(find.text('Mis tandas (organizador)'), findsOneWidget);
       expect(find.byKey(const Key('fab_nueva_tanda')), findsOneWidget);
+    });
+  });
+
+  group('BUG-A2 - Mis tandas se recarga al volver a la pantalla', () {
+    testWidgets('recarga la lista al regresar de otra pantalla', (tester) async {
+      final repo = TandasRepositoryFake();
+      final router = GoRouter(
+        initialLocation: RouteNames.tandasOrganizador,
+        routes: [
+          GoRoute(
+            path: RouteNames.tandasOrganizador,
+            builder: (_, _) => ChangeNotifierProvider(
+              create: (_) => TandasProvider(tandasRepository: repo),
+              child: const Scaffold(body: MisTandasListView(rol: 'organizador')),
+            ),
+          ),
+          GoRoute(path: RouteNames.crearTanda, builder: (_, _) => const Scaffold(body: Text('FORM'))),
+        ],
+      );
+      await tester.pumpWidget(MaterialApp.router(routerConfig: router));
+      await tester.pumpAndSettle();
+      expect(repo.llamadasMisTandas, 1);
+
+      unawaited(router.push(RouteNames.crearTanda));
+      await tester.pumpAndSettle();
+      router.pop();
+      await tester.pumpAndSettle();
+
+      expect(repo.llamadasMisTandas, 2);
     });
   });
 }

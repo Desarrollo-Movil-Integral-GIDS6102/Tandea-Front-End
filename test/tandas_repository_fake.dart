@@ -15,10 +15,15 @@ const _tanda = TandaEntity(
 
 /// Repositorio de tandas vacío para pruebas que solo navegan.
 class TandasRepositoryFake implements TandasRepository {
+  int llamadasMisTandas = 0;
+
   @override
   Future<Result<List<TandaEntity>>> getTandas() async => const Success([]);
   @override
-  Future<Result<List<TandaEntity>>> getMisTandas({required String rol}) async => const Success([]);
+  Future<Result<List<TandaEntity>>> getMisTandas({required String rol}) async {
+    llamadasMisTandas++;
+    return const Success([]);
+  }
   @override
   Future<Result<TandaEntity>> getTandaById(String id) async => const Success(_tanda);
   @override
