@@ -491,6 +491,9 @@ void main() {
       idTandaType: 1,
     );
 
+    // La pantalla vuelve a consultar la tanda al abrir: el backend responde la misma
+    setUp(() => mockRepo.getTandaResult = const Success(testTanda));
+
     Widget buildTestScreen(UnirseTandaProvider p) {
       return MaterialApp(
         home: ChangeNotifierProvider<UnirseTandaProvider>.value(
@@ -573,8 +576,19 @@ void main() {
       expect(find.byKey(const Key('btn_exito_selector_ir_tandas')), findsOneWidget);
     });
 
-    testWidgets('solo muestra los números libres y permite apartar varios', (tester) async {
-      const tandaConOcupados = TandaEntity(
+    testWidgets('BUG-P1: marca los ocupados, no deja seleccionarlos y consulta la disponibilidad al abrir', (tester) async {
+      const tandaVieja = TandaEntity(
+        id: '1',
+        nombre: 'Tanda Familiar 2026',
+        monto: 1500.0,
+        totalParticipantes: 6,
+        periodo: 'quincenal',
+        estado: 'PENDIENTE',
+        inviteCode: 'TND-7K9A2B',
+        numerosDisponibles: [1, 2, 3, 4, 5, 6],
+      );
+      // Al abrir, el backend informa que #1, #3 y #4 ya se apartaron
+      mockRepo.getTandaResult = const Success(TandaEntity(
         id: '1',
         nombre: 'Tanda Familiar 2026',
         monto: 1500.0,
@@ -583,29 +597,26 @@ void main() {
         estado: 'PENDIENTE',
         inviteCode: 'TND-7K9A2B',
         numerosDisponibles: [2, 5, 6],
-      );
+      ));
       await tester.pumpWidget(MaterialApp(
         home: ChangeNotifierProvider<UnirseTandaProvider>.value(
           value: provider,
-          child: const SeleccionarNumeroScreen(tanda: tandaConOcupados),
+          child: const SeleccionarNumeroScreen(tanda: tandaVieja),
         ),
       ));
-      await tester.pump();
-
-      expect(find.byKey(const Key('btn_seleccionar_numero_1')), findsNothing);
-      expect(find.byKey(const Key('btn_seleccionar_numero_3')), findsNothing);
-
-      await tester.tap(find.byKey(const Key('btn_seleccionar_numero_6')));
-      await tester.tap(find.byKey(const Key('btn_seleccionar_numero_2')));
-      await tester.pump();
-      expect(find.text('Apartar 2 números'), findsOneWidget);
-
-      await tester.ensureVisible(find.byKey(const Key('btn_confirmar_turno')));
-      await tester.tap(find.byKey(const Key('btn_confirmar_turno')));
       await tester.pumpAndSettle();
 
-      expect(mockRepo.lastJoinParams?.selectedNumbers, equals([2, 6]));
-      expect(mockRepo.lastJoinParams?.inviteCode, equals('TND-7K9A2B'));
+      expect(mockRepo.lastQueriedCode, 'TND-7K9A2B');
+      expect(find.text('Quedan 3 de 6 números libres. Puedes apartar más de uno.'), findsOneWidget);
+      for (final n in [1, 3, 4]) {
+        expect(find.byKey(Key('etiqueta_ocupado_$n')), findsOneWidget);
+      }
+      expect(find.byKey(const Key('etiqueta_ocupado_2')), findsNothing);
+
+      await tester.tap(find.byKey(const Key('btn_seleccionar_numero_1')));
+      await tester.pump();
+      final btn = tester.widget<ElevatedButton>(find.byKey(const Key('btn_confirmar_turno')));
+      expect(btn.onPressed, isNull, reason: 'un número ocupado no se puede seleccionar');
     });
   });
 }

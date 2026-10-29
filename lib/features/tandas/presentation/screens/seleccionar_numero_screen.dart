@@ -8,7 +8,7 @@ import 'package:tandea/features/tandas/domain/entities/unirse_tanda_result.dart'
 import 'package:tandea/features/tandas/presentation/providers/unirse_tanda_provider.dart';
 
 /// Pantalla para apartar uno o varios números (turnos de cobro) de una tanda.
-/// Solo muestra los números que siguen libres.
+/// Muestra #1..#N; los ocupados se ven distintos y no se pueden seleccionar.
 class SeleccionarNumeroScreen extends StatefulWidget {
   final TandaEntity tanda;
 
@@ -23,10 +23,22 @@ class SeleccionarNumeroScreen extends StatefulWidget {
 
 class _SeleccionarNumeroScreenState extends State<SeleccionarNumeroScreen> {
   final Set<int> _seleccionados = {};
+  late TandaEntity _tanda = widget.tanda;
 
-  List<int> get _disponibles =>
-      widget.tanda.numerosDisponibles ??
-      List<int>.generate(widget.tanda.totalParticipantes, (i) => i + 1);
+  Set<int> get _libres =>
+      (_tanda.numerosDisponibles ??
+              List<int>.generate(_tanda.totalParticipantes, (i) => i + 1))
+          .toSet();
+
+  /// Consulta la disponibilidad actual para no mostrar datos viejos.
+  Future<void> _refrescarDisponibles() async {
+    final tanda = await context.read<UnirseTandaProvider>().refrescarTanda();
+    if (tanda == null || !mounted) return;
+    setState(() {
+      _tanda = tanda;
+      _seleccionados.retainAll(_libres);
+    });
+  }
 
   @override
   void initState() {
@@ -39,6 +51,7 @@ class _SeleccionarNumeroScreenState extends State<SeleccionarNumeroScreen> {
         provider.setInviteCode(code);
       }
       provider.clearErrors();
+      _refrescarDisponibles();
     });
   }
 
@@ -131,8 +144,9 @@ class _SeleccionarNumeroScreenState extends State<SeleccionarNumeroScreen> {
     final theme = Theme.of(context);
     final provider = context.watch<UnirseTandaProvider>();
     final isLoading = provider.isLoading;
-    final totalNumeros = widget.tanda.totalParticipantes;
-    final montoTotalCobro = widget.tanda.monto * totalNumeros;
+    final totalNumeros = _tanda.totalParticipantes;
+    final montoTotalCobro = _tanda.monto * totalNumeros;
+    final libres = _libres;
 
     return Scaffold(
       backgroundColor: AppColors.backgroundLight,
@@ -180,7 +194,7 @@ class _SeleccionarNumeroScreenState extends State<SeleccionarNumeroScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    widget.tanda.nombre,
+                                    _tanda.nombre,
                                     style: const TextStyle(
                                       fontSize: 18,
                                       fontWeight: FontWeight.bold,
@@ -189,7 +203,7 @@ class _SeleccionarNumeroScreenState extends State<SeleccionarNumeroScreen> {
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
-                                    widget.tanda.periodo.toUpperCase(),
+                                    _tanda.periodo.toUpperCase(),
                                     style: const TextStyle(
                                       fontSize: 12.5,
                                       color: AppColors.textSecondaryLight,
@@ -205,7 +219,7 @@ class _SeleccionarNumeroScreenState extends State<SeleccionarNumeroScreen> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            _buildInfoCol('Aportación', '\$${widget.tanda.monto.toStringAsFixed(2)}'),
+                            _buildInfoCol('Aportación', '\$${_tanda.monto.toStringAsFixed(2)}'),
                             _buildInfoCol('Total a recibir', '\$${montoTotalCobro.toStringAsFixed(2)}', isHighlight: true),
                             _buildInfoCol('Cupo', '$totalNumeros turnos'),
                           ],
@@ -232,7 +246,7 @@ class _SeleccionarNumeroScreenState extends State<SeleccionarNumeroScreen> {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Quedan ${_disponibles.length} de $totalNumeros números libres. Puedes apartar más de uno.',
+                  'Quedan ${libres.length} de $totalNumeros números libres. Puedes apartar más de uno.',
                   style: const TextStyle(fontSize: 13, color: AppColors.textSecondaryLight),
                 ),
                 const SizedBox(height: 16),
@@ -241,7 +255,7 @@ class _SeleccionarNumeroScreenState extends State<SeleccionarNumeroScreen> {
                 GridView.builder(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
-                  itemCount: _disponibles.length,
+                  itemCount: totalNumeros,
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 4,
                     mainAxisSpacing: 12,
@@ -249,12 +263,13 @@ class _SeleccionarNumeroScreenState extends State<SeleccionarNumeroScreen> {
                     childAspectRatio: 1.05,
                   ),
                   itemBuilder: (context, index) {
-                    final numero = _disponibles[index];
+                    final numero = index + 1;
                     final isSelected = _seleccionados.contains(numero);
+                    final ocupado = !libres.contains(numero);
 
                     return InkWell(
                       key: Key('btn_seleccionar_numero_$numero'),
-                      onTap: isLoading
+                      onTap: isLoading || ocupado
                           ? null
                           : () {
                               setState(() {
@@ -268,7 +283,11 @@ class _SeleccionarNumeroScreenState extends State<SeleccionarNumeroScreen> {
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 200),
                         decoration: BoxDecoration(
-                          color: isSelected ? AppColors.primary : AppColors.surfaceLight,
+                          color: isSelected
+                              ? AppColors.primary
+                              : ocupado
+                                  ? Colors.grey.shade200
+                                  : AppColors.surfaceLight,
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(
                             color: isSelected ? AppColors.primary : Colors.grey.shade300,
@@ -292,9 +311,20 @@ class _SeleccionarNumeroScreenState extends State<SeleccionarNumeroScreen> {
                               style: TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.bold,
-                                color: isSelected ? Colors.white : AppColors.textPrimaryLight,
+                                color: isSelected
+                                    ? Colors.white
+                                    : ocupado
+                                        ? Colors.grey.shade500
+                                        : AppColors.textPrimaryLight,
+                                decoration: ocupado ? TextDecoration.lineThrough : null,
                               ),
                             ),
+                            if (ocupado)
+                              Text(
+                                'Ocupado',
+                                key: Key('etiqueta_ocupado_$numero'),
+                                style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                              ),
                             if (isSelected) ...[
                               const SizedBox(height: 2),
                               const Icon(Icons.check_circle_rounded, color: Colors.white, size: 16),

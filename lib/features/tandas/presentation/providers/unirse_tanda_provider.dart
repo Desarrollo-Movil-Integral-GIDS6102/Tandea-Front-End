@@ -116,6 +116,15 @@ class UnirseTandaProvider extends ChangeNotifier {
     );
   }
 
+  /// Vuelve a consultar la tanda por su código para tener la disponibilidad al día.
+  Future<TandaEntity?> refrescarTanda() async {
+    final result = await obtenerTandaPorCodigoUseCase(_inviteCode.trim());
+    return result.when(
+      success: (tanda) => _foundTanda = tanda,
+      failure: (_) => null,
+    );
+  }
+
   /// Aparta uno o varios números en la tanda: `POST /tandas/unirse`.
   Future<UnirseTandaResult?> unirse({List<int> selectedNumbers = const []}) async {
     _isLoading = true;
