@@ -60,8 +60,10 @@ class TandaEntity extends Equatable {
   bool get esOrganizador =>
       rolUsuario == 'DUENO' || rolUsuario == 'AMBOS' || rolUsuario == 'ADMIN_GLOBAL';
 
-  /// Solo se puede apartar número mientras la tanda está pendiente y queda alguno libre.
-  bool get aceptaNumeros => esPendiente && (numerosDisponibles?.isNotEmpty ?? true);
+  /// Pendiente o en curso: se puede apartar número mientras quede alguno libre.
+  bool get aceptaParticipantes => esPendiente || esActiva;
+  bool get tieneNumerosLibres => numerosDisponibles?.isNotEmpty ?? true;
+  bool get aceptaNumeros => aceptaParticipantes && tieneNumerosLibres;
 
   TandaEntity copyWith({
     String? id,

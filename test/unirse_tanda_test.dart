@@ -272,25 +272,45 @@ void main() {
       expect(provider.backendError, isNull);
     });
 
-    test('consultarTanda no deja intentar unirse si la tanda ya inició', () async {
+    test('BUG-P5: deja unirse a una tanda ACTIVA si quedan números libres', () async {
+      provider.setInviteCode('TND-7YZZCP');
+      mockRepo.getTandaResult = const Success(
+        TandaEntity(
+          id: '2',
+          nombre: 'Tanda Prueba',
+          monto: 100.0,
+          totalParticipantes: 4,
+          periodo: 'quincenal',
+          estado: 'ACTIVA',
+          inviteCode: 'TND-7YZZCP',
+          numerosDisponibles: [4],
+        ),
+      );
+
+      expect(await provider.consultarTanda(), isNotNull);
+      expect(provider.backendError, isNull);
+    });
+
+    test('BUG-P5: una tanda finalizada se rechaza con su propia causa', () async {
       provider.setInviteCode('TND-SORT10');
       mockRepo.getTandaResult = const Success(
         TandaEntity(
           id: '2',
-          nombre: 'Tanda Iniciada',
+          nombre: 'Tanda Cerrada',
           monto: 500.0,
           totalParticipantes: 10,
           periodo: 'semanal',
-          estado: 'ACTIVA',
+          estado: 'FINALIZADA',
           inviteCode: 'TND-SORT10',
           numerosDisponibles: [],
         ),
       );
 
-      final tanda = await provider.consultarTanda();
-
-      expect(tanda, isNull);
-      expect(provider.backendError, contains('ya inició'));
+      expect(await provider.consultarTanda(), isNull);
+      expect(
+        provider.backendError,
+        'La tanda "Tanda Cerrada" está finalizada y ya no acepta participantes.',
+      );
     });
 
     test('consultarTanda no deja intentar unirse si ya no quedan números libres', () async {
@@ -309,7 +329,7 @@ void main() {
       );
 
       expect(await provider.consultarTanda(), isNull);
-      expect(provider.backendError, isNotNull);
+      expect(provider.backendError, 'La tanda "Tanda Llena" ya no tiene números disponibles.');
     });
 
     test('unirse expone el error de backend si el turno seleccionado ya está ocupado', () async {

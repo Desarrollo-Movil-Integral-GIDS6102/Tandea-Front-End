@@ -100,10 +100,12 @@ class UnirseTandaProvider extends ChangeNotifier {
       success: (tanda) {
         _foundTanda = tanda;
         _isLoading = false;
-        // No dejar intentar unirse a una tanda que ya inició o está llena
-        _backendError = tanda.aceptaNumeros
-            ? null
-            : 'La tanda "${tanda.nombre}" ya inició o no tiene números disponibles.';
+        // No dejar intentar unirse si no es posible; el mensaje dice la causa real
+        _backendError = !tanda.aceptaParticipantes
+            ? 'La tanda "${tanda.nombre}" está ${tanda.estado.toLowerCase()} y ya no acepta participantes.'
+            : !tanda.tieneNumerosLibres
+                ? 'La tanda "${tanda.nombre}" ya no tiene números disponibles.'
+                : null;
         notifyListeners();
         return tanda.aceptaNumeros ? tanda : null;
       },
