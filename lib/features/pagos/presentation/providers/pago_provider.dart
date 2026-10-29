@@ -22,6 +22,7 @@ class PagoProvider extends ChangeNotifier {
   MetodoPago _metodoPago = MetodoPago.transferencia;
   double? _montoTransferencia;
   double? _montoEfectivo;
+  double? _montoUnico;
   ComprobanteArchivo? _comprobante;
   PagoEntity? _pagoRegistrado;
 
@@ -106,6 +107,12 @@ class PagoProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Monto capturado en transferencia o efectivo (por defecto, la cuota).
+  void actualizarMontoUnico(String texto) {
+    _montoUnico = parsearMonto(texto);
+    notifyListeners();
+  }
+
   void seleccionarComprobante(ComprobanteArchivo? comprobante) {
     _comprobante = comprobante;
     _errorMessage = null;
@@ -153,8 +160,8 @@ class PagoProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Registra el pago del turno [idNumber]. En transferencia y efectivo el monto
-  /// enviado es la [cuota]; en híbrido, los montos capturados por el usuario.
+  /// Registra el pago del turno [idNumber]. En transferencia y efectivo se envía el
+  /// monto capturado (la [cuota] si no se editó); en híbrido, los dos montos capturados.
   ///
   /// Devuelve `true` si el backend lo aceptó. Ignora llamadas mientras ya hay un envío en curso
   /// o mientras se está procesando la imagen del comprobante.
@@ -177,12 +184,12 @@ class PagoProvider extends ChangeNotifier {
       idNumber: idNumber,
       metodoPago: _metodoPago,
       transferAmount: switch (_metodoPago) {
-        MetodoPago.transferencia => cuota,
+        MetodoPago.transferencia => _montoUnico ?? cuota,
         MetodoPago.hibrido => _montoTransferencia,
         MetodoPago.efectivo => null,
       },
       cashAmount: switch (_metodoPago) {
-        MetodoPago.efectivo => cuota,
+        MetodoPago.efectivo => _montoUnico ?? cuota,
         MetodoPago.hibrido => _montoEfectivo,
         MetodoPago.transferencia => null,
       },

@@ -15,6 +15,9 @@ abstract class TandasRepository {
 
   /// Estado de pago de cada turno en la vuelta actual (`GET /tandas/:id/seguimiento`).
   Future<Result<SeguimientoTanda>> getSeguimiento(String idTanda);
+
+  /// Pasa la tanda de PENDIENTE a ACTIVA (solo organizador).
+  Future<Result<TandaEntity>> iniciarTanda(String id);
 }
 
 

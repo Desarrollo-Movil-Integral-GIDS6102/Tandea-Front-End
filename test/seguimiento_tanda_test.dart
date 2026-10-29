@@ -35,6 +35,9 @@ class FakeSeguimientoRepository implements TandasRepository {
   Future<Result<TandaEntity>> getTandaById(String id) => throw UnimplementedError();
 
   @override
+  Future<Result<TandaEntity>> iniciarTanda(String id) => throw UnimplementedError();
+
+  @override
   Future<Result<TandaEntity>> createTanda(Map<String, dynamic> tandaData) => throw UnimplementedError();
 
   @override

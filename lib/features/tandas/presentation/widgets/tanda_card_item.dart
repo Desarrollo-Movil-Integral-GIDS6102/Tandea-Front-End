@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:provider/provider.dart';
 import 'package:tandea/core/constants/app_colors.dart';
 import 'package:tandea/core/routes/route_names.dart';
 import 'package:tandea/features/pagos/presentation/screens/registrar_pago_screen.dart';
 import 'package:tandea/features/tandas/domain/entities/tanda_entity.dart';
-import 'package:tandea/features/tandas/presentation/providers/tandas_provider.dart';
 
 /// Tarjeta optimizada de tanda para `ListView.builder`.
 ///
@@ -30,21 +28,8 @@ class TandaCardItem extends StatelessWidget {
       onTap!();
       return;
     }
-    if (isOrganizador && (tanda.inviteCode != null && tanda.inviteCode!.isNotEmpty)) {
-      context.push(RouteNames.compartirCodigo, extra: tanda);
-    } else if (!isOrganizador) {
-      final idNum = int.tryParse(tanda.id) ?? 1;
-      context.push(
-        RouteNames.registrarPago,
-        extra: RegistrarPagoArgs(
-          nombreTanda: tanda.nombre,
-          idNumber: idNum,
-          cuota: tanda.monto > 0 ? tanda.monto : 500.0,
-          numeroTurno: 1,
-          vuelta: 1,
-        ),
-      );
-    }
+    // El pago se hace desde el detalle, con el id_number real de cada número
+    context.push(RouteNames.tandaDetalle(tanda.id));
   }
 
   @override
@@ -188,14 +173,8 @@ class TandaCardItem extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // Chip de Indicador de Pago (Mock mientras no exista el endpoint de pagos)
-                  GestureDetector(
-                    onTap: () {
-                      // Permite al usuario/evaluador alternar el mock de pago interactivamente
-                      context.read<TandasProvider>().toggleIndicadorPagoMock(tanda.id);
-                    },
-                    child: _buildIndicadorPagoChip(tanda.indicadorPago, tanda.id),
-                  ),
+                  // Chip de Indicador de Pago (calculado por el backend)
+                  _buildIndicadorPagoChip(tanda.indicadorPago, tanda.id),
 
                   // Botón de acción según el rol
                   if (isOrganizador)
@@ -232,7 +211,8 @@ class TandaCardItem extends StatelessWidget {
                         ),
                       ],
                     )
-                  else if (tanda.idNumberUsuario != null)
+                  // Los pagos se habilitan cuando el organizador inicia la tanda
+                  else if (tanda.idNumberUsuario != null && tanda.esActiva)
                     // Acceso mínimo a "Registrar pago" mientras llega el detalle de la tanda (SP-3)
                     FilledButton.icon(
                       key: Key('btn_pagar_${tanda.id}'),
@@ -264,7 +244,7 @@ class TandaCardItem extends StatelessWidget {
                     TextButton.icon(
                       key: Key('btn_detalle_${tanda.id}'),
                       onPressed: () => _navegarAccion(context),
-                      icon: const Icon(Icons.payment_outlined, size: 16),
+                      icon: const Icon(Icons.visibility_outlined, size: 16),
                       label: const Text('Ver detalle', style: TextStyle(fontSize: 12.5)),
                       style: TextButton.styleFrom(
                         foregroundColor: AppColors.primary,

@@ -92,7 +92,7 @@ void main() {
 
     expect(find.byKey(const Key('campo_monto_transferencia')), findsNothing);
     expect(find.byKey(const Key('campo_monto_efectivo')), findsNothing);
-    expect(find.byKey(const Key('monto_fijo')), findsOneWidget);
+    expect(find.byKey(const Key('campo_monto_unico')), findsOneWidget);
 
     await tester.tap(find.byKey(const Key('metodo_hibrido')));
     await tester.pumpAndSettle();
@@ -101,7 +101,7 @@ void main() {
     expect(find.text('Monto en efectivo'), findsOneWidget);
     expect(find.byKey(const Key('campo_monto_transferencia')), findsOneWidget);
     expect(find.byKey(const Key('campo_monto_efectivo')), findsOneWidget);
-    expect(find.byKey(const Key('monto_fijo')), findsNothing);
+    expect(find.byKey(const Key('campo_monto_unico')), findsNothing);
 
     await tester.tap(find.byKey(const Key('metodo_efectivo')));
     await tester.pumpAndSettle();

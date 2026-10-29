@@ -70,6 +70,9 @@ class MockUnirseTandasRepository implements TandasRepository {
   }
 
   @override
+  Future<Result<TandaEntity>> iniciarTanda(String id) async => getTandaById(id);
+
+  @override
   Future<Result<UnirseTandaResult>> joinTanda(JoinTandaParams params) async {
     lastJoinParams = params;
     return joinTandaResult ??
@@ -83,7 +86,8 @@ class MockUnirseTandasRepository implements TandasRepository {
               periodo: 'quincenal',
               estado: 'PENDIENTE',
             ),
-            numeroAsignado: params.selectedNumber ?? 2,
+            numeroAsignado: params.selectedNumbers.isNotEmpty ? params.selectedNumbers.first : 2,
+            numerosAsignados: params.selectedNumbers,
             mensaje: 'Te has unido exitosamente a la tanda',
           ),
         );
@@ -252,47 +256,85 @@ void main() {
       expect(provider.isLoading, isFalse);
     });
 
-    test('consultarTanda exitoso detecta correctamente si es por elección (idTandaType == 1)', () async {
+    test('consultarTanda deja continuar si la tanda está pendiente y tiene números libres', () async {
       provider.setInviteCode('TND-ELEC10');
       mockRepo.getTandaResult = const Success(
         TandaEntity(
           id: '1',
-          nombre: 'Tanda Por Elección',
+          nombre: 'Tanda Abierta',
           monto: 1000.0,
           totalParticipantes: 5,
           periodo: 'quincenal',
           estado: 'PENDIENTE',
           inviteCode: 'TND-ELEC10',
-          idTandaType: 1,
+          numerosDisponibles: [2, 4],
         ),
       );
 
       final tanda = await provider.consultarTanda();
 
       expect(tanda, isNotNull);
-      expect(provider.isPorEleccion, isTrue);
       expect(provider.backendError, isNull);
     });
 
-    test('consultarTanda exitoso detecta cuando es por sorteo (idTandaType == 2)', () async {
+    test('BUG-P5: deja unirse a una tanda ACTIVA si quedan números libres', () async {
+      provider.setInviteCode('TND-7YZZCP');
+      mockRepo.getTandaResult = const Success(
+        TandaEntity(
+          id: '2',
+          nombre: 'Tanda Prueba',
+          monto: 100.0,
+          totalParticipantes: 4,
+          periodo: 'quincenal',
+          estado: 'ACTIVA',
+          inviteCode: 'TND-7YZZCP',
+          numerosDisponibles: [4],
+        ),
+      );
+
+      expect(await provider.consultarTanda(), isNotNull);
+      expect(provider.backendError, isNull);
+    });
+
+    test('BUG-P5: una tanda finalizada se rechaza con su propia causa', () async {
       provider.setInviteCode('TND-SORT10');
       mockRepo.getTandaResult = const Success(
         TandaEntity(
           id: '2',
-          nombre: 'Tanda Sorteo',
+          nombre: 'Tanda Cerrada',
           monto: 500.0,
           totalParticipantes: 10,
           periodo: 'semanal',
-          estado: 'PENDIENTE',
+          estado: 'FINALIZADA',
           inviteCode: 'TND-SORT10',
-          idTandaType: 2,
+          numerosDisponibles: [],
         ),
       );
 
-      final tanda = await provider.consultarTanda();
+      expect(await provider.consultarTanda(), isNull);
+      expect(
+        provider.backendError,
+        'La tanda "Tanda Cerrada" está finalizada y ya no acepta participantes.',
+      );
+    });
 
-      expect(tanda, isNotNull);
-      expect(provider.isPorEleccion, isFalse);
+    test('consultarTanda no deja intentar unirse si ya no quedan números libres', () async {
+      provider.setInviteCode('TND-LLENA1');
+      mockRepo.getTandaResult = const Success(
+        TandaEntity(
+          id: '3',
+          nombre: 'Tanda Llena',
+          monto: 500.0,
+          totalParticipantes: 3,
+          periodo: 'semanal',
+          estado: 'PENDIENTE',
+          inviteCode: 'TND-LLENA1',
+          numerosDisponibles: [],
+        ),
+      );
+
+      expect(await provider.consultarTanda(), isNull);
+      expect(provider.backendError, 'La tanda "Tanda Llena" ya no tiene números disponibles.');
     });
 
     test('unirse expone el error de backend si el turno seleccionado ya está ocupado', () async {
@@ -301,7 +343,7 @@ void main() {
         ServerFailure('El turno número 3 ya está ocupado', statusCode: 409),
       );
 
-      final resultado = await provider.unirse(selectedNumber: 3);
+      final resultado = await provider.unirse(selectedNumbers: [3]);
 
       expect(resultado, isNull);
       expect(provider.backendError, equals('El turno número 3 ya está ocupado'));
@@ -310,7 +352,7 @@ void main() {
     test('unirse completa exitosamente y almacena joinResult con número asignado', () async {
       provider.setInviteCode('TND-7K9A2B');
 
-      final resultado = await provider.unirse(selectedNumber: 4);
+      final resultado = await provider.unirse(selectedNumbers: [4]);
 
       expect(resultado, isNotNull);
       expect(resultado!.numeroAsignado, equals(4));
@@ -474,6 +516,9 @@ void main() {
       idTandaType: 1,
     );
 
+    // La pantalla vuelve a consultar la tanda al abrir: el backend responde la misma
+    setUp(() => mockRepo.getTandaResult = const Success(testTanda));
+
     Widget buildTestScreen(UnirseTandaProvider p) {
       return MaterialApp(
         home: ChangeNotifierProvider<UnirseTandaProvider>.value(
@@ -504,7 +549,7 @@ void main() {
       await tester.tap(find.byKey(const Key('btn_seleccionar_numero_3')));
       await tester.pump();
 
-      expect(find.text('Confirmar Turno #3 y Unirme'), findsOneWidget);
+      expect(find.text('Apartar número #3'), findsOneWidget);
 
       final btn = tester.widget<ElevatedButton>(find.byKey(const Key('btn_confirmar_turno')));
       expect(btn.onPressed, isNotNull);
@@ -535,6 +580,7 @@ void main() {
         UnirseTandaResult(
           tanda: testTanda,
           numeroAsignado: 3,
+          numerosAsignados: [3],
         ),
       );
 
@@ -553,6 +599,181 @@ void main() {
         findsOneWidget,
       );
       expect(find.byKey(const Key('btn_exito_selector_ir_tandas')), findsOneWidget);
+    });
+
+    testWidgets('BUG-P1: marca los ocupados, no deja seleccionarlos y consulta la disponibilidad al abrir', (tester) async {
+      const tandaVieja = TandaEntity(
+        id: '1',
+        nombre: 'Tanda Familiar 2026',
+        monto: 1500.0,
+        totalParticipantes: 6,
+        periodo: 'quincenal',
+        estado: 'PENDIENTE',
+        inviteCode: 'TND-7K9A2B',
+        numerosDisponibles: [1, 2, 3, 4, 5, 6],
+      );
+      // Al abrir, el backend informa que #1, #3 y #4 ya se apartaron
+      mockRepo.getTandaResult = const Success(TandaEntity(
+        id: '1',
+        nombre: 'Tanda Familiar 2026',
+        monto: 1500.0,
+        totalParticipantes: 6,
+        periodo: 'quincenal',
+        estado: 'PENDIENTE',
+        inviteCode: 'TND-7K9A2B',
+        numerosDisponibles: [2, 5, 6],
+      ));
+      await tester.pumpWidget(MaterialApp(
+        home: ChangeNotifierProvider<UnirseTandaProvider>.value(
+          value: provider,
+          child: const SeleccionarNumeroScreen(tanda: tandaVieja),
+        ),
+      ));
+      await tester.pumpAndSettle();
+
+      expect(mockRepo.lastQueriedCode, 'TND-7K9A2B');
+      expect(find.text('Quedan 3 de 6 números libres. Puedes apartar más de uno.'), findsOneWidget);
+      for (final n in [1, 3, 4]) {
+        expect(find.byKey(Key('etiqueta_ocupado_$n')), findsOneWidget);
+      }
+      expect(find.byKey(const Key('etiqueta_ocupado_2')), findsNothing);
+
+      await tester.tap(find.byKey(const Key('btn_seleccionar_numero_1')));
+      await tester.pump();
+      final btn = tester.widget<ElevatedButton>(find.byKey(const Key('btn_confirmar_turno')));
+      expect(btn.onPressed, isNull, reason: 'un número ocupado no se puede seleccionar');
+    });
+
+    testWidgets('BUG-P2: selecciona y deselecciona varios números y aparta todos', (tester) async {
+      mockRepo.getTandaResult = const Success(TandaEntity(
+        id: '1',
+        nombre: 'Tanda Familiar 2026',
+        monto: 1500.0,
+        totalParticipantes: 6,
+        periodo: 'quincenal',
+        estado: 'PENDIENTE',
+        inviteCode: 'TND-7K9A2B',
+        numerosDisponibles: [2, 5, 6],
+      ));
+      await tester.pumpWidget(buildTestScreen(provider));
+      await tester.pumpAndSettle();
+
+      ElevatedButton confirmar() =>
+          tester.widget<ElevatedButton>(find.byKey(const Key('btn_confirmar_turno')));
+      expect(confirmar().onPressed, isNull);
+      expect(find.text('Selecciona al menos un número'), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('btn_seleccionar_numero_2')));
+      await tester.tap(find.byKey(const Key('btn_seleccionar_numero_5')));
+      await tester.pump();
+      await tester.tap(find.byKey(const Key('btn_seleccionar_numero_2'))); // deselecciona
+      await tester.tap(find.byKey(const Key('btn_seleccionar_numero_6')));
+      await tester.pump();
+      expect(find.text('Apartar 2 números'), findsOneWidget);
+      expect(confirmar().onPressed, isNotNull);
+
+      await tester.ensureVisible(find.byKey(const Key('btn_confirmar_turno')));
+      await tester.tap(find.byKey(const Key('btn_confirmar_turno')));
+      await tester.pumpAndSettle();
+
+      expect(mockRepo.lastJoinParams?.selectedNumbers, equals([5, 6]));
+      expect(
+        find.descendant(of: find.byType(AlertDialog), matching: find.text('#5, #6')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('BUG-P3: si otro toma el número, no asigna nada, avisa y marca el ocupado', (tester) async {
+      await tester.pumpWidget(buildTestScreen(provider));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key('btn_seleccionar_numero_3')));
+      await tester.pump();
+
+      // Mientras tanto otro participante apartó el #3
+      mockRepo.joinTandaResult = const Error(ServerFailure(
+        'El número #3 ya fue tomado por otro participante. Elige otro.',
+        statusCode: 409,
+      ));
+      mockRepo.getTandaResult = const Success(TandaEntity(
+        id: '1',
+        nombre: 'Tanda Familiar 2026',
+        monto: 1500.0,
+        totalParticipantes: 6,
+        periodo: 'quincenal',
+        estado: 'PENDIENTE',
+        inviteCode: 'TND-7K9A2B',
+        numerosDisponibles: [1, 2, 4, 5, 6],
+      ));
+
+      await tester.ensureVisible(find.byKey(const Key('btn_confirmar_turno')));
+      await tester.tap(find.byKey(const Key('btn_confirmar_turno')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('¡Turno Reservado!'), findsNothing);
+      expect(
+        find.text('El número #3 ya fue tomado por otro participante. Elige otro.'),
+        findsOneWidget,
+      );
+      expect(find.byKey(const Key('etiqueta_ocupado_3')), findsOneWidget);
+      expect(find.text('Selecciona al menos un número'), findsOneWidget);
+    });
+
+    testWidgets('BUG-P6: por sorteo no hay cuadrícula; pide cantidad y consecutivos y avisa si no hubo bloque', (tester) async {
+      const tandaSorteo = TandaEntity(
+        id: '9',
+        nombre: 'Tanda Sorteo',
+        monto: 100.0,
+        totalParticipantes: 6,
+        periodo: 'quincenal',
+        estado: 'PENDIENTE',
+        inviteCode: 'TND-SORTEO',
+        idTandaType: 2,
+        numerosDisponibles: [1, 3, 5, 6],
+      );
+      mockRepo.getTandaResult = const Success(tandaSorteo);
+      mockRepo.joinTandaResult = const Success(UnirseTandaResult(
+        tanda: tandaSorteo,
+        numeroAsignado: 1,
+        numerosAsignados: [1, 3],
+        consecutivos: false,
+      ));
+      await tester.pumpWidget(MaterialApp(
+        home: ChangeNotifierProvider<UnirseTandaProvider>.value(
+          value: provider,
+          child: const SeleccionarNumeroScreen(tanda: tandaSorteo),
+        ),
+      ));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('aviso_tanda_sorteo')), findsOneWidget);
+      expect(find.byKey(const Key('btn_seleccionar_numero_1')), findsNothing);
+      expect(find.text('Obtener números'), findsOneWidget);
+
+      ElevatedButton obtener() =>
+          tester.widget<ElevatedButton>(find.byKey(const Key('btn_confirmar_turno')));
+      await tester.tap(find.byKey(const Key('btn_menos_cantidad')));
+      await tester.pump();
+      expect(obtener().onPressed, isNull, reason: 'con cantidad 0 el botón queda deshabilitado');
+
+      await tester.tap(find.byKey(const Key('btn_mas_cantidad')));
+      await tester.tap(find.byKey(const Key('btn_mas_cantidad')));
+      await tester.tap(find.byKey(const Key('switch_consecutivos')));
+      await tester.pump();
+      expect(find.text('2'), findsOneWidget);
+
+      await tester.ensureVisible(find.byKey(const Key('btn_confirmar_turno')));
+      await tester.tap(find.byKey(const Key('btn_confirmar_turno')));
+      await tester.pumpAndSettle();
+
+      expect(mockRepo.lastJoinParams?.cantidad, 2);
+      expect(mockRepo.lastJoinParams?.consecutivos, isTrue);
+      expect(mockRepo.lastJoinParams?.selectedNumbers, isEmpty);
+      expect(
+        find.descendant(of: find.byType(AlertDialog), matching: find.text('#1, #3')),
+        findsOneWidget,
+      );
+      expect(find.byKey(const Key('aviso_sorteo_no_consecutivos')), findsOneWidget);
     });
   });
 }

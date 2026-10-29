@@ -34,7 +34,6 @@ class UnirseTandaProvider extends ChangeNotifier {
   String? _backendError;
   TandaEntity? _foundTanda;
   UnirseTandaResult? _joinResult;
-  int? _selectedNumber;
 
   // --- Getters ---
   String get inviteCode => _inviteCode;
@@ -43,23 +42,12 @@ class UnirseTandaProvider extends ChangeNotifier {
   String? get backendError => _backendError;
   TandaEntity? get foundTanda => _foundTanda;
   UnirseTandaResult? get joinResult => _joinResult;
-  int? get selectedNumber => _selectedNumber;
-
-  /// Retorna `true` si la tanda obtenida es por elección (idTandaType == 1).
-  /// Si es Sorteo (idTandaType == 2 u otro), no es por elección.
-  bool get isPorEleccion => _foundTanda?.idTandaType == 1;
 
   // --- Modificadores de estado ---
 
   void setInviteCode(String code) {
     _inviteCode = code.toUpperCase().trim();
     _validationError = null;
-    _backendError = null;
-    notifyListeners();
-  }
-
-  void setSelectedNumber(int number) {
-    _selectedNumber = number;
     _backendError = null;
     notifyListeners();
   }
@@ -112,9 +100,14 @@ class UnirseTandaProvider extends ChangeNotifier {
       success: (tanda) {
         _foundTanda = tanda;
         _isLoading = false;
-        _backendError = null;
+        // No dejar intentar unirse si no es posible; el mensaje dice la causa real
+        _backendError = !tanda.aceptaParticipantes
+            ? 'La tanda "${tanda.nombre}" está ${tanda.estado.toLowerCase()} y ya no acepta participantes.'
+            : !tanda.tieneNumerosLibres
+                ? 'La tanda "${tanda.nombre}" ya no tiene números disponibles.'
+                : null;
         notifyListeners();
-        return tanda;
+        return tanda.aceptaNumeros ? tanda : null;
       },
       failure: (failure) {
         _isLoading = false;
@@ -125,18 +118,30 @@ class UnirseTandaProvider extends ChangeNotifier {
     );
   }
 
-  /// Ejecuta la unión a la tanda: `POST /tandas/unirse`.
-  /// Acepta un `selectedNumber` opcional si la tanda es por elección.
-  Future<UnirseTandaResult?> unirse({int? selectedNumber}) async {
-    final numero = selectedNumber ?? _selectedNumber;
+  /// Vuelve a consultar la tanda por su código para tener la disponibilidad al día.
+  Future<TandaEntity?> refrescarTanda() async {
+    final result = await obtenerTandaPorCodigoUseCase(_inviteCode.trim());
+    return result.when(
+      success: (tanda) => _foundTanda = tanda,
+      failure: (_) => null,
+    );
+  }
 
+  /// Aparta uno o varios números en la tanda: `POST /tandas/unirse`.
+  Future<UnirseTandaResult?> unirse({
+    List<int> selectedNumbers = const [],
+    int? cantidad,
+    bool? consecutivos,
+  }) async {
     _isLoading = true;
     _backendError = null;
     notifyListeners();
 
     final params = JoinTandaParams(
       inviteCode: _inviteCode.trim(),
-      selectedNumber: numero,
+      selectedNumbers: selectedNumbers,
+      cantidad: cantidad,
+      consecutivos: consecutivos,
     );
 
     final result = await unirseTandaUseCase(params);
@@ -166,7 +171,6 @@ class UnirseTandaProvider extends ChangeNotifier {
     _backendError = null;
     _foundTanda = null;
     _joinResult = null;
-    _selectedNumber = null;
     notifyListeners();
   }
 }

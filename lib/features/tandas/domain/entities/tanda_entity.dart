@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:tandea/features/tandas/domain/entities/numero_tanda.dart';
 
 /// Indicador del estado de pago de la tanda para el usuario.
 enum IndicadorPago {
@@ -32,6 +33,15 @@ class TandaEntity extends Equatable {
   /// Número visible del turno del usuario (`number_value`).
   final int? numeroTurnoUsuario;
 
+  /// Números apartados de la tanda (solo viene en el detalle).
+  final List<NumeroTanda> numeros;
+
+  /// Números del usuario autenticado (solo viene en el detalle).
+  final List<NumeroTanda> misNumeros;
+
+  /// Números libres para apartar; `null` si el backend no los envió.
+  final List<int>? numerosDisponibles;
+
   const TandaEntity({
     required this.id,
     required this.nombre,
@@ -48,7 +58,23 @@ class TandaEntity extends Equatable {
     this.rolUsuario,
     this.idNumberUsuario,
     this.numeroTurnoUsuario,
+    this.numeros = const [],
+    this.misNumeros = const [],
+    this.numerosDisponibles,
   });
+
+  bool get esPendiente => estado.toUpperCase() == 'PENDIENTE';
+  bool get esActiva => estado.toUpperCase() == 'ACTIVA';
+
+  /// tanda_type 2 = Sorteo: el sistema asigna los números al azar.
+  bool get esSorteo => idTandaType == 2;
+  bool get esOrganizador =>
+      rolUsuario == 'DUENO' || rolUsuario == 'AMBOS' || rolUsuario == 'ADMIN_GLOBAL';
+
+  /// Pendiente o en curso: se puede apartar número mientras quede alguno libre.
+  bool get aceptaParticipantes => esPendiente || esActiva;
+  bool get tieneNumerosLibres => numerosDisponibles?.isNotEmpty ?? true;
+  bool get aceptaNumeros => aceptaParticipantes && tieneNumerosLibres;
 
   TandaEntity copyWith({
     String? id,
@@ -83,6 +109,9 @@ class TandaEntity extends Equatable {
       rolUsuario: rolUsuario ?? this.rolUsuario,
       idNumberUsuario: idNumberUsuario ?? this.idNumberUsuario,
       numeroTurnoUsuario: numeroTurnoUsuario ?? this.numeroTurnoUsuario,
+      numeros: numeros,
+      misNumeros: misNumeros,
+      numerosDisponibles: numerosDisponibles,
     );
   }
 
@@ -103,6 +132,9 @@ class TandaEntity extends Equatable {
         rolUsuario,
         idNumberUsuario,
         numeroTurnoUsuario,
+        numeros,
+        misNumeros,
+        numerosDisponibles,
       ];
 }
 

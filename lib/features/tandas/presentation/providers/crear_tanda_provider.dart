@@ -144,6 +144,9 @@ class CrearTandaProvider extends ChangeNotifier {
 
   /// Envía la solicitud al endpoint `POST /tandas`.
   Future<bool> crearTanda() async {
+    // Evita tandas duplicadas por un doble toque mientras la petición sigue en curso
+    if (_isLoading) return false;
+
     // Validaciones locales previas al envío
     if (_name.trim().length < 3) {
       _errorMessage = 'El nombre de la tanda debe tener al menos 3 caracteres.';
