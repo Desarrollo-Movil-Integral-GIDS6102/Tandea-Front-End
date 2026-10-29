@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
+import 'package:tandea/core/routes/route_names.dart';
 import 'package:tandea/core/utils/result.dart';
 import 'package:tandea/core/widgets/primary_button.dart';
 import 'package:tandea/features/tandas/domain/entities/tanda_entity.dart';
@@ -419,5 +421,43 @@ void main() {
       expect(find.text('¡Tanda creada exitosamente!'), findsOneWidget);
     });
 
+  });
+
+  group('BUG-A1 - Navegación tras crear la tanda', () {
+    testWidgets('al crear va a Mis tandas (organizador) y "atrás" no regresa al formulario', (tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 2.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      final router = GoRouter(
+        initialLocation: RouteNames.tandasOrganizador,
+        routes: [
+          GoRoute(
+            path: RouteNames.tandasOrganizador,
+            builder: (_, __) => const Scaffold(body: Text('MIS TANDAS ORG')),
+          ),
+          GoRoute(path: RouteNames.crearTanda, builder: (_, __) => const CrearTandaScreen()),
+        ],
+      );
+      await tester.pumpWidget(MaterialApp.router(routerConfig: router));
+      router.push(RouteNames.crearTanda);
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.widgetWithText(TextFormField, 'Nombre de la tanda *'), 'Tanda A1');
+      final submitBtn = find.widgetWithText(PrimaryButton, 'Crear tanda');
+      await tester.ensureVisible(submitBtn);
+      await tester.tap(submitBtn);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key('btn_ir_mis_tandas')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('MIS TANDAS ORG'), findsOneWidget);
+      expect(find.byType(CrearTandaScreen), findsNothing);
+      expect(router.canPop(), isFalse);
+    });
   });
 }
