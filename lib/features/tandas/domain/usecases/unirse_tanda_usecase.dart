@@ -9,20 +9,28 @@ class JoinTandaParams extends Equatable {
   final String inviteCode;
   final List<int> selectedNumbers;
 
+  /// Solo sorteo: cuántos números asignar al azar y si deben ser seguidos.
+  final int? cantidad;
+  final bool? consecutivos;
+
   const JoinTandaParams({
     required this.inviteCode,
     this.selectedNumbers = const [],
+    this.cantidad,
+    this.consecutivos,
   });
 
   Map<String, dynamic> toJson() {
     return <String, dynamic>{
       'inviteCode': inviteCode.trim().toUpperCase(),
       if (selectedNumbers.isNotEmpty) 'selectedNumbers': selectedNumbers,
+      if (cantidad != null) 'cantidad': cantidad,
+      if (consecutivos != null) 'consecutivos': consecutivos,
     };
   }
 
   @override
-  List<Object?> get props => [inviteCode, selectedNumbers];
+  List<Object?> get props => [inviteCode, selectedNumbers, cantidad, consecutivos];
 }
 
 /// Caso de uso para unirse a una tanda en el backend (POST /tandas/unirse).

@@ -135,6 +135,7 @@ class TandasRepositoryImpl implements TandasRepository {
           tanda: tanda,
           numeroAsignado: numeroAsignado,
           numerosAsignados: numerosAsignados,
+          consecutivos: data['consecutivos'] as bool?,
           isDeadNumber: isDeadNumber,
           mensaje: mensaje,
         ),

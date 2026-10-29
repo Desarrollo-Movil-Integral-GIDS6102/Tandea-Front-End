@@ -25,6 +25,10 @@ class _SeleccionarNumeroScreenState extends State<SeleccionarNumeroScreen> {
   final Set<int> _seleccionados = {};
   late TandaEntity _tanda = widget.tanda;
 
+  // Solo tandas por sorteo
+  int _cantidad = 1;
+  bool _consecutivos = false;
+
   Set<int> get _libres =>
       (_tanda.numerosDisponibles ??
               List<int>.generate(_tanda.totalParticipantes, (i) => i + 1))
@@ -37,6 +41,7 @@ class _SeleccionarNumeroScreenState extends State<SeleccionarNumeroScreen> {
     setState(() {
       _tanda = tanda;
       _seleccionados.retainAll(_libres);
+      if (_cantidad > _libres.length) _cantidad = _libres.length;
     });
   }
 
@@ -73,7 +78,29 @@ class _SeleccionarNumeroScreenState extends State<SeleccionarNumeroScreen> {
     _mostrarDialogoExito(resultado);
   }
 
-  void _mostrarDialogoExito(UnirseTandaResult result) {
+  Future<void> _handleSorteo() async {
+    final pidioConsecutivos = _consecutivos;
+    final resultado = await context.read<UnirseTandaProvider>().unirse(
+          cantidad: _cantidad,
+          consecutivos: pidioConsecutivos,
+        );
+    if (!mounted) return;
+    if (resultado == null) {
+      // Ya no alcanzan los libres o alguien tomó números: se actualiza el máximo disponible
+      await _refrescarDisponibles();
+      return;
+    }
+
+    _mostrarDialogoExito(
+      resultado,
+      aviso: pidioConsecutivos && resultado.consecutivos == false
+          ? 'No había un bloque de ${resultado.numerosAsignados.length} números seguidos libres, '
+              'así que te asignamos al azar estos números disponibles.'
+          : null,
+    );
+  }
+
+  void _mostrarDialogoExito(UnirseTandaResult result, {String? aviso}) {
     showDialog<void>(
       context: context,
       barrierDismissible: false,
@@ -121,6 +148,14 @@ class _SeleccionarNumeroScreenState extends State<SeleccionarNumeroScreen> {
                 ],
               ),
             ),
+            if (aviso != null) ...[
+              const SizedBox(height: 12),
+              Text(
+                aviso,
+                key: const Key('aviso_sorteo_no_consecutivos'),
+                style: const TextStyle(fontSize: 13, color: AppColors.textSecondaryLight),
+              ),
+            ],
           ],
         ),
         actions: [
@@ -239,6 +274,9 @@ class _SeleccionarNumeroScreenState extends State<SeleccionarNumeroScreen> {
                   const SizedBox(height: 16),
                 ],
 
+                if (_tanda.esSorteo)
+                  ..._buildSorteo(libres.length, totalNumeros)
+                else ...[
                 // Instrucción
                 Text(
                   'Elige uno o varios números para cobrar:',
@@ -338,14 +376,17 @@ class _SeleccionarNumeroScreenState extends State<SeleccionarNumeroScreen> {
                     );
                   },
                 ),
+                ],
                 const SizedBox(height: 28),
 
                 // Botón de Confirmación
                 ElevatedButton(
                   key: const Key('btn_confirmar_turno'),
-                  onPressed: (_seleccionados.isEmpty || isLoading)
+                  onPressed: isLoading
                       ? null
-                      : _handleConfirmarNumero,
+                      : _tanda.esSorteo
+                          ? (_cantidad == 0 ? null : _handleSorteo)
+                          : (_seleccionados.isEmpty ? null : _handleConfirmarNumero),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
@@ -364,7 +405,9 @@ class _SeleccionarNumeroScreenState extends State<SeleccionarNumeroScreen> {
                           ),
                         )
                       : Text(
-                          _seleccionados.isEmpty
+                          _tanda.esSorteo
+                              ? 'Obtener números'
+                              : _seleccionados.isEmpty
                               ? 'Selecciona al menos un número'
                               : _seleccionados.length == 1
                                   ? 'Apartar número #${_seleccionados.first}'
@@ -379,6 +422,68 @@ class _SeleccionarNumeroScreenState extends State<SeleccionarNumeroScreen> {
       ),
     );
   }
+
+  /// Formulario de tandas por sorteo: cantidad y consecutivos, sin cuadrícula.
+  List<Widget> _buildSorteo(int maxCantidad, int totalNumeros) => [
+        Container(
+          key: const Key('aviso_tanda_sorteo'),
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: AppColors.primary.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: const Row(
+            children: [
+              Icon(Icons.casino_outlined, color: AppColors.primary),
+              SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Tanda por sorteo: el sistema asigna tus números al azar entre los libres.',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        Text(
+          'Quedan $maxCantidad de $totalNumeros números libres.',
+          style: const TextStyle(fontSize: 13, color: AppColors.textSecondaryLight),
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            const Expanded(
+              child: Text('¿Cuántos números quieres?', style: TextStyle(fontWeight: FontWeight.bold)),
+            ),
+            IconButton(
+              key: const Key('btn_menos_cantidad'),
+              tooltip: 'Menos',
+              onPressed: _cantidad > 0 ? () => setState(() => _cantidad--) : null,
+              icon: const Icon(Icons.remove_circle_outline),
+            ),
+            Text(
+              '$_cantidad',
+              key: const Key('cantidad_sorteo'),
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            IconButton(
+              key: const Key('btn_mas_cantidad'),
+              tooltip: 'Más',
+              onPressed: _cantidad < maxCantidad ? () => setState(() => _cantidad++) : null,
+              icon: const Icon(Icons.add_circle_outline),
+            ),
+          ],
+        ),
+        SwitchListTile(
+          key: const Key('switch_consecutivos'),
+          contentPadding: EdgeInsets.zero,
+          value: _consecutivos,
+          onChanged: (v) => setState(() => _consecutivos = v),
+          title: const Text('Quiero números consecutivos'),
+          subtitle: const Text('Si no hay un bloque seguido libre, te asignamos los disponibles.'),
+        ),
+      ];
 
   Widget _buildInfoCol(String label, String value, {bool isHighlight = false}) {
     return Column(

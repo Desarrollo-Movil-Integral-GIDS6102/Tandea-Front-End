@@ -128,7 +128,11 @@ class UnirseTandaProvider extends ChangeNotifier {
   }
 
   /// Aparta uno o varios números en la tanda: `POST /tandas/unirse`.
-  Future<UnirseTandaResult?> unirse({List<int> selectedNumbers = const []}) async {
+  Future<UnirseTandaResult?> unirse({
+    List<int> selectedNumbers = const [],
+    int? cantidad,
+    bool? consecutivos,
+  }) async {
     _isLoading = true;
     _backendError = null;
     notifyListeners();
@@ -136,6 +140,8 @@ class UnirseTandaProvider extends ChangeNotifier {
     final params = JoinTandaParams(
       inviteCode: _inviteCode.trim(),
       selectedNumbers: selectedNumbers,
+      cantidad: cantidad,
+      consecutivos: consecutivos,
     );
 
     final result = await unirseTandaUseCase(params);

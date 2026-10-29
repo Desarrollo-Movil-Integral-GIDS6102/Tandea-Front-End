@@ -713,5 +713,62 @@ void main() {
       expect(find.byKey(const Key('etiqueta_ocupado_3')), findsOneWidget);
       expect(find.text('Selecciona al menos un número'), findsOneWidget);
     });
+
+    testWidgets('BUG-P6: por sorteo no hay cuadrícula; pide cantidad y consecutivos y avisa si no hubo bloque', (tester) async {
+      const tandaSorteo = TandaEntity(
+        id: '9',
+        nombre: 'Tanda Sorteo',
+        monto: 100.0,
+        totalParticipantes: 6,
+        periodo: 'quincenal',
+        estado: 'PENDIENTE',
+        inviteCode: 'TND-SORTEO',
+        idTandaType: 2,
+        numerosDisponibles: [1, 3, 5, 6],
+      );
+      mockRepo.getTandaResult = const Success(tandaSorteo);
+      mockRepo.joinTandaResult = const Success(UnirseTandaResult(
+        tanda: tandaSorteo,
+        numeroAsignado: 1,
+        numerosAsignados: [1, 3],
+        consecutivos: false,
+      ));
+      await tester.pumpWidget(MaterialApp(
+        home: ChangeNotifierProvider<UnirseTandaProvider>.value(
+          value: provider,
+          child: const SeleccionarNumeroScreen(tanda: tandaSorteo),
+        ),
+      ));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('aviso_tanda_sorteo')), findsOneWidget);
+      expect(find.byKey(const Key('btn_seleccionar_numero_1')), findsNothing);
+      expect(find.text('Obtener números'), findsOneWidget);
+
+      ElevatedButton obtener() =>
+          tester.widget<ElevatedButton>(find.byKey(const Key('btn_confirmar_turno')));
+      await tester.tap(find.byKey(const Key('btn_menos_cantidad')));
+      await tester.pump();
+      expect(obtener().onPressed, isNull, reason: 'con cantidad 0 el botón queda deshabilitado');
+
+      await tester.tap(find.byKey(const Key('btn_mas_cantidad')));
+      await tester.tap(find.byKey(const Key('btn_mas_cantidad')));
+      await tester.tap(find.byKey(const Key('switch_consecutivos')));
+      await tester.pump();
+      expect(find.text('2'), findsOneWidget);
+
+      await tester.ensureVisible(find.byKey(const Key('btn_confirmar_turno')));
+      await tester.tap(find.byKey(const Key('btn_confirmar_turno')));
+      await tester.pumpAndSettle();
+
+      expect(mockRepo.lastJoinParams?.cantidad, 2);
+      expect(mockRepo.lastJoinParams?.consecutivos, isTrue);
+      expect(mockRepo.lastJoinParams?.selectedNumbers, isEmpty);
+      expect(
+        find.descendant(of: find.byType(AlertDialog), matching: find.text('#1, #3')),
+        findsOneWidget,
+      );
+      expect(find.byKey(const Key('aviso_sorteo_no_consecutivos')), findsOneWidget);
+    });
   });
 }

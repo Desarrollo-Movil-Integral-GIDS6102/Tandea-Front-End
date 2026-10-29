@@ -57,6 +57,9 @@ class TandaEntity extends Equatable {
 
   bool get esPendiente => estado.toUpperCase() == 'PENDIENTE';
   bool get esActiva => estado.toUpperCase() == 'ACTIVA';
+
+  /// tanda_type 2 = Sorteo: el sistema asigna los números al azar.
+  bool get esSorteo => idTandaType == 2;
   bool get esOrganizador =>
       rolUsuario == 'DUENO' || rolUsuario == 'AMBOS' || rolUsuario == 'ADMIN_GLOBAL';
 

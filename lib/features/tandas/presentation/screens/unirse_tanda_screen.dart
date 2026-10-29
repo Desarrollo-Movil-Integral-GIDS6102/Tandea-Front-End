@@ -302,7 +302,7 @@ class _UnirseTandaScreenState extends State<UnirseTandaScreen> {
                         SizedBox(width: 12),
                         Expanded(
                           child: Text(
-                            'Si la tanda es tradicional (por elección), podrás seleccionar tu número favorito en el siguiente paso. Si es por sorteo, tu número se asignará automáticamente.',
+                            'Si la tanda es tradicional (por elección), podrás seleccionar tu número favorito en el siguiente paso. Si es por sorteo, eliges cuántos números quieres y el sistema los asigna al azar.',
                             style: TextStyle(
                               fontSize: 13,
                               color: AppColors.textPrimaryLight,
