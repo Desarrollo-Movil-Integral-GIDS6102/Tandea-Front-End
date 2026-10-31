@@ -14,6 +14,9 @@ import 'package:tandea/features/auth/domain/repositories/perfil_repository.dart'
 import 'package:tandea/features/auth/presentation/providers/auth_provider.dart';
 import 'package:tandea/features/auth/presentation/providers/auth_session_provider.dart';
 import 'package:tandea/features/auth/presentation/providers/perfil_provider.dart';
+import 'package:tandea/features/entregas/data/repositories/entrega_repository_impl.dart';
+import 'package:tandea/features/entregas/domain/repositories/entrega_repository.dart';
+import 'package:tandea/features/entregas/presentation/providers/entrega_provider.dart';
 import 'package:tandea/features/pagos/data/datasources/pago_remote_data_source.dart';
 import 'package:tandea/features/pagos/data/repositories/pago_repository_impl.dart';
 import 'package:tandea/features/pagos/data/services/comprobante_service_impl.dart';
@@ -135,6 +138,10 @@ Future<void> initDependencies() async {
     () => PerfilRepositoryImpl(apiClient: sl<ApiClient>()),
   );
 
+  sl.registerLazySingleton<EntregaRepository>(
+    () => EntregaRepositoryImpl(apiClient: sl<ApiClient>()),
+  );
+
   sl.registerLazySingleton<PagoRepository>(
     () => PagoRepositoryImpl(
       remoteDataSource: sl<PagoRemoteDataSource>(),
@@ -214,6 +221,10 @@ Future<void> initDependencies() async {
       pagoRepository: sl<PagoRepository>(),
       pagoInicial: pagoInicial,
     ),
+  );
+
+  sl.registerFactory<EntregaProvider>(
+    () => EntregaProvider(entregaRepository: sl<EntregaRepository>()),
   );
 
   sl.registerFactory<PagoProvider>(

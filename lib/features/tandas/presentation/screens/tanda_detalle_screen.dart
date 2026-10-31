@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:tandea/core/constants/app_colors.dart';
 import 'package:tandea/core/routes/route_names.dart';
 import 'package:tandea/core/utils/formato_moneda.dart';
+import 'package:tandea/features/entregas/presentation/screens/registrar_entrega_screen.dart';
 import 'package:tandea/features/pagos/presentation/screens/registrar_pago_screen.dart';
 import 'package:tandea/features/tandas/domain/entities/numero_tanda.dart';
 import 'package:tandea/features/tandas/domain/entities/tanda_entity.dart';
@@ -35,6 +36,24 @@ class TandaDetalleScreen extends StatelessWidget {
         cuota: tanda.monto,
         numeroTurno: numero.numberValue,
         vuelta: numero.roundNumber,
+      ),
+    );
+    if (context.mounted) await _recargar(context);
+  }
+
+  Future<void> _confirmarRecepcion(BuildContext context, NumeroTanda numero) async {
+    await context.push(RouteNames.entregaDetalle(numero.idPayout!));
+    if (context.mounted) await _recargar(context);
+  }
+
+  Future<void> _registrarEntrega(BuildContext context, TandaEntity tanda, NumeroTanda numero) async {
+    await context.push(
+      RouteNames.registrarEntrega,
+      extra: RegistrarEntregaArgs(
+        idNumber: numero.idNumber,
+        numero: numero.numberValue,
+        nombreReceptor: numero.userName ?? 'Participante',
+        total: tanda.monto * tanda.totalParticipantes,
       ),
     );
     if (context.mounted) await _recargar(context);
@@ -124,6 +143,7 @@ class TandaDetalleScreen extends StatelessWidget {
                     _MisNumeros(
                       tanda: tanda,
                       onPagar: (n) => _pagar(context, tanda, n),
+                      onConfirmarRecepcion: (n) => _confirmarRecepcion(context, n),
                     ),
                     if (tanda.aceptaNumeros) ...[
                       const SizedBox(height: 12),
@@ -142,6 +162,13 @@ class TandaDetalleScreen extends StatelessWidget {
                         tanda: tanda,
                         iniciando: provider.iniciando,
                         onIniciar: () => _iniciar(context),
+                      ),
+                    ],
+                    if (tanda.esOrganizador && tanda.esActiva) ...[
+                      const SizedBox(height: 12),
+                      _TurnoVigente(
+                        tanda: tanda,
+                        onRegistrar: (n) => _registrarEntrega(context, tanda, n),
                       ),
                     ],
                     if (tanda.esOrganizador) ...[
@@ -274,8 +301,13 @@ class _AvisoEstado extends StatelessWidget {
 class _MisNumeros extends StatelessWidget {
   final TandaEntity tanda;
   final ValueChanged<NumeroTanda> onPagar;
+  final ValueChanged<NumeroTanda> onConfirmarRecepcion;
 
-  const _MisNumeros({required this.tanda, required this.onPagar});
+  const _MisNumeros({
+    required this.tanda,
+    required this.onPagar,
+    required this.onConfirmarRecepcion,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -296,37 +328,86 @@ class _MisNumeros extends StatelessWidget {
           for (final n in tanda.misNumeros)
             Card(
               key: Key('mi_numero_${n.numberValue}'),
-              child: ListTile(
-                leading: CircleAvatar(
-                  backgroundColor: AppColors.primary,
-                  child: Text(
-                    '${n.numberValue}',
-                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                  ),
-                ),
-                title: Text('Número #${n.numberValue}'),
-                subtitle: Text(
-                  n.pagoEnRevision
-                      ? 'Ya pagaste. Tu pago está siendo analizado por el organizador.'
-                      : n.pagoConfirmado
-                          ? 'El organizador confirmó tu pago.'
-                          : 'Vuelta ${n.roundNumber}',
-                ),
-                trailing: n.estadoPago != null
-                    ? Chip(
-                        key: Key('estado_pago_numero_${n.numberValue}'),
-                        label: Text(n.pagoConfirmado ? 'Pagado' : 'En revisión'),
-                        visualDensity: VisualDensity.compact,
-                      )
-                    : ElevatedButton(
-                        key: Key('btn_pagar_numero_${n.numberValue}'),
-                        // Pagar solo cuando el organizador ya inició la tanda
-                        onPressed: tanda.esActiva ? () => onPagar(n) : null,
-                        child: const Text('Pagar'),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: AppColors.primary,
+                      child: Text(
+                        '${n.numberValue}',
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                       ),
+                    ),
+                    title: Text('Número #${n.numberValue}'),
+                    subtitle: Text(
+                      n.pagoEnRevision
+                          ? 'Ya pagaste. Tu pago está siendo analizado por el organizador.'
+                          : n.pagoConfirmado
+                              ? 'El organizador confirmó tu pago.'
+                              : 'Vuelta ${n.roundNumber}',
+                    ),
+                    trailing: n.estadoPago != null
+                        ? Chip(
+                            key: Key('estado_pago_numero_${n.numberValue}'),
+                            label: Text(n.pagoConfirmado ? 'Pagado' : 'En revisión'),
+                            visualDensity: VisualDensity.compact,
+                          )
+                        : ElevatedButton(
+                            key: Key('btn_pagar_numero_${n.numberValue}'),
+                            // Pagar solo cuando el organizador ya inició la tanda
+                            onPressed: tanda.esActiva ? () => onPagar(n) : null,
+                            child: const Text('Pagar'),
+                          ),
+                  ),
+                  if (n.entregaPorConfirmar && n.idPayout != null)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                      child: ElevatedButton(
+                        key: Key('btn_confirmar_recepcion_${n.numberValue}'),
+                        onPressed: () => onConfirmarRecepcion(n),
+                        child: const Text('El organizador te entregó el dinero: confirmar'),
+                      ),
+                    ),
+                  if (n.entregado)
+                    const Padding(
+                      padding: EdgeInsets.fromLTRB(16, 0, 16, 12),
+                      child: Text('Turno cobrado.', style: TextStyle(color: AppColors.success)),
+                    ),
+                ],
               ),
             ),
       ],
+    );
+  }
+}
+
+/// Muestra al organizador a quién le toca cobrar y le permite registrar la entrega.
+class _TurnoVigente extends StatelessWidget {
+  final TandaEntity tanda;
+  final ValueChanged<NumeroTanda> onRegistrar;
+
+  const _TurnoVigente({required this.tanda, required this.onRegistrar});
+
+  @override
+  Widget build(BuildContext context) {
+    final abiertos = tanda.numeros.where((n) => !n.isDeadNumber && !n.entregado).toList()
+      ..sort((a, b) => a.numberValue.compareTo(b.numberValue));
+    if (abiertos.isEmpty) return const SizedBox.shrink();
+    final turno = abiertos.first;
+
+    if (turno.entregaPorConfirmar) {
+      return Text(
+        'Entrega del número #${turno.numberValue} registrada. Falta que la confirme.',
+        key: const Key('turno_esperando_confirmacion'),
+        style: const TextStyle(color: AppColors.textSecondaryLight),
+      );
+    }
+    return ElevatedButton.icon(
+      key: const Key('btn_registrar_entrega'),
+      onPressed: () => onRegistrar(turno),
+      icon: const Icon(Icons.payments_outlined),
+      label: Text('Registrar entrega del turno #${turno.numberValue}'),
     );
   }
 }

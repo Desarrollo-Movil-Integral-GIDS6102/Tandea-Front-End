@@ -10,6 +10,9 @@ import 'package:tandea/features/auth/presentation/screens/perfil_screen.dart';
 import 'package:tandea/features/auth/presentation/screens/login_screen.dart';
 import 'package:tandea/features/auth/presentation/screens/register_screen.dart';
 import 'package:tandea/features/auth/presentation/screens/welcome_screen.dart';
+import 'package:tandea/features/entregas/presentation/providers/entrega_provider.dart';
+import 'package:tandea/features/entregas/presentation/screens/confirmar_entrega_screen.dart';
+import 'package:tandea/features/entregas/presentation/screens/registrar_entrega_screen.dart';
 import 'package:tandea/features/pagos/presentation/providers/pago_provider.dart';
 import 'package:tandea/features/pagos/presentation/providers/revisar_pago_provider.dart';
 import 'package:tandea/features/pagos/presentation/screens/registrar_pago_screen.dart';
@@ -285,6 +288,24 @@ class AppRouter {
         path: RouteNames.entregas,
         builder: (context, state) =>
             const _PlaceholderScreen(title: 'Entregas'),
+      ),
+      // Va antes de `/entregas/:id` para que "nueva" no se tome como un id
+      GoRoute(
+        path: RouteNames.registrarEntrega,
+        builder: (context, state) => ChangeNotifierProvider(
+          create: (_) => sl<EntregaProvider>(),
+          child: RegistrarEntregaScreen(args: state.extra! as RegistrarEntregaArgs),
+        ),
+      ),
+      GoRoute(
+        path: RouteNames.entregaDetail,
+        builder: (context, state) {
+          final id = int.parse(state.pathParameters['id']!);
+          return ChangeNotifierProvider(
+            create: (_) => sl<EntregaProvider>()..cargar(id),
+            child: ConfirmarEntregaScreen(idPayout: id),
+          );
+        },
       ),
       GoRoute(
         path: RouteNames.notificaciones,

@@ -12,6 +12,12 @@ class NumeroTanda extends Equatable {
   /// Pago vigente del número: `PENDIENTE`, `CONFIRMADO` o null si falta pagar.
   final String? estadoPago;
 
+  /// Estado del turno: `PENDIENTE`, `ENTREGA_PENDIENTE_CONFIRMACION` o `ENTREGADO`.
+  final String status;
+
+  /// Entrega del dinero de este turno, si ya se registró.
+  final int? idPayout;
+
   const NumeroTanda({
     required this.idNumber,
     required this.numberValue,
@@ -19,10 +25,14 @@ class NumeroTanda extends Equatable {
     this.isDeadNumber = false,
     this.userName,
     this.estadoPago,
+    this.status = 'PENDIENTE',
+    this.idPayout,
   });
 
   bool get pagoEnRevision => estadoPago == 'PENDIENTE';
   bool get pagoConfirmado => estadoPago == 'CONFIRMADO';
+  bool get entregaPorConfirmar => status == 'ENTREGA_PENDIENTE_CONFIRMACION';
+  bool get entregado => status == 'ENTREGADO';
 
   factory NumeroTanda.fromJson(Map<String, dynamic> json) {
     return NumeroTanda(
@@ -32,6 +42,8 @@ class NumeroTanda extends Equatable {
       isDeadNumber: json['isDeadNumber'] as bool? ?? false,
       userName: json['userName'] as String?,
       estadoPago: json['estadoPago'] as String?,
+      status: json['status'] as String? ?? 'PENDIENTE',
+      idPayout: (json['idPayout'] as num?)?.toInt(),
     );
   }
 
@@ -40,5 +52,5 @@ class NumeroTanda extends Equatable {
       : const [];
 
   @override
-  List<Object?> get props => [idNumber, numberValue, roundNumber, isDeadNumber, userName, estadoPago];
+  List<Object?> get props => [idNumber, numberValue, roundNumber, isDeadNumber, userName, estadoPago, status, idPayout];
 }
