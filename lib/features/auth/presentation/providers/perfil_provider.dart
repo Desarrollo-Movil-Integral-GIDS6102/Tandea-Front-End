@@ -79,14 +79,17 @@ class PerfilProvider extends ChangeNotifier {
     return ok;
   }
 
-  Future<bool> enviarCodigo() async {
+  /// Con [email] es la recuperación sin sesión; sin él usa la cuenta autenticada.
+  Future<bool> enviarCodigo({String? email}) async {
     if (_enviandoCodigo) return false;
     _enviandoCodigo = true;
     _errorMessage = null;
     _mensaje = null;
     notifyListeners();
 
-    final result = await perfilRepository.solicitarCodigoPassword();
+    final result = email == null
+        ? await perfilRepository.solicitarCodigoPassword()
+        : await perfilRepository.recuperarPassword(email);
     final ok = result.when(
       success: (m) {
         _codigoEnviado = true;
@@ -103,17 +106,24 @@ class PerfilProvider extends ChangeNotifier {
     return ok;
   }
 
-  Future<bool> cambiarPassword({required String codigo, required String nuevaPassword}) async {
+  Future<bool> cambiarPassword({
+    required String codigo,
+    required String nuevaPassword,
+    String? email,
+  }) async {
     if (_cambiandoPassword) return false;
     _cambiandoPassword = true;
     _errorMessage = null;
     _mensaje = null;
     notifyListeners();
 
-    final result = await perfilRepository.cambiarPassword(
-      codigo: codigo,
-      nuevaPassword: nuevaPassword,
-    );
+    final result = email == null
+        ? await perfilRepository.cambiarPassword(codigo: codigo, nuevaPassword: nuevaPassword)
+        : await perfilRepository.restablecerPassword(
+            email: email,
+            codigo: codigo,
+            nuevaPassword: nuevaPassword,
+          );
     final ok = result.when(
       success: (m) {
         _mensaje = m;

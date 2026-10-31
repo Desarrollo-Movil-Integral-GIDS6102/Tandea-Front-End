@@ -144,6 +144,18 @@ class TandaDetalleScreen extends StatelessWidget {
                         onIniciar: () => _iniciar(context),
                       ),
                     ],
+                    if (tanda.esOrganizador) ...[
+                      const SizedBox(height: 12),
+                      OutlinedButton.icon(
+                        key: const Key('btn_ver_seguimiento'),
+                        onPressed: () async {
+                          await context.push(RouteNames.seguimientoTandaDe(tanda.id), extra: tanda);
+                          if (context.mounted) await _recargar(context);
+                        },
+                        icon: const Icon(Icons.fact_check_outlined),
+                        label: const Text('Ver quién ha pagado'),
+                      ),
+                    ],
                     const SizedBox(height: 24),
                     _TablaNumeros(tanda: tanda),
                   ],
@@ -194,6 +206,7 @@ class _Resumen extends StatelessWidget {
             _Fila('Números', '${tanda.totalParticipantes}'),
             _Fila('Cobro por turno', formatearMonedaMxn(tanda.monto * tanda.totalParticipantes)),
             if (tanda.startDate != null) _Fila('Inicio', tanda.startDate!.split('T').first),
+            if (tanda.endDate != null) _Fila('Último turno', tanda.endDate!.split('T').first),
           ],
         ),
       ),
@@ -292,13 +305,25 @@ class _MisNumeros extends StatelessWidget {
                   ),
                 ),
                 title: Text('Número #${n.numberValue}'),
-                subtitle: Text('Vuelta ${n.roundNumber}'),
-                trailing: ElevatedButton(
-                  key: Key('btn_pagar_numero_${n.numberValue}'),
-                  // Pagar solo cuando el organizador ya inició la tanda
-                  onPressed: tanda.esActiva ? () => onPagar(n) : null,
-                  child: const Text('Pagar'),
+                subtitle: Text(
+                  n.pagoEnRevision
+                      ? 'Ya pagaste. Tu pago está siendo analizado por el organizador.'
+                      : n.pagoConfirmado
+                          ? 'El organizador confirmó tu pago.'
+                          : 'Vuelta ${n.roundNumber}',
                 ),
+                trailing: n.estadoPago != null
+                    ? Chip(
+                        key: Key('estado_pago_numero_${n.numberValue}'),
+                        label: Text(n.pagoConfirmado ? 'Pagado' : 'En revisión'),
+                        visualDensity: VisualDensity.compact,
+                      )
+                    : ElevatedButton(
+                        key: Key('btn_pagar_numero_${n.numberValue}'),
+                        // Pagar solo cuando el organizador ya inició la tanda
+                        onPressed: tanda.esActiva ? () => onPagar(n) : null,
+                        child: const Text('Pagar'),
+                      ),
               ),
             ),
       ],
@@ -375,6 +400,11 @@ class _TablaNumeros extends StatelessWidget {
               null => 'Disponible',
               final n => n.userName ?? 'Apartado',
             }),
+            trailing: switch (porNumero[valor]) {
+              final n? when n.pagoConfirmado => const Text('Pagado'),
+              final n? when n.pagoEnRevision => const Text('En revisión'),
+              _ => null,
+            },
           ),
       ],
     );

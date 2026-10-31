@@ -20,4 +20,13 @@ abstract class PerfilRepository {
     required String codigo,
     required String nuevaPassword,
   });
+
+  /// Olvidé mi contraseña (sin sesión): envía el código al correo si está registrado.
+  Future<Result<String>> recuperarPassword(String email);
+
+  Future<Result<String>> restablecerPassword({
+    required String email,
+    required String codigo,
+    required String nuevaPassword,
+  });
 }

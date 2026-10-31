@@ -21,6 +21,9 @@ class TandaEntity extends Equatable {
   final String estado;
   final String? inviteCode;
   final String? startDate;
+
+  /// Fecha del último turno; incluye el periodo extra del número muerto.
+  final String? endDate;
   final int? graceDays;
   final bool? hasDeadNumber;
   final int? idTandaType;
@@ -51,6 +54,7 @@ class TandaEntity extends Equatable {
     required this.estado,
     this.inviteCode,
     this.startDate,
+    this.endDate,
     this.graceDays,
     this.hasDeadNumber,
     this.idTandaType,
@@ -102,6 +106,7 @@ class TandaEntity extends Equatable {
       estado: estado ?? this.estado,
       inviteCode: inviteCode ?? this.inviteCode,
       startDate: startDate ?? this.startDate,
+      endDate: endDate,
       graceDays: graceDays ?? this.graceDays,
       hasDeadNumber: hasDeadNumber ?? this.hasDeadNumber,
       idTandaType: idTandaType ?? this.idTandaType,
@@ -125,6 +130,7 @@ class TandaEntity extends Equatable {
         estado,
         inviteCode,
         startDate,
+        endDate,
         graceDays,
         hasDeadNumber,
         idTandaType,

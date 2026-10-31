@@ -29,6 +29,7 @@ dependencies:
     sdk: flutter
   permission_handler: ^13.0.2
   flutter_image_compress: ^2.5.1
+  flutter_dotenv: ^6.0.1
 
 dev_dependencies:
   flutter_test:
@@ -37,3 +38,6 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+
+  assets:
+    - .env

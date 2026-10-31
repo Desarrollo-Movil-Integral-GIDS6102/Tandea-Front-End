@@ -13,6 +13,7 @@ class CrearTandaParams extends Equatable {
   final int numParticipants;
   final int numRounds;
   final int graceDays;
+  final String periodicidad;
   final bool hasDeadNumber;
   final int idTandaType;
 
@@ -24,6 +25,7 @@ class CrearTandaParams extends Equatable {
     required this.numParticipants,
     this.numRounds = 1,
     this.graceDays = 0,
+    this.periodicidad = 'quincenal',
     this.hasDeadNumber = false,
     this.idTandaType = 1,
   });
@@ -38,6 +40,7 @@ class CrearTandaParams extends Equatable {
       'numParticipants': numParticipants,
       'numRounds': numRounds,
       'graceDays': graceDays,
+      'periodicity': periodicidad,
       'hasDeadNumber': hasDeadNumber,
       'idTandaType': idTandaType,
     };
@@ -52,6 +55,7 @@ class CrearTandaParams extends Equatable {
         numParticipants,
         numRounds,
         graceDays,
+        periodicidad,
         hasDeadNumber,
         idTandaType,
       ];

@@ -53,7 +53,10 @@ Future<void> initDependencies() async {
   // 2. Red y Cliente HTTP
   // ----------------------------------------------------
   sl.registerLazySingleton<ApiClient>(
-    () => ApiClient(storage: sl<FlutterSecureStorage>()),
+    () => ApiClient(
+      storage: sl<FlutterSecureStorage>(),
+      onUnauthorized: () => sl<AuthProvider>().handleUnauthorized(),
+    ),
   );
 
   // Instancia de Dio subyacente de ApiClient
@@ -169,7 +172,7 @@ Future<void> initDependencies() async {
     () => AuthSessionProvider(),
   );
 
-  sl.registerFactory<AuthProvider>(
+  sl.registerLazySingleton<AuthProvider>(
     () => AuthProvider(
       authRepository: sl<AuthRepository>(),
       sessionProvider: sl<AuthSessionProvider>(),

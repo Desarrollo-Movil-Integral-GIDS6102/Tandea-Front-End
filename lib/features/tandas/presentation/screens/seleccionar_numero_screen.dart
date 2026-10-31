@@ -163,7 +163,12 @@ class _SeleccionarNumeroScreenState extends State<SeleccionarNumeroScreen> {
             key: const Key('btn_exito_selector_ir_tandas'),
             onPressed: () {
               Navigator.of(dialogCtx).pop();
-              context.go(RouteNames.tandaDetalle(widget.tanda.id));
+              // Con go() el detalle quedaba sin pantalla anterior: "atrás" debe volver a Mis tandas
+              final router = GoRouter.of(context);
+              while (router.canPop()) {
+                router.pop();
+              }
+              router.push(RouteNames.tandaDetalle(widget.tanda.id));
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,

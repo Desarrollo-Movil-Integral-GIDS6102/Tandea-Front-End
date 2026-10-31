@@ -50,6 +50,7 @@ TandaEntity _detalle({
   required String status,
   List<int> disponibles = const [],
   bool numeroMuerto = false,
+  String? estadoPago,
 }) =>
     TandaModel.fromJson({
       'idTanda': 7,
@@ -65,9 +66,9 @@ TandaEntity _detalle({
         {'idNumber': 11, 'numberValue': 1, 'roundNumber': 1, 'idUser': 5, 'isDeadNumber': false, 'userName': 'Ana'},
         {'idNumber': 13, 'numberValue': 3, 'roundNumber': 1, 'idUser': 5, 'isDeadNumber': false, 'userName': 'Ana'},
       ],
-      'misNumeros': const [
-        {'idNumber': 11, 'numberValue': 1, 'roundNumber': 1, 'isDeadNumber': false},
-        {'idNumber': 13, 'numberValue': 3, 'roundNumber': 1, 'isDeadNumber': false},
+      'misNumeros': [
+        const {'idNumber': 11, 'numberValue': 1, 'roundNumber': 1, 'isDeadNumber': false},
+        {'idNumber': 13, 'numberValue': 3, 'roundNumber': 1, 'isDeadNumber': false, 'estadoPago': estadoPago},
       ],
     });
 
@@ -140,5 +141,31 @@ void main() {
     expect(find.byKey(const Key('fila_numero_1')), findsOneWidget);
     expect(find.byKey(const Key('fila_numero_3')), findsOneWidget);
     expect(find.byKey(const Key('fila_numero_4')), findsNothing);
+  });
+
+  testWidgets('quien ya pagó ve que su pago está en revisión y no el botón Pagar', (tester) async {
+    await _pump(tester, _detalle(status: 'ACTIVA', estadoPago: 'PENDIENTE'));
+
+    expect(find.byKey(const Key('btn_pagar_numero_3')), findsNothing);
+    expect(find.text('En revisión'), findsOneWidget);
+    expect(
+      find.text('Ya pagaste. Tu pago está siendo analizado por el organizador.'),
+      findsOneWidget,
+    );
+    expect(find.byKey(const Key('btn_pagar_numero_1')), findsOneWidget);
+  });
+
+  testWidgets('un pago confirmado se muestra como Pagado', (tester) async {
+    await _pump(tester, _detalle(status: 'ACTIVA', estadoPago: 'CONFIRMADO'));
+
+    expect(find.byKey(const Key('btn_pagar_numero_3')), findsNothing);
+    expect(find.byKey(const Key('estado_pago_numero_3')), findsOneWidget);
+    expect(find.text('El organizador confirmó tu pago.'), findsOneWidget);
+  });
+
+  testWidgets('el organizador tiene acceso a ver quién ha pagado', (tester) async {
+    await _pump(tester, _detalle(status: 'ACTIVA'));
+
+    expect(find.byKey(const Key('btn_ver_seguimiento')), findsOneWidget);
   });
 }

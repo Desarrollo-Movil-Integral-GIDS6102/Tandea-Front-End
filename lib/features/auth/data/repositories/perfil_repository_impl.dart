@@ -72,6 +72,37 @@ class PerfilRepositoryImpl implements PerfilRepository {
         'Error al cambiar la contraseña',
       );
 
+  @override
+  Future<Result<String>> recuperarPassword(String email) => _ejecutar(
+        () async => _mensaje(
+          (await apiClient.post<dynamic>(
+            ApiConstants.recuperarPasswordEndpoint,
+            data: {'email': email.trim()},
+          ))
+              .data,
+          'Si el correo está registrado, te enviamos un código',
+        ),
+        'Error al enviar el código',
+      );
+
+  @override
+  Future<Result<String>> restablecerPassword({
+    required String email,
+    required String codigo,
+    required String nuevaPassword,
+  }) =>
+      _ejecutar(
+        () async => _mensaje(
+          (await apiClient.post<dynamic>(
+            ApiConstants.restablecerPasswordEndpoint,
+            data: {'email': email.trim(), 'codigo': codigo.trim(), 'nuevaPassword': nuevaPassword},
+          ))
+              .data,
+          'Contraseña actualizada',
+        ),
+        'Error al cambiar la contraseña',
+      );
+
   static Map<String, dynamic> _mapa(dynamic raw) {
     if (raw is Map<String, dynamic>) return raw;
     throw const ServerException(message: 'Formato de respuesta inválido');

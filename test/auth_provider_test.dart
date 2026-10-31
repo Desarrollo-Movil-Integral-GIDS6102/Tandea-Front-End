@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tandea/core/errors/failures.dart';
 import 'package:tandea/core/utils/result.dart';
@@ -199,5 +201,62 @@ void main() {
       expect(authProvider.errorMessage, isNull);
     });
 
+  });
+
+  group('Sesión guardada en el dispositivo', () {
+    String jwt(Map<String, dynamic> datos) {
+      String parte(Object o) => base64Url.encode(utf8.encode(jsonEncode(o))).replaceAll('=', '');
+      return '${parte({'alg': 'HS256'})}.${parte(datos)}.firma';
+    }
+
+    int enSegundos(Duration d) => DateTime.now().add(d).millisecondsSinceEpoch ~/ 1000;
+
+    test('al abrir restaura la sesión y el rol desde el token, sin llamar al backend', () async {
+      mockRepo.storedToken = jwt({
+        'sub': 7,
+        'email': 'ana@tandea.com',
+        'role': 'admin_global',
+        'exp': enSegundos(const Duration(days: 1)),
+      });
+      mockRepo.currentUserResult = const Error(NetworkFailure('Sin conexión'));
+
+      await authProvider.checkAuthStatus();
+
+      expect(authProvider.isAuthenticated, isTrue);
+      expect(sessionProvider.isAuthenticated, isTrue);
+      expect(sessionProvider.token, mockRepo.storedToken);
+      expect(sessionProvider.isAdminGlobal, isTrue);
+    });
+
+    test('un token vencido se borra y no abre sesión', () async {
+      mockRepo.storedToken = jwt({
+        'sub': 7,
+        'role': 'usuario',
+        'exp': enSegundos(const Duration(minutes: -1)),
+      });
+
+      await authProvider.checkAuthStatus();
+
+      expect(authProvider.isUnauthenticated, isTrue);
+      expect(sessionProvider.isAuthenticated, isFalse);
+      expect(mockRepo.storedToken, isNull);
+    });
+
+    test('un token mal formado o sin vencimiento no abre sesión', () async {
+      for (final token in ['basura', 'a.b.c', jwt({'sub': 7})]) {
+        mockRepo.storedToken = token;
+
+        await authProvider.checkAuthStatus();
+
+        expect(sessionProvider.isAuthenticated, isFalse, reason: token);
+        expect(mockRepo.storedToken, isNull, reason: token);
+      }
+    });
+
+    test('sin token guardado queda sin sesión', () async {
+      await authProvider.checkAuthStatus();
+
+      expect(authProvider.isUnauthenticated, isTrue);
+    });
   });
 }

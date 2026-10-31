@@ -9,13 +9,20 @@ class NumeroTanda extends Equatable {
   final bool isDeadNumber;
   final String? userName;
 
+  /// Pago vigente del número: `PENDIENTE`, `CONFIRMADO` o null si falta pagar.
+  final String? estadoPago;
+
   const NumeroTanda({
     required this.idNumber,
     required this.numberValue,
     this.roundNumber = 1,
     this.isDeadNumber = false,
     this.userName,
+    this.estadoPago,
   });
+
+  bool get pagoEnRevision => estadoPago == 'PENDIENTE';
+  bool get pagoConfirmado => estadoPago == 'CONFIRMADO';
 
   factory NumeroTanda.fromJson(Map<String, dynamic> json) {
     return NumeroTanda(
@@ -24,6 +31,7 @@ class NumeroTanda extends Equatable {
       roundNumber: (json['roundNumber'] as num?)?.toInt() ?? 1,
       isDeadNumber: json['isDeadNumber'] as bool? ?? false,
       userName: json['userName'] as String?,
+      estadoPago: json['estadoPago'] as String?,
     );
   }
 
@@ -32,5 +40,5 @@ class NumeroTanda extends Equatable {
       : const [];
 
   @override
-  List<Object?> get props => [idNumber, numberValue, roundNumber, isDeadNumber, userName];
+  List<Object?> get props => [idNumber, numberValue, roundNumber, isDeadNumber, userName, estadoPago];
 }

@@ -37,6 +37,15 @@ class AppRouter {
       final session = sl<AuthSessionProvider>();
       final loc = state.matchedLocation;
 
+      // Sin sesión (nunca inició o el token venció) solo hay pantallas públicas
+      if (!session.isAuthenticated &&
+          loc != RouteNames.welcome &&
+          loc != RouteNames.login &&
+          loc != RouteNames.register &&
+          loc != RouteNames.recuperarPassword) {
+        return RouteNames.welcome;
+      }
+
       // Si el usuario ya está autenticado e intenta acceder a login o registro, redirigir
       if (session.isAuthenticated) {
         if (loc == RouteNames.welcome ||
@@ -141,6 +150,15 @@ class AppRouter {
         },
       ),
 
+
+      // Olvidé mi contraseña (sin sesión)
+      GoRoute(
+        path: RouteNames.recuperarPassword,
+        builder: (context, state) => ChangeNotifierProvider(
+          create: (_) => sl<PerfilProvider>(),
+          child: const CambiarPasswordScreen(recuperar: true),
+        ),
+      ),
 
       // Cambiar contraseña con código de 6 dígitos enviado por correo
       GoRoute(

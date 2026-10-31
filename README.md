@@ -137,7 +137,9 @@ La aplicación se conecta al backend desplegado en Railway:
 - **Base URL API (v1):** `https://tandea-back-end-production.up.railway.app/api/v1`
 - **Health check:** `https://tandea-back-end-production.up.railway.app/health` (responde `{"status":"ok","timestamp":"..."}`)
 
-La URL base está parametrizada mediante `String.fromEnvironment('API_BASE_URL')` en `ApiConstants`. Para ejecutar o compilar apuntando al backend explícitamente:
+La app toma la URL base de `API_BASE_URL` en el archivo `.env`, que se incluye como asset y debe existir para compilar. Después de clonar, créalo con `cp .env.example .env`. Solo guarda ahí valores públicos: cualquiera puede leerlos desde el APK, y si cambias el archivo debes volver a lanzar la app (`flutter run`), no basta un hot reload.
+
+Para ignorar el `.env` en una ejecución o compilación, pasa la URL explícitamente:
 
 ```bash
 # Ejecutar en modo debug con la URL del backend
@@ -157,7 +159,9 @@ La aplicación se conecta al backend desplegado en Railway:
 - **Base URL API (v1):** `https://tandea-back-end-production.up.railway.app/api/v1`
 - **Health check:** `https://tandea-back-end-production.up.railway.app/health` (responde `{"status":"ok","timestamp":"..."}`)
 
-La URL base está parametrizada mediante `String.fromEnvironment('API_BASE_URL')` en `ApiConstants`. Para ejecutar o compilar apuntando al backend explícitamente:
+La app toma la URL base de `API_BASE_URL` en el archivo `.env`, que se incluye como asset y debe existir para compilar. Después de clonar, créalo con `cp .env.example .env`. Solo guarda ahí valores públicos: cualquiera puede leerlos desde el APK, y si cambias el archivo debes volver a lanzar la app (`flutter run`), no basta un hot reload.
+
+Para ignorar el `.env` en una ejecución o compilación, pasa la URL explícitamente:
 
 ```bash
 # Ejecutar en modo debug con la URL del backend

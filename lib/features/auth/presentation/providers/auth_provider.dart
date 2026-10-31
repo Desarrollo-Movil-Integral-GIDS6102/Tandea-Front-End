@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:tandea/core/errors/failures.dart';
+import 'package:tandea/core/utils/jwt_payload.dart';
 import 'package:tandea/features/auth/domain/entities/user_entity.dart';
 import 'package:tandea/features/auth/domain/entities/user_role.dart';
 import 'package:tandea/features/auth/domain/repositories/auth_repository.dart';
@@ -169,35 +170,37 @@ class AuthProvider extends ChangeNotifier {
     );
   }
 
-  /// Verifica si existe una sesión activa y obtiene el perfil del usuario.
+  /// Restaura la sesión guardada en el dispositivo al abrir la app.
+  ///
+  /// Se resuelve con el token, sin red, para abrir al instante aun sin conexión. Si el
+  /// backend ya no lo acepta, el 401 de la siguiente petición cierra la sesión.
   Future<void> checkAuthStatus() async {
-    final hasToken = await authRepository.isAuthenticated();
-    if (!hasToken) {
-      _currentUser = null;
-      _status = AuthStatus.unauthenticated;
-      notifyListeners();
+    String? token;
+    try {
+      token = await authRepository.getToken();
+    } catch (_) {
+      // Almacenamiento ilegible (p. ej. tras restaurar un respaldo): se pide login de nuevo
+    }
+
+    final datos = token == null ? null : leerPayloadJwt(token);
+    final exp = datos?['exp'];
+    final vigente = exp is num && DateTime.now().millisecondsSinceEpoch < exp * 1000;
+    if (!vigente) {
+      await logout();
       return;
     }
 
-    _status = AuthStatus.loading;
-    notifyListeners();
-
-    final result = await authRepository.getCurrentUser();
-    result.when(
-      success: (user) {
-        _currentUser = user;
-        _status = AuthStatus.authenticated;
-        _errorMessage = null;
-        _syncSession(user);
-        notifyListeners();
-      },
-      failure: (failure) {
-        _currentUser = null;
-        _status = AuthStatus.unauthenticated;
-        _errorMessage = failure.message;
-        notifyListeners();
-      },
+    _currentUser = UserEntity(
+      id: datos!['sub'].toString(),
+      nombre: '',
+      email: (datos['email'] ?? '').toString(),
+      rol: (datos['role'] ?? 'usuario').toString(),
+      token: token,
     );
+    _status = AuthStatus.authenticated;
+    _errorMessage = null;
+    _syncSession(_currentUser!);
+    notifyListeners();
   }
 
   /// Cierra la sesión activa y elimina credenciales seguras.

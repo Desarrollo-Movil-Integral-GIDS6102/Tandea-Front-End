@@ -33,7 +33,7 @@ void main() {
       'Navegación usuario: muestra BottomNavigationBar con Participante y Organizador',
       (WidgetTester tester) async {
     final session = sl<AuthSessionProvider>();
-    session.setRole(UserRole.usuario);
+    session.setSession(token: 'token', role: UserRole.usuario);
 
     await tester.pumpWidget(
       MaterialApp.router(
@@ -63,11 +63,22 @@ void main() {
     expect(find.text('Mis tandas (participante)'), findsAtLeastNWidgets(1));
   });
 
+  testWidgets('Sin sesión, una pantalla privada redirige a la bienvenida', (tester) async {
+    await tester.pumpWidget(MaterialApp.router(routerConfig: AppRouter.router));
+    AppRouter.router.go(RouteNames.tandasParticipante);
+    await tester.pumpAndSettle();
+
+    expect(
+      AppRouter.router.routerDelegate.currentConfiguration.last.matchedLocation,
+      RouteNames.welcome,
+    );
+  });
+
   testWidgets(
       'Navegación Admin Global: entra al flujo del Panel Administrador Global',
       (WidgetTester tester) async {
     final session = sl<AuthSessionProvider>();
-    session.setRole(UserRole.adminGlobal);
+    session.setSession(token: 'token', role: UserRole.adminGlobal);
 
     await tester.pumpWidget(
       MaterialApp.router(

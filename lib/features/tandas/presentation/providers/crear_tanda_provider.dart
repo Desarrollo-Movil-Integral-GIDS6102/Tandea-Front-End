@@ -199,6 +199,7 @@ class CrearTandaProvider extends ChangeNotifier {
       numParticipants: _numParticipantes,
       numRounds: _numRounds,
       graceDays: _graceDays,
+      periodicidad: _periodicidad.value,
       hasDeadNumber: _hasDeadNumber,
       idTandaType: idTandaType,
     );

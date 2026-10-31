@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:tandea/core/constants/app_constants.dart';
@@ -16,7 +17,10 @@ import 'package:tandea/injection/injection.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Antes de initDependencies: el cliente HTTP toma de aquí la URL del backend
+  await dotenv.load(fileName: '.env', isOptional: true);
   await initDependencies();
+  await sl<AuthProvider>().checkAuthStatus();
 
   // Verificación de conectividad en modo debug (kDebugMode)
   if (kDebugMode) {
@@ -42,8 +46,8 @@ class MainApp extends StatelessWidget {
         ChangeNotifierProvider.value(
           value: sl<AuthSessionProvider>(),
         ),
-        ChangeNotifierProvider(
-          create: (_) => sl<AuthProvider>(),
+        ChangeNotifierProvider.value(
+          value: sl<AuthProvider>(),
         ),
         ChangeNotifierProvider(
           create: (_) => sl<TandasProvider>(),

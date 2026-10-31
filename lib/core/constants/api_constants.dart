@@ -1,15 +1,22 @@
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
 class ApiConstants {
+  static const String _urlRailway = 'https://tandea-back-end-production.up.railway.app/api/v1';
+
   /// URL base de la API REST (versión 1).
   ///
-  /// Por defecto apunta al entorno de producción en Railway, y puede sobreescribirse
-  /// en tiempo de compilación o ejecución mediante `--dart-define=API_BASE_URL=...`.
-  static const String apiBaseUrl = String.fromEnvironment(
-    'API_BASE_URL',
-    defaultValue: 'https://tandea-back-end-production.up.railway.app/api/v1',
-  );
+  /// Toma `API_BASE_URL` del archivo `.env`. Un `--dart-define=API_BASE_URL=...` tiene
+  /// prioridad, y si no hay ninguno de los dos se usa Railway.
+  static String get apiBaseUrl {
+    const definida = String.fromEnvironment('API_BASE_URL');
+    if (definida.isNotEmpty) return definida;
+
+    final delEnv = dotenv.isInitialized ? dotenv.maybeGet('API_BASE_URL') : null;
+    return delEnv == null || delEnv.isEmpty ? _urlRailway : delEnv;
+  }
 
   /// Alias de compatibilidad hacia [apiBaseUrl].
-  static const String baseUrl = apiBaseUrl;
+  static String get baseUrl => apiBaseUrl;
 
   /// URL de comprobación de salud del backend (Health Check).
   ///
@@ -31,6 +38,8 @@ class ApiConstants {
   static const String perfilEndpoint = '/auth/perfil';
   static const String perfilCodigoPasswordEndpoint = '/auth/perfil/password/codigo';
   static const String perfilPasswordEndpoint = '/auth/perfil/password';
+  static const String recuperarPasswordEndpoint = '/auth/password/recuperar';
+  static const String restablecerPasswordEndpoint = '/auth/password/restablecer';
 
   // Tandas endpoints
   static const String tandasEndpoint = '/tandas';

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
@@ -774,6 +776,55 @@ void main() {
         findsOneWidget,
       );
       expect(find.byKey(const Key('aviso_sorteo_no_consecutivos')), findsOneWidget);
+    });
+
+    testWidgets('al ir al detalle tras apartar, "atrás" regresa a Mis tandas', (tester) async {
+      final router = GoRouter(
+        initialLocation: RouteNames.tandasParticipante,
+        routes: [
+          GoRoute(
+            path: RouteNames.tandasParticipante,
+            builder: (_, _) => const Scaffold(body: Text('MIS TANDAS')),
+          ),
+          GoRoute(
+            path: RouteNames.unirseTanda,
+            builder: (_, _) => const Scaffold(body: Text('CODIGO')),
+          ),
+          GoRoute(
+            path: RouteNames.seleccionarNumero,
+            builder: (_, _) => const SeleccionarNumeroScreen(tanda: testTanda),
+          ),
+          GoRoute(
+            path: RouteNames.tandaDetail,
+            builder: (_, state) => Scaffold(body: Text('DETALLE ${state.pathParameters['id']}')),
+          ),
+        ],
+      );
+      await tester.pumpWidget(ChangeNotifierProvider<UnirseTandaProvider>.value(
+        value: provider,
+        child: MaterialApp.router(routerConfig: router),
+      ));
+      unawaited(router.push(RouteNames.unirseTanda));
+      await tester.pumpAndSettle();
+      unawaited(router.push(RouteNames.seleccionarNumero));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key('btn_seleccionar_numero_3')));
+      await tester.pump();
+      await tester.ensureVisible(find.byKey(const Key('btn_confirmar_turno')));
+      await tester.tap(find.byKey(const Key('btn_confirmar_turno')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('btn_exito_selector_ir_tandas')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('DETALLE 1'), findsOneWidget);
+      expect(router.canPop(), isTrue);
+
+      router.pop();
+      await tester.pumpAndSettle();
+
+      expect(find.text('MIS TANDAS'), findsOneWidget);
+      expect(router.canPop(), isFalse);
     });
   });
 }

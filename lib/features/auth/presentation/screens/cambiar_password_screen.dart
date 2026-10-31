@@ -3,16 +3,19 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:tandea/core/constants/app_colors.dart';
+import 'package:tandea/core/routes/route_names.dart';
 import 'package:tandea/core/widgets/primary_button.dart';
 import 'package:tandea/features/auth/presentation/providers/perfil_provider.dart';
 
 /// Cambio de contraseña en dos pasos: enviar código de 6 dígitos al correo y
-/// capturarlo junto con la nueva contraseña.
+/// capturarlo junto con la nueva contraseña. Con [recuperar] sirve para "Olvidé mi
+/// contraseña": no hay sesión, así que primero pide el correo.
 class CambiarPasswordScreen extends StatefulWidget {
   /// Correo al que llegará el código (solo para mostrarlo).
   final String? correo;
+  final bool recuperar;
 
-  const CambiarPasswordScreen({super.key, this.correo});
+  const CambiarPasswordScreen({super.key, this.correo, this.recuperar = false});
 
   @override
   State<CambiarPasswordScreen> createState() => _CambiarPasswordScreenState();
@@ -20,6 +23,8 @@ class CambiarPasswordScreen extends StatefulWidget {
 
 class _CambiarPasswordScreenState extends State<CambiarPasswordScreen> {
   final _formKey = GlobalKey<FormState>();
+  final _correoKey = GlobalKey<FormFieldState<String>>();
+  final _correo = TextEditingController();
   final _codigo = TextEditingController();
   final _password = TextEditingController();
   final _confirmacion = TextEditingController();
@@ -27,10 +32,18 @@ class _CambiarPasswordScreenState extends State<CambiarPasswordScreen> {
 
   @override
   void dispose() {
+    _correo.dispose();
     _codigo.dispose();
     _password.dispose();
     _confirmacion.dispose();
     super.dispose();
+  }
+
+  String? get _emailRecuperacion => widget.recuperar ? _correo.text.trim() : null;
+
+  Future<void> _enviarCodigo() async {
+    if (widget.recuperar && !(_correoKey.currentState?.validate() ?? false)) return;
+    await context.read<PerfilProvider>().enviarCodigo(email: _emailRecuperacion);
   }
 
   Future<void> _cambiar() async {
@@ -39,13 +52,18 @@ class _CambiarPasswordScreenState extends State<CambiarPasswordScreen> {
     final ok = await context.read<PerfilProvider>().cambiarPassword(
           codigo: _codigo.text,
           nuevaPassword: _password.text,
+          email: _emailRecuperacion,
         );
     if (!ok || !mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
       content: Text('Contraseña actualizada'),
       backgroundColor: AppColors.success,
     ));
-    if (context.canPop()) context.pop();
+    if (widget.recuperar) {
+      context.go(RouteNames.login);
+    } else if (context.canPop()) {
+      context.pop();
+    }
   }
 
   @override
@@ -55,7 +73,7 @@ class _CambiarPasswordScreenState extends State<CambiarPasswordScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.backgroundLight,
-      appBar: AppBar(title: const Text('Cambiar contraseña')),
+      appBar: AppBar(title: Text(widget.recuperar ? 'Recuperar contraseña' : 'Cambiar contraseña')),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.all(20),
@@ -67,6 +85,19 @@ class _CambiarPasswordScreenState extends State<CambiarPasswordScreen> {
               style: const TextStyle(color: AppColors.textSecondaryLight),
             ),
             const SizedBox(height: 16),
+            if (widget.recuperar) ...[
+              TextFormField(
+                key: _correoKey,
+                controller: _correo,
+                enabled: !provider.codigoEnviado,
+                keyboardType: TextInputType.emailAddress,
+                decoration: const InputDecoration(labelText: 'Correo electrónico'),
+                validator: (v) => RegExp(r'^\S+@\S+\.\S+$').hasMatch(v?.trim() ?? '')
+                    ? null
+                    : 'Escribe un correo válido',
+              ),
+              const SizedBox(height: 16),
+            ],
             if (provider.errorMessage != null)
               Padding(
                 padding: const EdgeInsets.only(bottom: 12),
@@ -86,7 +117,7 @@ class _CambiarPasswordScreenState extends State<CambiarPasswordScreen> {
                 key: const Key('btn_enviar_codigo'),
                 text: 'Enviar código',
                 isLoading: provider.enviandoCodigo,
-                onPressed: provider.enviandoCodigo ? null : provider.enviarCodigo,
+                onPressed: provider.enviandoCodigo ? null : _enviarCodigo,
               )
             else
               Form(
@@ -139,7 +170,7 @@ class _CambiarPasswordScreenState extends State<CambiarPasswordScreen> {
                     ),
                     TextButton(
                       key: const Key('btn_reenviar_codigo'),
-                      onPressed: provider.enviandoCodigo ? null : provider.enviarCodigo,
+                      onPressed: provider.enviandoCodigo ? null : _enviarCodigo,
                       child: const Text('Reenviar código'),
                     ),
                   ],
