@@ -243,6 +243,8 @@ class PagoProvider extends ChangeNotifier {
           return 'Este pago ya fue registrado.';
         case 413:
           return 'El comprobante supera el tamaño máximo de 10 MB.';
+        case 503:
+          return 'No se pudo guardar la foto: el servidor no tiene configurado el almacenamiento.';
       }
     }
     return mensajeReintentar;
