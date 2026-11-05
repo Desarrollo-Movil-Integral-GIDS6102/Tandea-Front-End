@@ -183,6 +183,13 @@ class TandaDetalleScreen extends StatelessWidget {
                         label: const Text('Ver quién ha pagado'),
                       ),
                     ],
+                    const SizedBox(height: 12),
+                    OutlinedButton.icon(
+                      key: const Key('btn_ver_historial'),
+                      onPressed: () => context.push(RouteNames.historialTandaDe(tanda.id), extra: tanda),
+                      icon: const Icon(Icons.receipt_long_outlined),
+                      label: const Text('Ver historial de pagos y cobros'),
+                    ),
                     const SizedBox(height: 24),
                     _TablaNumeros(tanda: tanda),
                   ],
