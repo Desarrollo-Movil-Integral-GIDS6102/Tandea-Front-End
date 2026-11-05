@@ -3,10 +3,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:tandea/core/errors/failures.dart';
 import 'package:tandea/core/utils/result.dart';
+import 'package:tandea/features/tandas/data/models/calendario_tanda_model.dart';
 import 'package:tandea/features/tandas/data/models/tanda_model.dart';
+import 'package:tandea/features/tandas/domain/entities/calendario_tanda.dart';
 import 'package:tandea/features/tandas/domain/entities/seguimiento_tanda.dart';
 import 'package:tandea/features/tandas/domain/entities/tanda_entity.dart';
 import 'package:tandea/features/tandas/domain/entities/unirse_tanda_result.dart';
+import 'package:tandea/features/tandas/domain/repositories/calendario_tanda_repository.dart';
 import 'package:tandea/features/tandas/domain/repositories/tandas_repository.dart';
 import 'package:tandea/features/tandas/domain/usecases/unirse_tanda_usecase.dart';
 import 'package:tandea/features/tandas/presentation/providers/tanda_detalle_provider.dart';
@@ -45,6 +48,49 @@ class _FakeRepo implements TandasRepository {
       Success(UnirseTandaResult(tanda: tanda, numeroAsignado: 1));
 }
 
+class _FakeCalendarioRepo implements CalendarioTandaRepository {
+  final CalendarioTanda calendario;
+
+  _FakeCalendarioRepo(this.calendario);
+
+  @override
+  Future<Result<CalendarioTanda>> getCalendario(String idTanda) async =>
+      Success(calendario);
+}
+
+CalendarioTanda _calendario() => CalendarioTandaModel.fromJson(const {
+      'fechaInicioPagos': '2026-05-04',
+      'turnos': [
+        {
+          'turno': 1,
+          'vuelta': 1,
+          'numero': 1,
+          'esNumeroMuerto': false,
+          'usuario': {'idUser': 5, 'nombre': 'Ana'},
+          'fechaCobro': '2026-05-04',
+          'montoAEsperar': 1500,
+        },
+        {
+          'turno': 2,
+          'vuelta': 1,
+          'numero': 2,
+          'esNumeroMuerto': false,
+          'usuario': {'idUser': 8, 'nombre': 'Luis'},
+          'fechaCobro': '2026-05-11',
+          'montoAEsperar': 1500,
+        },
+        {
+          'turno': 3,
+          'vuelta': 1,
+          'numero': 3,
+          'esNumeroMuerto': false,
+          'usuario': {'idUser': 5, 'nombre': 'Ana'},
+          'fechaCobro': '2026-05-18',
+          'montoAEsperar': 1500,
+        },
+      ],
+    });
+
 /// Respuesta de `GET /tandas/:id` para un usuario con los números #1 y #3.
 TandaEntity _detalle({
   required String status,
@@ -72,7 +118,11 @@ TandaEntity _detalle({
       ],
     });
 
-Future<_FakeRepo> _pump(WidgetTester tester, TandaEntity tanda) async {
+Future<_FakeRepo> _pump(
+  WidgetTester tester,
+  TandaEntity tanda, {
+  CalendarioTandaRepository? calendarioRepo,
+}) async {
   final repo = _FakeRepo(tanda);
   // Pantalla alta para que la lista construya todas las secciones
   tester.view.physicalSize = const Size(1080, 3000);
@@ -80,7 +130,10 @@ Future<_FakeRepo> _pump(WidgetTester tester, TandaEntity tanda) async {
   addTearDown(tester.view.reset);
   await tester.pumpWidget(MaterialApp(
     home: ChangeNotifierProvider(
-      create: (_) => TandaDetalleProvider(tandasRepository: repo)..cargar('7'),
+      create: (_) => TandaDetalleProvider(
+        tandasRepository: repo,
+        calendarioRepository: calendarioRepo,
+      )..cargar('7'),
       child: const TandaDetalleScreen(idTanda: '7'),
     ),
   ));
@@ -167,5 +220,40 @@ void main() {
     await _pump(tester, _detalle(status: 'ACTIVA'));
 
     expect(find.byKey(const Key('btn_ver_seguimiento')), findsOneWidget);
+  });
+
+  testWidgets('AP-06: muestra la tarjeta de progreso y el número asignado al usuario', (tester) async {
+    await _pump(
+      tester,
+      _detalle(status: 'ACTIVA', estadoPago: 'CONFIRMADO'),
+      calendarioRepo: _FakeCalendarioRepo(_calendario()),
+    );
+
+    expect(find.byKey(const Key('tarjeta_progreso_tanda')), findsOneWidget);
+    expect(find.byKey(const Key('numero_asignado_usuario')), findsOneWidget);
+    expect(find.text('Número asignado: #1, #3'), findsOneWidget);
+    expect(find.byKey(const Key('barra_progreso_tanda')), findsOneWidget);
+    expect(find.byKey(const Key('texto_progreso_tanda')), findsOneWidget);
+  });
+
+  testWidgets('AP-06: el calendario marca las fechas de pago y de cobro de la tanda', (tester) async {
+    await _pump(
+      tester,
+      _detalle(status: 'ACTIVA'),
+      calendarioRepo: _FakeCalendarioRepo(_calendario()),
+    );
+
+    expect(find.byKey(const Key('calendario_turnos_tanda')), findsOneWidget);
+    expect(find.byKey(const Key('leyenda_fecha_pago')), findsOneWidget);
+    expect(find.byKey(const Key('leyenda_fecha_cobro')), findsOneWidget);
+
+    // Marcadores de pago y de cobro de la tanda para los 3 turnos del mes de mayo 2026
+    expect(find.byKey(const Key('marcador_pago_2026-05-04')), findsOneWidget);
+    expect(find.byKey(const Key('marcador_pago_2026-05-11')), findsOneWidget);
+    expect(find.byKey(const Key('marcador_pago_2026-05-18')), findsOneWidget);
+
+    expect(find.byKey(const Key('marcador_cobro_2026-05-04')), findsOneWidget);
+    expect(find.byKey(const Key('marcador_cobro_2026-05-11')), findsOneWidget);
+    expect(find.byKey(const Key('marcador_cobro_2026-05-18')), findsOneWidget);
   });
 }

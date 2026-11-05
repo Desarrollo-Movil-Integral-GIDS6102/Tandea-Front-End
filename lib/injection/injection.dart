@@ -29,8 +29,10 @@ import 'package:tandea/features/pagos/domain/usecases/seleccionar_comprobante_us
 import 'package:tandea/features/pagos/presentation/providers/pago_provider.dart';
 import 'package:tandea/features/pagos/presentation/providers/revisar_pago_provider.dart';
 import 'package:tandea/features/tandas/data/datasources/tandas_remote_data_source.dart';
+import 'package:tandea/features/tandas/data/repositories/calendario_tanda_repository_impl.dart';
 import 'package:tandea/features/tandas/data/repositories/historial_tanda_repository_impl.dart';
 import 'package:tandea/features/tandas/data/repositories/tandas_repository_impl.dart';
+import 'package:tandea/features/tandas/domain/repositories/calendario_tanda_repository.dart';
 import 'package:tandea/features/tandas/domain/repositories/historial_tanda_repository.dart';
 import 'package:tandea/features/tandas/domain/repositories/tandas_repository.dart';
 import 'package:tandea/features/tandas/domain/usecases/crear_tanda_usecase.dart';
@@ -144,6 +146,12 @@ Future<void> initDependencies() async {
     ),
   );
 
+  sl.registerLazySingleton<CalendarioTandaRepository>(
+    () => CalendarioTandaRepositoryImpl(
+      remoteDataSource: sl<TandasRemoteDataSource>(),
+    ),
+  );
+
   sl.registerLazySingleton<PerfilRepository>(
     () => PerfilRepositoryImpl(apiClient: sl<ApiClient>()),
   );
@@ -209,7 +217,10 @@ Future<void> initDependencies() async {
   );
 
   sl.registerFactory<TandaDetalleProvider>(
-    () => TandaDetalleProvider(tandasRepository: sl<TandasRepository>()),
+    () => TandaDetalleProvider(
+      tandasRepository: sl<TandasRepository>(),
+      calendarioRepository: sl<CalendarioTandaRepository>(),
+    ),
   );
 
   sl.registerFactory<CrearTandaProvider>(
