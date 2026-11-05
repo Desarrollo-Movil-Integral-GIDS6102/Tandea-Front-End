@@ -29,13 +29,17 @@ import 'package:tandea/features/pagos/domain/usecases/seleccionar_comprobante_us
 import 'package:tandea/features/pagos/presentation/providers/pago_provider.dart';
 import 'package:tandea/features/pagos/presentation/providers/revisar_pago_provider.dart';
 import 'package:tandea/features/tandas/data/datasources/tandas_remote_data_source.dart';
+import 'package:tandea/features/tandas/data/repositories/historial_tanda_repository_impl.dart';
 import 'package:tandea/features/tandas/data/repositories/tandas_repository_impl.dart';
+import 'package:tandea/features/tandas/domain/repositories/historial_tanda_repository.dart';
 import 'package:tandea/features/tandas/domain/repositories/tandas_repository.dart';
 import 'package:tandea/features/tandas/domain/usecases/crear_tanda_usecase.dart';
+import 'package:tandea/features/tandas/domain/usecases/obtener_historial_tanda_usecase.dart';
 import 'package:tandea/features/tandas/domain/usecases/obtener_seguimiento_tanda_usecase.dart';
 import 'package:tandea/features/tandas/domain/usecases/obtener_tanda_por_codigo_usecase.dart';
 import 'package:tandea/features/tandas/domain/usecases/unirse_tanda_usecase.dart';
 import 'package:tandea/features/tandas/presentation/providers/crear_tanda_provider.dart';
+import 'package:tandea/features/tandas/presentation/providers/historial_tanda_provider.dart';
 import 'package:tandea/features/tandas/presentation/providers/seguimiento_tanda_provider.dart';
 import 'package:tandea/features/tandas/presentation/providers/tanda_detalle_provider.dart';
 import 'package:tandea/features/tandas/presentation/providers/tandas_provider.dart';
@@ -134,6 +138,12 @@ Future<void> initDependencies() async {
     ),
   );
 
+  sl.registerLazySingleton<HistorialTandaRepository>(
+    () => HistorialTandaRepositoryImpl(
+      remoteDataSource: sl<TandasRemoteDataSource>(),
+    ),
+  );
+
   sl.registerLazySingleton<PerfilRepository>(
     () => PerfilRepositoryImpl(apiClient: sl<ApiClient>()),
   );
@@ -165,6 +175,10 @@ Future<void> initDependencies() async {
 
   sl.registerLazySingleton<ObtenerSeguimientoTandaUseCase>(
     () => ObtenerSeguimientoTandaUseCase(repository: sl<TandasRepository>()),
+  );
+
+  sl.registerLazySingleton<ObtenerHistorialTandaUseCase>(
+    () => ObtenerHistorialTandaUseCase(repository: sl<HistorialTandaRepository>()),
   );
 
   sl.registerLazySingleton<SeleccionarComprobanteUseCase>(
@@ -206,6 +220,12 @@ Future<void> initDependencies() async {
     () => UnirseTandaProvider(
       obtenerTandaPorCodigoUseCase: sl<ObtenerTandaPorCodigoUseCase>(),
       unirseTandaUseCase: sl<UnirseTandaUseCase>(),
+    ),
+  );
+
+  sl.registerFactory<HistorialTandaProvider>(
+    () => HistorialTandaProvider(
+      obtenerHistorialUseCase: sl<ObtenerHistorialTandaUseCase>(),
     ),
   );
 

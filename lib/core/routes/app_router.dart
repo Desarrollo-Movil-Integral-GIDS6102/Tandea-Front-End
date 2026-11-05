@@ -22,7 +22,9 @@ import 'package:tandea/features/tandas/presentation/screens/compartir_codigo_tan
 import 'package:tandea/features/tandas/presentation/screens/crear_tanda_screen.dart';
 import 'package:tandea/features/tandas/presentation/screens/mis_tandas_organizador_screen.dart';
 import 'package:tandea/features/tandas/presentation/screens/mis_tandas_participante_screen.dart';
+import 'package:tandea/features/tandas/presentation/providers/historial_tanda_provider.dart';
 import 'package:tandea/features/tandas/presentation/providers/seguimiento_tanda_provider.dart';
+import 'package:tandea/features/tandas/presentation/screens/historial_tanda_screen.dart';
 import 'package:tandea/features/tandas/presentation/screens/seguimiento_tanda_screen.dart';
 import 'package:tandea/features/tandas/presentation/providers/tanda_detalle_provider.dart';
 import 'package:tandea/features/tandas/presentation/providers/tandas_provider.dart';
@@ -221,6 +223,21 @@ class AppRouter {
           return ChangeNotifierProvider<SeguimientoTandaProvider>(
             create: (_) => sl<SeguimientoTandaProvider>(),
             child: SeguimientoTandaScreen(
+              idTanda: state.pathParameters['id']!,
+              nombreTanda: extra is TandaEntity ? extra.nombre : null,
+            ),
+          );
+        },
+      ),
+
+      // Historial de pagos y cobros de la tanda (AP-09). `extra` opcional: la tanda.
+      GoRoute(
+        path: RouteNames.historialTanda,
+        builder: (context, state) {
+          final extra = state.extra;
+          return ChangeNotifierProvider<HistorialTandaProvider>(
+            create: (_) => sl<HistorialTandaProvider>(),
+            child: HistorialTandaScreen(
               idTanda: state.pathParameters['id']!,
               nombreTanda: extra is TandaEntity ? extra.nombre : null,
             ),
