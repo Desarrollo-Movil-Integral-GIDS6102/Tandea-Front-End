@@ -1,19 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:table_calendar/table_calendar.dart';
 import 'package:tandea/core/constants/app_colors.dart';
 import 'package:tandea/core/routes/route_names.dart';
 import 'package:tandea/core/utils/formato_moneda.dart';
 import 'package:tandea/features/entregas/presentation/screens/registrar_entrega_screen.dart';
 import 'package:tandea/features/pagos/presentation/screens/registrar_pago_screen.dart';
+import 'package:tandea/features/tandas/domain/entities/calendario_tanda.dart';
 import 'package:tandea/features/tandas/domain/entities/numero_tanda.dart';
 import 'package:tandea/features/tandas/domain/entities/tanda_entity.dart';
 import 'package:tandea/features/tandas/presentation/providers/tanda_detalle_provider.dart';
 
-/// Detalle de una tanda para participantes y organizador.
+/// Detalle de una tanda para participantes y organizador (AP-06).
 ///
-/// Siempre se puede consultar; es de solo lectura (no edita ni borra la tanda).
-/// El pago de cada número se habilita únicamente cuando la tanda está ACTIVA.
+/// Incluye tarjeta de progreso, número asignado al usuario y calendario de turnos
+/// (`table_calendar`) con marcadores de fechas de pago y cobro.
 class TandaDetalleScreen extends StatelessWidget {
   final String idTanda;
 
@@ -85,6 +87,7 @@ class TandaDetalleScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final provider = context.watch<TandaDetalleProvider>();
     final tanda = provider.tanda;
+    final calendario = provider.calendario;
 
     return Scaffold(
       backgroundColor: AppColors.backgroundLight,
@@ -130,6 +133,11 @@ class TandaDetalleScreen extends StatelessWidget {
                   children: [
                     _Resumen(tanda: tanda),
                     const SizedBox(height: 16),
+                    _TarjetaProgresoYNumero(
+                      tanda: tanda,
+                      calendario: calendario,
+                    ),
+                    const SizedBox(height: 16),
                     _AvisoEstado(tanda: tanda),
                     if (provider.errorMessage != null) ...[
                       const SizedBox(height: 12),
@@ -137,6 +145,13 @@ class TandaDetalleScreen extends StatelessWidget {
                         provider.errorMessage!,
                         key: const Key('detalle_error'),
                         style: const TextStyle(color: AppColors.error, fontWeight: FontWeight.w600),
+                      ),
+                    ],
+                    if (calendario != null && calendario.turnos.isNotEmpty) ...[
+                      const SizedBox(height: 24),
+                      _CalendarioTurnosCard(
+                        tanda: tanda,
+                        calendario: calendario,
                       ),
                     ],
                     const SizedBox(height: 24),
@@ -196,6 +211,364 @@ class TandaDetalleScreen extends StatelessWidget {
                 ),
               ),
       ),
+    );
+  }
+}
+
+/// Tarjeta que muestra el progreso de la tanda y el número asignado al usuario (AP-06).
+class _TarjetaProgresoYNumero extends StatelessWidget {
+  final TandaEntity tanda;
+  final CalendarioTanda? calendario;
+
+  const _TarjetaProgresoYNumero({
+    required this.tanda,
+    required this.calendario,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final numerosUsuario = <int>[
+      for (final n in tanda.misNumeros) n.numberValue,
+      if (tanda.misNumeros.isEmpty && tanda.numeroTurnoUsuario != null)
+        tanda.numeroTurnoUsuario!,
+    ];
+    final etiquetaNumero = numerosUsuario.isEmpty
+        ? 'Sin asignar'
+        : numerosUsuario.map((n) => '#$n').join(', ');
+
+    final totalTurnos = tanda.totalParticipantes > 0 ? tanda.totalParticipantes : 1;
+    final completados = tanda.numeros
+        .where((n) => !n.isDeadNumber && (n.entregado || n.pagoConfirmado))
+        .length
+        .clamp(0, totalTurnos);
+    final progreso = totalTurnos > 0 ? completados / totalTurnos : 0.0;
+    final porcentaje = (progreso * 100).round();
+
+    // Buscar próxima fecha de cobro del usuario en el calendario
+    TurnoCalendario? proximoCobroUsuario;
+    if (calendario != null && numerosUsuario.isNotEmpty) {
+      for (final t in calendario!.turnos) {
+        if (numerosUsuario.contains(t.numero)) {
+          proximoCobroUsuario = t;
+          break;
+        }
+      }
+    }
+
+    return Card(
+      key: const Key('tarjeta_progreso_tanda'),
+      color: AppColors.surfaceLight,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.confirmation_number_outlined, color: AppColors.primary, size: 18),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Número asignado: $etiquetaNumero',
+                        key: const Key('numero_asignado_usuario'),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  '$porcentaje%',
+                  key: const Key('porcentaje_progreso_tanda'),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: AppColors.primary,
+                  ),
+                ),
+              ],
+            ),
+            if (proximoCobroUsuario != null) ...[
+              const SizedBox(height: 10),
+              Text(
+                'Tu fecha de cobro: ${proximoCobroUsuario.fechaCobro} (${formatearMonedaMxn(proximoCobroUsuario.montoAEsperar)})',
+                key: const Key('fecha_cobro_usuario'),
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: AppColors.textSecondaryLight,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+            const SizedBox(height: 14),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: LinearProgressIndicator(
+                key: const Key('barra_progreso_tanda'),
+                value: progreso,
+                minHeight: 8,
+                backgroundColor: AppColors.border,
+                color: AppColors.primary,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Progreso de la tanda: $completados de $totalTurnos turnos completados',
+              key: const Key('texto_progreso_tanda'),
+              style: const TextStyle(
+                fontSize: 12.5,
+                color: AppColors.textSecondaryLight,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Calendario interactivo (`table_calendar`) con marcadores de fechas de pago y cobro (AP-06).
+class _CalendarioTurnosCard extends StatefulWidget {
+  final TandaEntity tanda;
+  final CalendarioTanda calendario;
+
+  const _CalendarioTurnosCard({
+    required this.tanda,
+    required this.calendario,
+  });
+
+  @override
+  State<_CalendarioTurnosCard> createState() => _CalendarioTurnosCardState();
+}
+
+class _CalendarioTurnosCardState extends State<_CalendarioTurnosCard> {
+  late DateTime _focusedDay;
+  DateTime? _selectedDay;
+
+  @override
+  void initState() {
+    super.initState();
+    final primerFecha = widget.calendario.turnos
+        .map((t) => t.fechaDate)
+        .whereType<DateTime>()
+        .firstOrNull;
+    _focusedDay = primerFecha ?? DateTime.utc(2026, 1, 1);
+    _selectedDay = _focusedDay;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final fechas = widget.calendario.turnos
+        .map((t) => t.fechaDate)
+        .whereType<DateTime>()
+        .toList();
+
+    final firstDay = fechas.isNotEmpty
+        ? DateTime.utc(fechas.first.year - 1, 1, 1)
+        : DateTime.utc(2024, 1, 1);
+    final lastDay = fechas.isNotEmpty
+        ? DateTime.utc(fechas.last.year + 1, 12, 31)
+        : DateTime.utc(2030, 12, 31);
+
+    final focused = _focusedDay.isBefore(firstDay)
+        ? firstDay
+        : (_focusedDay.isAfter(lastDay) ? lastDay : _focusedDay);
+
+    final misNumerosSet = <int>{
+      for (final n in widget.tanda.misNumeros) n.numberValue,
+      if (widget.tanda.numeroTurnoUsuario != null) widget.tanda.numeroTurnoUsuario!,
+    };
+
+    final turnosDiaSeleccionado = _selectedDay != null
+        ? widget.calendario.turnosEnDia(_selectedDay!)
+        : const <TurnoCalendario>[];
+
+    return Card(
+      key: const Key('calendario_turnos_tanda'),
+      color: AppColors.surfaceLight,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'Calendario de turnos',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+            ),
+            const SizedBox(height: 8),
+            const Wrap(
+              spacing: 16,
+              runSpacing: 6,
+              children: [
+                _LeyendaMarcador(
+                  key: Key('leyenda_fecha_pago'),
+                  color: AppColors.primary,
+                  etiqueta: 'Fecha de pago',
+                ),
+                _LeyendaMarcador(
+                  key: Key('leyenda_fecha_cobro'),
+                  color: AppColors.secondary,
+                  etiqueta: 'Fecha de cobro',
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            TableCalendar<TurnoCalendario>(
+              firstDay: firstDay,
+              lastDay: lastDay,
+              focusedDay: focused,
+              selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
+              availableCalendarFormats: const {
+                CalendarFormat.month: 'Mes',
+              },
+              headerStyle: const HeaderStyle(
+                formatButtonVisible: false,
+                titleCentered: true,
+              ),
+              eventLoader: (day) => widget.calendario.turnosEnDia(day),
+              onDaySelected: (selectedDay, focusedDay) {
+                setState(() {
+                  _selectedDay = selectedDay;
+                  _focusedDay = focusedDay;
+                });
+              },
+              onPageChanged: (focusedDay) {
+                _focusedDay = focusedDay;
+              },
+              calendarBuilders: CalendarBuilders<TurnoCalendario>(
+                markerBuilder: (context, day, events) {
+                  if (events.isEmpty) return null;
+                  final turno = events.first;
+                  final esMiCobro = misNumerosSet.contains(turno.numero);
+                  return Positioned(
+                    bottom: 2,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          key: Key('marcador_pago_${turno.fechaCobro}'),
+                          width: 7,
+                          height: 7,
+                          margin: const EdgeInsets.symmetric(horizontal: 1.5),
+                          decoration: const BoxDecoration(
+                            color: AppColors.primary,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        if (!turno.esNumeroMuerto)
+                          Container(
+                            key: Key('marcador_cobro_${turno.fechaCobro}'),
+                            width: esMiCobro ? 9 : 7,
+                            height: esMiCobro ? 9 : 7,
+                            margin: const EdgeInsets.symmetric(horizontal: 1.5),
+                            decoration: BoxDecoration(
+                              color: esMiCobro ? AppColors.success : AppColors.secondary,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+            if (turnosDiaSeleccionado.isNotEmpty) ...[
+              const Divider(height: 20),
+              for (final t in turnosDiaSeleccionado)
+                Container(
+                  key: Key('detalle_turno_${t.numero}'),
+                  padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 10),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.06),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 16,
+                        backgroundColor: t.esNumeroMuerto ? AppColors.textSecondaryLight : AppColors.primary,
+                        child: Text(
+                          '#${t.numero}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              t.esNumeroMuerto
+                                  ? 'Turno #${t.turno}: Número muerto (caja)'
+                                  : 'Turno #${t.turno} • Cobra #${t.numero}${t.nombreUsuario != null ? ' (${t.nombreUsuario})' : ''}',
+                              style: const TextStyle(fontWeight: FontWeight.w600),
+                            ),
+                            Text(
+                              'Fecha: ${t.fechaCobro} • Monto: ${formatearMonedaMxn(t.montoAEsperar)}',
+                              style: const TextStyle(
+                                fontSize: 12.5,
+                                color: AppColors.textSecondaryLight,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _LeyendaMarcador extends StatelessWidget {
+  final Color color;
+  final String etiqueta;
+
+  const _LeyendaMarcador({
+    super.key,
+    required this.color,
+    required this.etiqueta,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 10,
+          height: 10,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
+        const SizedBox(width: 6),
+        Text(
+          etiqueta,
+          style: const TextStyle(fontSize: 12.5, color: AppColors.textSecondaryLight),
+        ),
+      ],
     );
   }
 }

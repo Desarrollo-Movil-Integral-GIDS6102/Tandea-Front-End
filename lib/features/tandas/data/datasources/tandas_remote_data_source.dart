@@ -3,6 +3,7 @@ import 'package:tandea/core/constants/api_constants.dart';
 import 'package:tandea/core/errors/exceptions.dart';
 import 'package:tandea/core/network/api_client.dart';
 import 'package:tandea/core/network/network_error_handler.dart';
+import 'package:tandea/features/tandas/data/models/calendario_tanda_model.dart';
 import 'package:tandea/features/tandas/data/models/historial_tanda_model.dart';
 import 'package:tandea/features/tandas/data/models/seguimiento_tanda_model.dart';
 import 'package:tandea/features/tandas/data/models/tanda_model.dart';
@@ -15,6 +16,7 @@ abstract class TandasRemoteDataSource {
   Future<TandaModel> getTandaByInviteCode(String inviteCode);
   Future<Map<String, dynamic>> joinTanda(Map<String, dynamic> data);
   Future<SeguimientoTandaModel> getSeguimiento(String idTanda);
+  Future<CalendarioTandaModel> getCalendario(String idTanda);
   Future<HistorialTandaModel> getHistorial(String idTanda, {String? cursor, int limit = 20});
   Future<TandaModel> updateStatus(String id, String status);
 }
@@ -182,6 +184,28 @@ class TandasRemoteDataSourceImpl implements TandasRemoteDataSource {
       throw const ServerException(message: 'Formato de seguimiento inválido');
     } on DioException catch (e) {
       NetworkErrorHandler.handleDioException(e, fallbackMessage: 'Error al obtener el seguimiento de la tanda');
+    }
+  }
+
+  @override
+  Future<CalendarioTandaModel> getCalendario(String idTanda) async {
+    try {
+      final response = await apiClient.get<dynamic>(
+        '${ApiConstants.tandasEndpoint}/$idTanda/calendario',
+      );
+      final rawData = response.data;
+      if (rawData is Map<String, dynamic>) {
+        final data = rawData['data'] is Map<String, dynamic>
+            ? rawData['data'] as Map<String, dynamic>
+            : rawData;
+        return CalendarioTandaModel.fromJson(data);
+      }
+      throw const ServerException(message: 'Formato de calendario inválido');
+    } on DioException catch (e) {
+      NetworkErrorHandler.handleDioException(
+        e,
+        fallbackMessage: 'Error al obtener el calendario de la tanda',
+      );
     }
   }
 
