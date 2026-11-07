@@ -41,6 +41,11 @@ import 'package:tandea/features/tandas/domain/usecases/obtener_seguimiento_tanda
 import 'package:tandea/features/tandas/domain/usecases/obtener_tanda_por_codigo_usecase.dart';
 import 'package:tandea/features/tandas/domain/usecases/unirse_tanda_usecase.dart';
 import 'package:tandea/features/tandas/presentation/providers/crear_tanda_provider.dart';
+import 'package:tandea/core/routes/app_router.dart';
+import 'package:tandea/features/notificaciones/data/repositories/notificacion_repository_impl.dart';
+import 'package:tandea/features/notificaciones/data/services/push_service.dart';
+import 'package:tandea/features/notificaciones/domain/repositories/notificacion_repository.dart';
+import 'package:tandea/features/notificaciones/presentation/providers/notificacion_provider.dart';
 import 'package:tandea/features/tandas/presentation/providers/historial_tanda_provider.dart';
 import 'package:tandea/features/tandas/presentation/providers/seguimiento_tanda_provider.dart';
 import 'package:tandea/features/tandas/presentation/providers/tanda_detalle_provider.dart';
@@ -160,6 +165,10 @@ Future<void> initDependencies() async {
     () => EntregaRepositoryImpl(apiClient: sl<ApiClient>()),
   );
 
+  sl.registerLazySingleton<NotificacionRepository>(
+    () => NotificacionRepositoryImpl(apiClient: sl<ApiClient>()),
+  );
+
   sl.registerLazySingleton<PagoRepository>(
     () => PagoRepositoryImpl(
       remoteDataSource: sl<PagoRemoteDataSource>(),
@@ -256,6 +265,22 @@ Future<void> initDependencies() async {
 
   sl.registerFactory<EntregaProvider>(
     () => EntregaProvider(entregaRepository: sl<EntregaRepository>()),
+  );
+
+  // Singleton: la campana del AppBar y la bandeja comparten el contador de no leídas
+  sl.registerLazySingleton<NotificacionProvider>(
+    () => NotificacionProvider(notificacionRepository: sl<NotificacionRepository>()),
+  );
+
+  sl.registerLazySingleton<PushService>(
+    () => PushService(
+      router: AppRouter.router,
+      bandeja: sl<NotificacionProvider>(),
+      tokenSync: TokenFcmSync(
+        repositorio: sl<NotificacionRepository>(),
+        sesion: sl<AuthSessionProvider>(),
+      ),
+    ),
   );
 
   sl.registerFactory<PagoProvider>(

@@ -8,6 +8,7 @@ import 'package:tandea/core/widgets/primary_button.dart';
 import 'package:tandea/features/auth/domain/entities/user_entity.dart';
 import 'package:tandea/features/auth/presentation/providers/auth_provider.dart';
 import 'package:tandea/features/auth/presentation/providers/perfil_provider.dart';
+import 'package:tandea/features/notificaciones/presentation/providers/notificacion_provider.dart';
 
 /// Gestión del perfil: editar datos personales, cambiar contraseña y cerrar sesión.
 class PerfilScreen extends StatelessWidget {
@@ -31,7 +32,9 @@ class PerfilScreen extends StatelessWidget {
     );
     if (confirmado != true || !context.mounted) return;
     await context.read<AuthProvider>().logout();
-    if (context.mounted) context.go(RouteNames.welcome);
+    if (!context.mounted) return;
+    context.read<NotificacionProvider>().limpiar();
+    context.go(RouteNames.welcome);
   }
 
   @override
