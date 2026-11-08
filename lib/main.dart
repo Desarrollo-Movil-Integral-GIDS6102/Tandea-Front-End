@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:provider/provider.dart';
 import 'package:tandea/core/constants/app_constants.dart';
 import 'package:tandea/core/network/server_health_service.dart';
@@ -23,6 +24,8 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   // Antes de initDependencies: el cliente HTTP toma de aquí la URL del backend
   await dotenv.load(fileName: '.env', isOptional: true);
+  // Nombres de meses y días en español para el calendario (table_calendar usa intl)
+  await initializeDateFormatting('es_MX');
   await initDependencies();
   await sl<AuthProvider>().checkAuthStatus();
 
