@@ -191,6 +191,10 @@ void main() {
     }
 
     testWidgets('muestra a cada participante con su estado y la barra de progreso', (tester) async {
+      // Pantalla alta para que la lista dibuje las 5 filas debajo de la tarjeta de progreso
+      tester.view.physicalSize = const Size(800, 1600);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
       final repo = await abrirPanel(tester, Success(seguimientoDePrueba));
 
       expect(repo.consultas, ['7']);

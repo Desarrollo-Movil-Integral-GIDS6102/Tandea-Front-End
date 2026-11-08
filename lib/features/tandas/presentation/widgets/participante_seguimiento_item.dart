@@ -20,7 +20,9 @@ class ParticipanteSeguimientoItem extends StatelessWidget {
     return Selector<SeguimientoTandaProvider, ParticipanteSeguimiento?>(
       // Al pasar a una pestaña con menos filas, las sobrantes pueden reconstruirse
       // antes de que la lista las descarte.
-      selector: (_, provider) => index < provider.cantidadFiltrados ? provider.participanteEn(index) : null,
+      selector: (_, provider) => index < provider.cantidadFiltrados
+          ? provider.participanteEn(index)
+          : null,
       builder: (context, participante, _) {
         if (participante == null) {
           return const SizedBox.shrink();
@@ -52,7 +54,9 @@ class _FilaParticipante extends StatelessWidget {
     if (participante.estadoPago == EstadoPagoSeguimiento.atrasado) {
       return 'Plazo vencido sin pago';
     }
-    return participante.montoPagado > 0 ? 'Pago por confirmar' : 'Sin pago registrado';
+    return participante.montoPagado > 0
+        ? 'Pago por confirmar'
+        : 'Sin pago registrado';
   }
 
   /// Abre "Revisar pago" y, al volver, refresca el panel por si se confirmó o rechazó.
@@ -79,16 +83,24 @@ class _FilaParticipante extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
       child: Material(
         color: AppColors.surface,
+        elevation: 1.5,
+        shadowColor: Colors.black26,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(16),
           side: const BorderSide(color: AppColors.border),
         ),
+        clipBehavior: Clip.antiAlias,
         child: InkWell(
           key: Key('fila_seguimiento_${participante.idNumber}'),
-          borderRadius: BorderRadius.circular(14),
-          onTap: idPayment == null ? null : () => _revisarPago(context, idPayment),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          onTap: idPayment == null
+              ? null
+              : () => _revisarPago(context, idPayment),
+          // La franja de color de la izquierda deja ver el estado de un vistazo.
+          child: Container(
+            decoration: BoxDecoration(
+              border: Border(left: BorderSide(color: color, width: 5)),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
             child: _contenido(color, idPayment != null),
           ),
         ),
@@ -100,11 +112,15 @@ class _FilaParticipante extends StatelessWidget {
     return Row(
       children: [
         CircleAvatar(
-          radius: 20,
-          backgroundColor: color.withValues(alpha: 0.12),
+          radius: 22,
+          backgroundColor: color.withValues(alpha: 0.14),
           child: Text(
-            '${participante.numeroTurno}',
-            style: TextStyle(fontWeight: FontWeight.bold, color: color),
+            '#${participante.numeroTurno}',
+            style: TextStyle(
+              fontWeight: FontWeight.w800,
+              fontSize: 13.5,
+              color: color,
+            ),
           ),
         ),
         const SizedBox(width: 12),
@@ -116,16 +132,41 @@ class _FilaParticipante extends StatelessWidget {
                 participante.nombre,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textPrimary,
+                ),
               ),
-              const SizedBox(height: 2),
-              Text(_detalle, style: const TextStyle(fontSize: 12.5, color: AppColors.textSecondary)),
+              const SizedBox(height: 3),
+              Text(
+                _detalle,
+                style: const TextStyle(
+                  fontSize: 12.5,
+                  color: AppColors.textSecondary,
+                ),
+              ),
             ],
           ),
         ),
         const SizedBox(width: 8),
-        ChipEstadoPago(estado: participante.estadoPago),
-        if (revisable) const Icon(Icons.chevron_right_rounded, color: AppColors.textDisabled),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            ChipEstadoPago(estado: participante.estadoPago),
+            if (revisable) ...[
+              const SizedBox(height: 4),
+              const Text(
+                'Ver pago ›',
+                style: TextStyle(
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.primary,
+                ),
+              ),
+            ],
+          ],
+        ),
       ],
     );
   }
@@ -153,7 +194,10 @@ class ChipEstadoPago extends StatelessWidget {
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-      decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(10),
+      ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -161,7 +205,11 @@ class ChipEstadoPago extends StatelessWidget {
           const SizedBox(width: 4),
           Text(
             estado.etiqueta,
-            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: color),
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
           ),
         ],
       ),
