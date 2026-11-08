@@ -429,6 +429,7 @@ class _CalendarioTurnosCardState extends State<_CalendarioTurnosCard> {
             ),
             const SizedBox(height: 8),
             TableCalendar<TurnoCalendario>(
+              locale: 'es_MX',
               firstDay: firstDay,
               lastDay: lastDay,
               focusedDay: focused,

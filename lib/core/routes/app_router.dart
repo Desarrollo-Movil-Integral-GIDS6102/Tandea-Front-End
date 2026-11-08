@@ -30,6 +30,7 @@ import 'package:tandea/features/tandas/presentation/providers/tanda_detalle_prov
 import 'package:tandea/features/tandas/presentation/providers/tandas_provider.dart';
 import 'package:tandea/features/tandas/presentation/screens/seleccionar_numero_screen.dart';
 import 'package:tandea/features/tandas/presentation/screens/tanda_detalle_screen.dart';
+import 'package:tandea/features/notificaciones/presentation/screens/notificaciones_screen.dart';
 import 'package:tandea/features/tandas/presentation/screens/tandas_navigation_screen.dart';
 import 'package:tandea/features/tandas/presentation/screens/unirse_tanda_screen.dart';
 import 'package:tandea/injection/injection.dart';
@@ -326,8 +327,7 @@ class AppRouter {
       ),
       GoRoute(
         path: RouteNames.notificaciones,
-        builder: (context, state) =>
-            const _PlaceholderScreen(title: 'Notificaciones'),
+        builder: (context, state) => const NotificacionesScreen(),
       ),
     ],
     errorBuilder: (context, state) => Scaffold(

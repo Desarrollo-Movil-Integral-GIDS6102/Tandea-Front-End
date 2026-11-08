@@ -54,6 +54,7 @@ class ApiConstants {
 
   // Notificaciones endpoints
   static const String notificacionesEndpoint = '/notificaciones';
+  static const String fcmTokenEndpoint = '/users/me/fcm-token';
 
   // Admin endpoints
   static const String adminUsersEndpoint = '/admin/users';

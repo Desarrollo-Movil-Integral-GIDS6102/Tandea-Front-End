@@ -21,7 +21,12 @@ import 'package:tandea/features/tandas/presentation/screens/mis_tandas_participa
 import 'package:tandea/features/tandas/presentation/widgets/mis_tandas_list_view.dart';
 import 'package:tandea/features/tandas/presentation/widgets/tanda_card_item.dart';
 
+import 'package:tandea/features/notificaciones/presentation/providers/notificacion_provider.dart';
+import 'notificacion_repository_fake.dart';
 import 'tandas_repository_fake.dart';
+
+NotificacionProvider _notificaciones() =>
+    NotificacionProvider(notificacionRepository: NotificacionRepositoryFake());
 
 class MockTandasRepository implements TandasRepository {
   Result<List<TandaEntity>>? getMisTandasResult;
@@ -358,8 +363,11 @@ void main() {
     testWidgets('MisTandasParticipanteScreen contiene FloatingActionButton para unirse', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
-          home: ChangeNotifierProvider<TandasProvider>.value(
-            value: provider,
+          home: MultiProvider(
+            providers: [
+              ChangeNotifierProvider<TandasProvider>.value(value: provider),
+              ChangeNotifierProvider(create: (_) => _notificaciones()),
+            ],
             child: const MisTandasParticipanteScreen(),
           ),
         ),
@@ -373,8 +381,11 @@ void main() {
     testWidgets('MisTandasOrganizadorScreen contiene FloatingActionButton para crear tanda', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
-          home: ChangeNotifierProvider<TandasProvider>.value(
-            value: provider,
+          home: MultiProvider(
+            providers: [
+              ChangeNotifierProvider<TandasProvider>.value(value: provider),
+              ChangeNotifierProvider(create: (_) => _notificaciones()),
+            ],
             child: const MisTandasOrganizadorScreen(),
           ),
         ),

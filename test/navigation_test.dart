@@ -4,9 +4,12 @@ import 'package:tandea/core/routes/app_router.dart';
 import 'package:tandea/core/routes/route_names.dart';
 import 'package:tandea/features/auth/domain/entities/user_role.dart';
 import 'package:tandea/features/auth/presentation/providers/auth_session_provider.dart';
+import 'package:provider/provider.dart';
+import 'package:tandea/features/notificaciones/presentation/providers/notificacion_provider.dart';
 import 'package:tandea/features/tandas/presentation/providers/tandas_provider.dart';
 import 'package:tandea/injection/injection.dart';
 
+import 'notificacion_repository_fake.dart';
 import 'tandas_repository_fake.dart';
 
 void main() {
@@ -36,8 +39,11 @@ void main() {
     session.setSession(token: 'token', role: UserRole.usuario);
 
     await tester.pumpWidget(
-      MaterialApp.router(
-        routerConfig: AppRouter.router,
+      ChangeNotifierProvider(
+        create: (_) => NotificacionProvider(notificacionRepository: NotificacionRepositoryFake()),
+        child: MaterialApp.router(
+          routerConfig: AppRouter.router,
+        ),
       ),
     );
     AppRouter.router.go(RouteNames.tandasParticipante);

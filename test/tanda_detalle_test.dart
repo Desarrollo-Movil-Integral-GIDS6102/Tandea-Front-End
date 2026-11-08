@@ -7,6 +7,7 @@ import 'package:tandea/features/tandas/data/models/calendario_tanda_model.dart';
 import 'package:tandea/features/tandas/data/models/tanda_model.dart';
 import 'package:tandea/features/tandas/domain/entities/calendario_tanda.dart';
 import 'package:tandea/features/tandas/domain/entities/seguimiento_tanda.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:tandea/features/tandas/domain/entities/tanda_entity.dart';
 import 'package:tandea/features/tandas/domain/entities/unirse_tanda_result.dart';
 import 'package:tandea/features/tandas/domain/repositories/calendario_tanda_repository.dart';
@@ -142,6 +143,8 @@ Future<_FakeRepo> _pump(
 }
 
 void main() {
+  setUpAll(() => initializeDateFormatting('es_MX'));
+
   testWidgets('muestra el detalle y mis números aunque la tanda no haya iniciado', (tester) async {
     await _pump(tester, _detalle(status: 'PENDIENTE', disponibles: [2]));
 
