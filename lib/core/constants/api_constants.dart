@@ -1,7 +1,7 @@
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class ApiConstants {
-  static const String _urlRailway = 'https://tandea-back-end-production.up.railway.app/api/v1';
+  static const String _urlRailway = 'https://tandea-back-end-production-8546.up.railway.app/api/v1';
 
   /// URL base de la API REST (versión 1).
   ///
@@ -27,7 +27,7 @@ class ApiConstants {
       final portSuffix = uri.hasPort ? ':${uri.port}' : '';
       return '${uri.scheme}://${uri.host}$portSuffix/health';
     }
-    return 'https://tandea-back-end-production.up.railway.app/health';
+    return 'https://tandea-back-end-production-8546.up.railway.app/health';
   }
 
   // Auth endpoints

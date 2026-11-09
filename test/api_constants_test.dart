@@ -3,7 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:tandea/core/constants/api_constants.dart';
 
 void main() {
-  const railway = 'https://tandea-back-end-production.up.railway.app/api/v1';
+  const railway = 'https://tandea-back-end-production-8546.up.railway.app/api/v1';
 
   tearDown(dotenv.clean);
 

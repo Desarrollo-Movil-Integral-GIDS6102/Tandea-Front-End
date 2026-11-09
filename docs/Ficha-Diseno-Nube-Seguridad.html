@@ -240,7 +240,7 @@
       <p style="margin-bottom: 5px;">
         <strong>Proveedor elegido:</strong>
         <span class="provider-tag">Railway</span> (Backend NestJS + PostgreSQL gestionada) y
-        <span class="provider-tag">Google Firebase</span> (FCM para notificaciones + Firebase Storage para evidencias).
+        <span class="provider-tag">Google Firebase</span> (FCM para notificaciones) y <span class="provider-tag">Cloudinary</span> (evidencias).
       </p>
 
       <div class="checklist">
@@ -259,7 +259,7 @@
         <div class="check-item">
           <span class="check-box">[X]</span>
           <div class="check-item-text">
-            <strong>Almacenamiento de archivos:</strong> Firebase Storage (plan Spark gratuito de 5 GB) para comprobantes de pago y fotos de evidencia.
+            <strong>Almacenamiento de archivos:</strong> Cloudinary para comprobantes de pago y fotos de evidencia.
           </div>
         </div>
         <div class="check-item">
@@ -286,13 +286,13 @@
         <div class="rule-card rule-2">
           <div class="rule-card-title">2. En el viaje de los datos (Cifrado en tránsito):</div>
           <div class="rule-card-text">
-            Toda la comunicación móvil-nube viaja exclusivamente bajo <strong>HTTPS/TLS 1.3</strong> hacia el host seguro (<code>tandea-back-end-production.up.railway.app</code>). Cada petición a endpoints protegidos incluye la cabecera estándar <code>Authorization: Bearer &lt;token_jwt&gt;</code>.
+            Toda la comunicación móvil-nube viaja exclusivamente bajo <strong>HTTPS/TLS</strong> hacia el host seguro (<code>tandea-back-end-production-8546.up.railway.app</code>). Cada petición a endpoints protegidos incluye la cabecera estándar <code>Authorization: Bearer &lt;token_jwt&gt;</code>.
           </div>
         </div>
         <div class="rule-card rule-3">
           <div class="rule-card-title">3. En la base de datos (Aislamiento entre usuarios):</div>
           <div class="rule-card-text">
-            Control de acceso en el backend mediante <code>JwtAuthGuard</code> y reglas de dominio: el servidor valida el <code>idUser</code> del token y restringe lectura o mutación; únicamente el organizador (<code>idAdmin</code>) o el titular asignado a ese turno pueden consultar o confirmar sus registros.
+            Control de acceso en el backend mediante <code>JwtAuthGuard</code> y reglas de dominio: el servidor valida el <code>idUser</code> del token y restringe lectura o mutación; únicamente el organizador (<code>idAdmin</code>) el titular asignado a ese turno o un administrador global (<code>admin_global</code>) pueden consultar o confirmar sus registros.
           </div>
         </div>
       </div>
@@ -308,7 +308,7 @@
         <ul>
           <li><strong>Exclusión obligatoria en Git:</strong> Los archivos locales <code>.env</code> que contienen la <code>DATABASE_URL</code>, secretos JWT y credenciales de correo/nube están agregados a los <code>.gitignore</code> de Frontend y Backend.</li>
           <li><strong>Plantilla pública desacoplada:</strong> Únicamente se versiona <code>.env.example</code> como contrato de referencia con valores vacíos o ficticios.</li>
-          <li><strong>Inyección segura en la Nube:</strong> En Railway las llaves se inyectan como variables de entorno privadas encriptadas en el panel. En Flutter se inyectan en tiempo de compilación con <code>--dart-define</code>.</li>
+          <li><strong>Inyección segura en la Nube:</strong> En Railway las llaves se inyectan como variables de entorno privadas encriptadas en el panel. En Flutter el endpoint se configura con <code>--dart-define</code> o con un <code>.env</code> ignorado por Git (solo URL de la API y claves públicas de Firebase).</li>
         </ul>
       </div>
     </div>
