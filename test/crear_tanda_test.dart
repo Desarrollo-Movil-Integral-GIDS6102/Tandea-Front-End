@@ -1,7 +1,13 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
+import 'package:tandea/core/errors/failures.dart';
+import 'package:tandea/core/routes/route_names.dart';
 import 'package:tandea/core/utils/result.dart';
 import 'package:tandea/core/widgets/primary_button.dart';
+import 'package:tandea/features/tandas/domain/entities/seguimiento_tanda.dart';
 import 'package:tandea/features/tandas/domain/entities/tanda_entity.dart';
 import 'package:tandea/features/tandas/domain/entities/unirse_tanda_result.dart';
 import 'package:tandea/features/tandas/domain/repositories/tandas_repository.dart';
@@ -71,6 +77,9 @@ class MockTandasRepository implements TandasRepository {
   }
 
   @override
+  Future<Result<TandaEntity>> iniciarTanda(String id) async => getTandaById(id);
+
+  @override
   Future<Result<UnirseTandaResult>> joinTanda(JoinTandaParams params) async {
     return const Success(UnirseTandaResult(
       tanda: TandaEntity(
@@ -84,6 +93,10 @@ class MockTandasRepository implements TandasRepository {
       numeroAsignado: 1,
     ));
   }
+
+  @override
+  Future<Result<SeguimientoTanda>> getSeguimiento(String idTanda) async =>
+      const Error(ServerFailure('No implementado'));
 }
 
 
@@ -416,5 +429,43 @@ void main() {
       expect(find.text('¡Tanda creada exitosamente!'), findsOneWidget);
     });
 
+  });
+
+  group('BUG-A1 - Navegación tras crear la tanda', () {
+    testWidgets('al crear va a Mis tandas (organizador) y "atrás" no regresa al formulario', (tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 2.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      final router = GoRouter(
+        initialLocation: RouteNames.tandasOrganizador,
+        routes: [
+          GoRoute(
+            path: RouteNames.tandasOrganizador,
+            builder: (_, _) => const Scaffold(body: Text('MIS TANDAS ORG')),
+          ),
+          GoRoute(path: RouteNames.crearTanda, builder: (_, _) => const CrearTandaScreen()),
+        ],
+      );
+      await tester.pumpWidget(MaterialApp.router(routerConfig: router));
+      unawaited(router.push(RouteNames.crearTanda));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.widgetWithText(TextFormField, 'Nombre de la tanda *'), 'Tanda A1');
+      final submitBtn = find.widgetWithText(PrimaryButton, 'Crear tanda');
+      await tester.ensureVisible(submitBtn);
+      await tester.tap(submitBtn);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key('btn_ir_mis_tandas')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('MIS TANDAS ORG'), findsOneWidget);
+      expect(find.byType(CrearTandaScreen), findsNothing);
+      expect(router.canPop(), isFalse);
+    });
   });
 }

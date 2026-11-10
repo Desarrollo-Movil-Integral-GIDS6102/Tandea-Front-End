@@ -198,16 +198,19 @@ class _CrearTandaViewState extends State<_CrearTandaView> {
                 icon: const Icon(Icons.share_rounded, color: Colors.white, size: 18),
                 onPressed: () {
                   Navigator.of(ctx).pop();
-                  context.push(RouteNames.compartirCodigo, extra: tanda);
+                  // Reemplaza el formulario: al volver de compartir se llega a Mis tandas
+                  context.pushReplacement(RouteNames.compartirCodigo, extra: tanda);
                 },
               ),
               const SizedBox(height: 10),
               SizedBox(
                 width: double.infinity,
                 child: TextButton(
+                  key: const Key('btn_ir_mis_tandas'),
                   onPressed: () {
                     Navigator.of(ctx).pop();
-                    context.pop();
+                    // go() saca el formulario de la pila: "atrás" ya no regresa a él
+                    context.go(RouteNames.tandasOrganizador);
                   },
                   child: const Text('Ir a mis tandas'),
                 ),

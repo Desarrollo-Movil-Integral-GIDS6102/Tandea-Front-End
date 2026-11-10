@@ -33,4 +33,13 @@ abstract class PagoRepository {
   Future<Result<List<PagoEntity>>> getPagosByTanda(String tandaId);
 
   Future<Result<PagoEntity>> registrarPago(RegistrarPagoParams params);
+
+  /// `GET /pagos/:id`.
+  Future<Result<PagoEntity>> obtenerPago(int idPayment);
+
+  /// `PATCH /pagos/:id/confirmar` (organizador, AP-05).
+  Future<Result<PagoEntity>> confirmarPago(int idPayment);
+
+  /// `PATCH /pagos/:id/rechazar` con el [motivo] (5 a 500 caracteres).
+  Future<Result<PagoEntity>> rechazarPago(int idPayment, String motivo);
 }

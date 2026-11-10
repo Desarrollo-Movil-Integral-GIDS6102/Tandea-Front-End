@@ -240,7 +240,15 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 8),
+                  Center(
+                    child: TextButton(
+                      key: const Key('btn_olvide_password'),
+                      onPressed: () => context.push(RouteNames.recuperarPassword),
+                      child: const Text('¿Olvidaste tu contraseña?'),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
 
                   // Enlace a Registro
                   Wrap(

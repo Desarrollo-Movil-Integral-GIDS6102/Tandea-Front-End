@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:tandea/core/constants/app_colors.dart';
@@ -47,17 +48,19 @@ class RegistrarPagoScreen extends StatefulWidget {
 class _RegistrarPagoScreenState extends State<RegistrarPagoScreen> {
   final _transferenciaController = TextEditingController();
   final _efectivoController = TextEditingController();
+  late final _montoController =
+      TextEditingController(text: widget.args.cuota.toStringAsFixed(2));
 
   @override
   void dispose() {
     _transferenciaController.dispose();
     _efectivoController.dispose();
+    _montoController.dispose();
     super.dispose();
   }
 
   Future<void> _registrarPago() async {
-    final provider = context.read<PagoProvider>();
-    final registrado = await provider.registrarPago(
+    final registrado = await context.read<PagoProvider>().registrarPago(
       idNumber: widget.args.idNumber,
       cuota: widget.args.cuota,
     );
@@ -142,7 +145,12 @@ class _RegistrarPagoScreenState extends State<RegistrarPagoScreen> {
                       : 'Los dos montos deben sumar ${formatearMonedaMxn(args.cuota)}',
                 )
               else
-                _MontoFijo(metodo: metodo, cuota: args.cuota),
+                _MontoUnico(
+                  metodo: metodo,
+                  controller: _montoController,
+                  habilitado: !enviando,
+                  onChanged: provider.actualizarMontoUnico,
+                ),
               const SizedBox(height: 16),
               ComprobanteSelector(
                 requerido: metodo.requiereComprobante,
@@ -172,39 +180,34 @@ class _RegistrarPagoScreenState extends State<RegistrarPagoScreen> {
   }
 }
 
-/// Monto (igual a la cuota) para transferencia o efectivo.
-class _MontoFijo extends StatelessWidget {
+/// Monto para transferencia o efectivo; empieza con la cuota y se puede editar.
+class _MontoUnico extends StatelessWidget {
   final MetodoPago metodo;
-  final double cuota;
+  final TextEditingController controller;
+  final bool habilitado;
+  final ValueChanged<String> onChanged;
 
-  const _MontoFijo({required this.metodo, required this.cuota});
+  const _MontoUnico({
+    required this.metodo,
+    required this.controller,
+    required this.habilitado,
+    required this.onChanged,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final etiqueta =
-        metodo == MetodoPago.efectivo ? 'Monto en efectivo' : 'Monto por transferencia';
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.border),
+    return TextField(
+      key: const Key('campo_monto_unico'),
+      controller: controller,
+      enabled: habilitado,
+      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+      inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}'))],
+      decoration: InputDecoration(
+        labelText:
+            metodo == MetodoPago.efectivo ? 'Monto en efectivo' : 'Monto por transferencia',
+        prefixText: r'$ ',
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(etiqueta, style: const TextStyle(color: AppColors.textSecondary)),
-          Text(
-            formatearMonedaMxn(cuota),
-            key: const Key('monto_fijo'),
-            style: const TextStyle(
-              color: AppColors.textPrimary,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
+      onChanged: onChanged,
     );
   }
 }

@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:tandea/core/constants/api_constants.dart';
 import 'package:tandea/core/constants/app_constants.dart';
@@ -28,6 +29,10 @@ class AuthInterceptor extends Interceptor {
         options.headers['Authorization'] = 'Bearer $token';
       }
     }
+    // Fastify rechaza application/json sin cuerpo con "Body cannot be empty"
+    if (options.data == null) {
+      options.contentType = null;
+    }
     handler.next(options);
   }
 
@@ -36,8 +41,10 @@ class AuthInterceptor extends Interceptor {
     DioException err,
     ErrorInterceptorHandler handler,
   ) async {
-    // Manejo de error 401 (Sesión expirada o token no autorizado)
-    if (err.response?.statusCode == 401) {
+    // Manejo de error 401 (Sesión expirada o token no autorizado). Sin token enviado no hay
+    // sesión que cerrar: es el 401 de una contraseña incorrecta en el login.
+    if (err.response?.statusCode == 401 &&
+        err.requestOptions.headers.containsKey('Authorization')) {
       // 1. Limpiar token de sesión en almacenamiento seguro
       await storage.delete(key: tokenKey);
 
@@ -83,11 +90,13 @@ class ApiClient {
         tokenKey: tokenKey,
         onUnauthorized: onUnauthorized,
       ),
-      LogInterceptor(
-        requestBody: true,
-        responseBody: true,
-        error: true,
-      ),
+      // Solo en debug: el cuerpo incluye contraseñas y tokens.
+      if (kDebugMode)
+        LogInterceptor(
+          requestBody: true,
+          responseBody: true,
+          error: true,
+        ),
     ]);
   }
 

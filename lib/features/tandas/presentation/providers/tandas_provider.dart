@@ -72,23 +72,6 @@ class TandasProvider extends ChangeNotifier {
     }
   }
 
-  /// Alterna interactivamente el indicador de pago mock (Al día / Pendiente) para una tanda.
-  /// Facilita pruebas y demostración de estado de cobro/pago mientras no exista el endpoint de pagos.
-  void toggleIndicadorPagoMock(String idTanda) {
-    final index = _tandas.indexWhere((t) => t.id == idTanda);
-    if (index != -1) {
-      final actual = _tandas[index];
-      final nuevoEstado = actual.indicadorPago.esAlDia
-          ? IndicadorPago.pendiente
-          : IndicadorPago.alDia;
-
-      final updatedList = List<TandaEntity>.from(_tandas);
-      updatedList[index] = actual.copyWith(indicadorPago: nuevoEstado);
-      _tandas = updatedList;
-      notifyListeners();
-    }
-  }
-
   /// Consulta general de tandas (compatibilidad previa).
   Future<void> fetchTandas() async {
     _estado = EstadoCarga.cargando;

@@ -3,6 +3,7 @@ class RouteNames {
   static const String welcome = '/welcome';
   static const String login = '/login';
   static const String register = '/register';
+  static const String recuperarPassword = '/recuperar-password';
 
   static const String tandas = '/tandas';
   static const String tandasParticipante = '/tandas/participante';
@@ -11,15 +12,30 @@ class RouteNames {
   static const String unirseTanda = '/tandas/unirse';
   static const String seleccionarNumero = '/tandas/seleccionar-numero';
   static const String compartirCodigo = '/tandas/compartir';
-  static const String tandaDetail = '/tandas/:id';
+  static const String tandaDetail = '/tandas/detalle/:id';
+  static String tandaDetalle(String id) => '/tandas/detalle/$id';
+  static const String seguimientoTanda = '/tandas/:id/seguimiento';
+
+  static String seguimientoTandaDe(String idTanda) => '/tandas/$idTanda/seguimiento';
+  static const String historialTanda = '/tandas/:id/historial';
+  static String historialTandaDe(String idTanda) => '/tandas/$idTanda/historial';
 
   static const String pagos = '/pagos';
   static const String registrarPago = '/pagos/nuevo';
+  static const String revisarPago = '/pagos/:id/revisar';
+
+  static String revisarPagoDe(int idPayment) => '/pagos/$idPayment/revisar';
 
   static const String entregas = '/entregas';
+  static const String registrarEntrega = '/entregas/nueva';
   static const String entregaDetail = '/entregas/:id';
 
+  static String entregaDetalle(int idPayout) => '/entregas/$idPayout';
+
   static const String notificaciones = '/notificaciones';
+
+  static const String perfil = '/perfil';
+  static const String cambiarPassword = '/perfil/password';
 
   static const String admin = '/admin';
   static const String adminUsuarios = '/admin/usuarios';

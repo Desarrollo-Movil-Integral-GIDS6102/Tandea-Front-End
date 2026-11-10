@@ -4,17 +4,33 @@ import 'package:provider/provider.dart';
 import 'package:tandea/core/routes/route_names.dart';
 import 'package:tandea/features/admin/presentation/screens/admin_dashboard_screen.dart';
 import 'package:tandea/features/auth/presentation/providers/auth_session_provider.dart';
+import 'package:tandea/features/auth/presentation/providers/perfil_provider.dart';
+import 'package:tandea/features/auth/presentation/screens/cambiar_password_screen.dart';
+import 'package:tandea/features/auth/presentation/screens/perfil_screen.dart';
 import 'package:tandea/features/auth/presentation/screens/login_screen.dart';
 import 'package:tandea/features/auth/presentation/screens/register_screen.dart';
 import 'package:tandea/features/auth/presentation/screens/welcome_screen.dart';
+import 'package:tandea/features/entregas/presentation/providers/entrega_provider.dart';
+import 'package:tandea/features/entregas/presentation/screens/confirmar_entrega_screen.dart';
+import 'package:tandea/features/entregas/presentation/screens/registrar_entrega_screen.dart';
 import 'package:tandea/features/pagos/presentation/providers/pago_provider.dart';
+import 'package:tandea/features/pagos/presentation/providers/revisar_pago_provider.dart';
 import 'package:tandea/features/pagos/presentation/screens/registrar_pago_screen.dart';
+import 'package:tandea/features/pagos/presentation/screens/revisar_pago_screen.dart';
 import 'package:tandea/features/tandas/domain/entities/tanda_entity.dart';
 import 'package:tandea/features/tandas/presentation/screens/compartir_codigo_tanda_screen.dart';
 import 'package:tandea/features/tandas/presentation/screens/crear_tanda_screen.dart';
 import 'package:tandea/features/tandas/presentation/screens/mis_tandas_organizador_screen.dart';
 import 'package:tandea/features/tandas/presentation/screens/mis_tandas_participante_screen.dart';
+import 'package:tandea/features/tandas/presentation/providers/historial_tanda_provider.dart';
+import 'package:tandea/features/tandas/presentation/providers/seguimiento_tanda_provider.dart';
+import 'package:tandea/features/tandas/presentation/screens/historial_tanda_screen.dart';
+import 'package:tandea/features/tandas/presentation/screens/seguimiento_tanda_screen.dart';
+import 'package:tandea/features/tandas/presentation/providers/tanda_detalle_provider.dart';
+import 'package:tandea/features/tandas/presentation/providers/tandas_provider.dart';
 import 'package:tandea/features/tandas/presentation/screens/seleccionar_numero_screen.dart';
+import 'package:tandea/features/tandas/presentation/screens/tanda_detalle_screen.dart';
+import 'package:tandea/features/notificaciones/presentation/screens/notificaciones_screen.dart';
 import 'package:tandea/features/tandas/presentation/screens/tandas_navigation_screen.dart';
 import 'package:tandea/features/tandas/presentation/screens/unirse_tanda_screen.dart';
 import 'package:tandea/injection/injection.dart';
@@ -26,6 +42,15 @@ class AppRouter {
     redirect: (context, state) {
       final session = sl<AuthSessionProvider>();
       final loc = state.matchedLocation;
+
+      // Sin sesión (nunca inició o el token venció) solo hay pantallas públicas
+      if (!session.isAuthenticated &&
+          loc != RouteNames.welcome &&
+          loc != RouteNames.login &&
+          loc != RouteNames.register &&
+          loc != RouteNames.recuperarPassword) {
+        return RouteNames.welcome;
+      }
 
       // Si el usuario ya está autenticado e intenta acceder a login o registro, redirigir
       if (session.isAuthenticated) {
@@ -71,8 +96,11 @@ class AppRouter {
             routes: [
               GoRoute(
                 path: RouteNames.tandasParticipante,
-                builder: (context, state) =>
-                    const MisTandasParticipanteScreen(),
+                // Cada pestaña con su propia lista; compartida, una pisaba a la otra
+                builder: (context, state) => ChangeNotifierProvider(
+                  create: (_) => sl<TandasProvider>(),
+                  child: const MisTandasParticipanteScreen(),
+                ),
               ),
             ],
           ),
@@ -80,8 +108,21 @@ class AppRouter {
             routes: [
               GoRoute(
                 path: RouteNames.tandasOrganizador,
-                builder: (context, state) =>
-                    const MisTandasOrganizadorScreen(),
+                builder: (context, state) => ChangeNotifierProvider(
+                  create: (_) => sl<TandasProvider>(),
+                  child: const MisTandasOrganizadorScreen(),
+                ),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: RouteNames.perfil,
+                builder: (context, state) => ChangeNotifierProvider(
+                  create: (_) => sl<PerfilProvider>()..cargar(),
+                  child: const PerfilScreen(),
+                ),
               ),
             ],
           ),
@@ -116,6 +157,36 @@ class AppRouter {
       ),
 
 
+      // Olvidé mi contraseña (sin sesión)
+      GoRoute(
+        path: RouteNames.recuperarPassword,
+        builder: (context, state) => ChangeNotifierProvider(
+          create: (_) => sl<PerfilProvider>(),
+          child: const CambiarPasswordScreen(recuperar: true),
+        ),
+      ),
+
+      // Cambiar contraseña con código de 6 dígitos enviado por correo
+      GoRoute(
+        path: RouteNames.cambiarPassword,
+        builder: (context, state) => ChangeNotifierProvider(
+          create: (_) => sl<PerfilProvider>(),
+          child: CambiarPasswordScreen(correo: state.extra as String?),
+        ),
+      ),
+
+      // Detalle de Tanda (participante y organizador, solo lectura)
+      GoRoute(
+        path: RouteNames.tandaDetail,
+        builder: (context, state) {
+          final id = state.pathParameters['id']!;
+          return ChangeNotifierProvider(
+            create: (_) => sl<TandaDetalleProvider>()..cargar(id),
+            child: TandaDetalleScreen(idTanda: id),
+          );
+        },
+      ),
+
       // Compartir Código de Tanda
       GoRoute(
         path: RouteNames.compartirCodigo,
@@ -145,6 +216,36 @@ class AppRouter {
       ),
 
       // Flujo del Administrador Global
+      // Panel de seguimiento de pagos de la vuelta. `extra` opcional: nombre de la tanda.
+      GoRoute(
+        path: RouteNames.seguimientoTanda,
+        builder: (context, state) {
+          final extra = state.extra;
+          return ChangeNotifierProvider<SeguimientoTandaProvider>(
+            create: (_) => sl<SeguimientoTandaProvider>(),
+            child: SeguimientoTandaScreen(
+              idTanda: state.pathParameters['id']!,
+              nombreTanda: extra is TandaEntity ? extra.nombre : null,
+            ),
+          );
+        },
+      ),
+
+      // Historial de pagos y cobros de la tanda (AP-09). `extra` opcional: la tanda.
+      GoRoute(
+        path: RouteNames.historialTanda,
+        builder: (context, state) {
+          final extra = state.extra;
+          return ChangeNotifierProvider<HistorialTandaProvider>(
+            create: (_) => sl<HistorialTandaProvider>(),
+            child: HistorialTandaScreen(
+              idTanda: state.pathParameters['id']!,
+              nombreTanda: extra is TandaEntity ? extra.nombre : null,
+            ),
+          );
+        },
+      ),
+
       GoRoute(
         path: RouteNames.admin,
         builder: (context, state) => const AdminDashboardScreen(),
@@ -161,20 +262,37 @@ class AppRouter {
       ),
 
       // Registrar Pago (AP-03). Recibe RegistrarPagoArgs por `extra`.
-      // TODO: SP-2-[FE-CAL] Navegar aquí desde el detalle de la tanda con el número del usuario.
+      // Navegar a la pantalla de registrar pago (AP-03 & AP-04)
       GoRoute(
         path: RouteNames.registrarPago,
         builder: (context, state) {
           final extra = state.extra;
-          if (extra is RegistrarPagoArgs) {
-            return ChangeNotifierProvider<PagoProvider>(
-              create: (_) => sl<PagoProvider>(),
-              child: RegistrarPagoScreen(args: extra),
-            );
-          }
-          return const _PlaceholderScreen(
-            title: 'Registrar pago',
-            mensaje: 'Abre esta pantalla desde tu tanda para registrar el pago de tu turno.',
+          final args = extra is RegistrarPagoArgs
+              ? extra
+              : const RegistrarPagoArgs(
+                  nombreTanda: 'Tanda de prueba',
+                  idNumber: 1,
+                  cuota: 1500,
+                  numeroTurno: 1,
+                  vuelta: 1,
+                );
+          return ChangeNotifierProvider<PagoProvider>(
+            create: (_) => sl<PagoProvider>(),
+            child: RegistrarPagoScreen(args: args),
+          );
+        },
+      ),
+
+      // Revisar pago (AP-05). `extra` opcional: RevisarPagoArgs.
+      GoRoute(
+        path: RouteNames.revisarPago,
+        builder: (context, state) {
+          final extra = state.extra;
+          final idPayment = int.tryParse(state.pathParameters['id'] ?? '') ?? 0;
+          final args = extra is RevisarPagoArgs ? extra : RevisarPagoArgs(idPayment: idPayment);
+          return ChangeNotifierProvider<RevisarPagoProvider>(
+            create: (_) => sl<RevisarPagoProvider>(param1: args.pago),
+            child: RevisarPagoScreen(args: args),
           );
         },
       ),
@@ -189,10 +307,27 @@ class AppRouter {
         builder: (context, state) =>
             const _PlaceholderScreen(title: 'Entregas'),
       ),
+      // Va antes de `/entregas/:id` para que "nueva" no se tome como un id
+      GoRoute(
+        path: RouteNames.registrarEntrega,
+        builder: (context, state) => ChangeNotifierProvider(
+          create: (_) => sl<EntregaProvider>(),
+          child: RegistrarEntregaScreen(args: state.extra! as RegistrarEntregaArgs),
+        ),
+      ),
+      GoRoute(
+        path: RouteNames.entregaDetail,
+        builder: (context, state) {
+          final id = int.parse(state.pathParameters['id']!);
+          return ChangeNotifierProvider(
+            create: (_) => sl<EntregaProvider>()..cargar(id),
+            child: ConfirmarEntregaScreen(idPayout: id),
+          );
+        },
+      ),
       GoRoute(
         path: RouteNames.notificaciones,
-        builder: (context, state) =>
-            const _PlaceholderScreen(title: 'Notificaciones'),
+        builder: (context, state) => const NotificacionesScreen(),
       ),
     ],
     errorBuilder: (context, state) => Scaffold(
@@ -206,11 +341,11 @@ class AppRouter {
 
 class _PlaceholderScreen extends StatelessWidget {
   final String title;
-  final String mensaje;
+
 
   const _PlaceholderScreen({
     required this.title,
-    this.mensaje = 'Pantalla en desarrollo bajo Clean Architecture',
+
   });
 
   @override
@@ -226,9 +361,12 @@ class _PlaceholderScreen extends StatelessWidget {
               style: Theme.of(context).textTheme.headlineSmall,
             ),
             const SizedBox(height: 16),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Text(mensaje, textAlign: TextAlign.center),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 24),
+              child: Text(
+                'Pantalla en desarrollo bajo Clean Architecture',
+                textAlign: TextAlign.center,
+              ),
             ),
           ],
         ),

@@ -67,11 +67,33 @@ El módulo de Tandas orquesta la creación, configuración financiera, invitaci�
   * **Número Muerto**: Reservado para fondo de garantía (inhabilitado).
 * **Protección de concurrencia**: Si otro participante toma el número milisegundos antes, el backend responde HTTP 409 Conflict y la pantalla refresca la cuadrícula solicitando una nueva selección.
 
+### 8. `SeguimientoTandaScreen` (`seguimiento_tanda_screen.dart`)
+* **Ruta en GoRouter**: `/tandas/:id/seguimiento` (acceso desde el ícono de seguimiento en la tarjeta del organizador).
+* **Propósito**: Panel de quién pagó y quién no en la vuelta actual.
+* **Componentes**:
+  * Tarjeta de progreso: vuelta actual, `LinearProgressIndicator` y "X de N pagos confirmados" (solo cuenta pagos `CONFIRMADO`).
+  * `TabBar` Todos / Pagados / Pendientes / Atrasados con conteo; el filtrado lo hace `SeguimientoTandaProvider.cambiarFiltro`.
+  * Cada fila (`ParticipanteSeguimientoItem`) usa un `Selector` sobre su posición en la lista filtrada.
+* **Respuesta esperada de `GET /tandas/:id/seguimiento`** (se acepta envuelta en `data`):
+  ```json
+  {
+    "tanda": { "idTanda": 7, "name": "Tanda Oficina", "numRounds": 3, "contributionAmount": "1000.00" },
+    "vueltaActual": 2,
+    "participantes": [
+      { "idNumber": 11, "numberValue": 1, "nombre": "Ana López", "isDeadNumber": false,
+        "estadoPago": "PAGADO", "idPayment": 45, "montoPagado": "1000.00", "fechaPago": "2026-10-20T10:00:00Z" }
+    ]
+  }
+  ```
+  `idPayment` (opcional) permite abrir "Revisar pago" al tocar la fila.
+  `estadoPago`: `PAGADO` | `PENDIENTE` | `ATRASADO`. Si no viene, se usa `pago.status` (`CONFIRMADO` = pagado; `PENDIENTE`/`RECHAZADO` = pendiente).
+
 ---
 
 ## 🔗 Endpoints del Backend Vinculados (`Tandea-Back-End`)
 
 * **`POST /api/v1/tandas`**: Crea tanda, calcula el plan financiero y genera el `inviteCode` criptográfico único.
 * **`POST /api/v1/tandas/unirse`**: Valida código de invitación, cupos y añade al participante.
+* **`GET /api/v1/tandas/:id/seguimiento`**: Estado de pago de cada turno en la vuelta actual (panel de seguimiento).
 * **`PATCH /api/v1/tandas/:id/numero`**: Reserva y asigna un número específico de cobro para el participante.
 * **`GET /api/v1/tandas`**: Consulta listados con filtros por rol (`participante` u `organizador`).

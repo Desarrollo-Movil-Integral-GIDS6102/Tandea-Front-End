@@ -41,6 +41,31 @@ class FakePagoRepository implements PagoRepository {
   @override
   Future<Result<List<PagoEntity>>> getPagosByTanda(String tandaId) async => const Success([]);
 
+  /// Respuestas de `obtenerPago` y de `confirmarPago` / `rechazarPago`.
+  Result<PagoEntity> resultadoObtener = const Success(pagoRegistradoDePrueba);
+  Result<PagoEntity> resultadoRevision = const Success(pagoRegistradoDePrueba);
+
+  /// Si se asigna, confirmar y rechazar esperan a que se complete.
+  Completer<Result<PagoEntity>>? revisionPendiente;
+
+  final List<int> confirmaciones = [];
+  final List<(int, String)> rechazos = [];
+
+  @override
+  Future<Result<PagoEntity>> obtenerPago(int idPayment) async => resultadoObtener;
+
+  @override
+  Future<Result<PagoEntity>> confirmarPago(int idPayment) {
+    confirmaciones.add(idPayment);
+    return revisionPendiente?.future ?? Future.value(resultadoRevision);
+  }
+
+  @override
+  Future<Result<PagoEntity>> rechazarPago(int idPayment, String motivo) {
+    rechazos.add((idPayment, motivo));
+    return revisionPendiente?.future ?? Future.value(resultadoRevision);
+  }
+
   @override
   Future<Result<PagoEntity>> registrarPago(RegistrarPagoParams params) {
     llamadas.add(params);

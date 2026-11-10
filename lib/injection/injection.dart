@@ -1,26 +1,54 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get_it/get_it.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:tandea/core/network/api_client.dart';
 import 'package:tandea/core/network/dio_client.dart';
 import 'package:tandea/core/network/server_health_service.dart';
 import 'package:tandea/core/services/share_service.dart';
 import 'package:tandea/features/auth/data/datasources/auth_remote_data_source.dart';
 import 'package:tandea/features/auth/data/repositories/auth_repository_impl.dart';
+import 'package:tandea/features/auth/data/repositories/perfil_repository_impl.dart';
 import 'package:tandea/features/auth/domain/repositories/auth_repository.dart';
+import 'package:tandea/features/auth/domain/repositories/perfil_repository.dart';
 import 'package:tandea/features/auth/presentation/providers/auth_provider.dart';
 import 'package:tandea/features/auth/presentation/providers/auth_session_provider.dart';
+import 'package:tandea/features/auth/presentation/providers/perfil_provider.dart';
+import 'package:tandea/features/entregas/data/repositories/entrega_repository_impl.dart';
+import 'package:tandea/features/entregas/domain/repositories/entrega_repository.dart';
+import 'package:tandea/features/entregas/presentation/providers/entrega_provider.dart';
 import 'package:tandea/features/pagos/data/datasources/pago_remote_data_source.dart';
 import 'package:tandea/features/pagos/data/repositories/pago_repository_impl.dart';
+import 'package:tandea/features/pagos/data/services/comprobante_service_impl.dart';
+import 'package:tandea/features/pagos/data/services/image_compressor_service.dart';
+import 'package:tandea/features/pagos/data/services/permission_service.dart';
+import 'package:tandea/features/pagos/domain/entities/pago_entity.dart';
 import 'package:tandea/features/pagos/domain/repositories/pago_repository.dart';
+import 'package:tandea/features/pagos/domain/services/comprobante_service.dart';
+import 'package:tandea/features/pagos/domain/usecases/seleccionar_comprobante_usecase.dart';
 import 'package:tandea/features/pagos/presentation/providers/pago_provider.dart';
+import 'package:tandea/features/pagos/presentation/providers/revisar_pago_provider.dart';
 import 'package:tandea/features/tandas/data/datasources/tandas_remote_data_source.dart';
+import 'package:tandea/features/tandas/data/repositories/calendario_tanda_repository_impl.dart';
+import 'package:tandea/features/tandas/data/repositories/historial_tanda_repository_impl.dart';
 import 'package:tandea/features/tandas/data/repositories/tandas_repository_impl.dart';
+import 'package:tandea/features/tandas/domain/repositories/calendario_tanda_repository.dart';
+import 'package:tandea/features/tandas/domain/repositories/historial_tanda_repository.dart';
 import 'package:tandea/features/tandas/domain/repositories/tandas_repository.dart';
 import 'package:tandea/features/tandas/domain/usecases/crear_tanda_usecase.dart';
+import 'package:tandea/features/tandas/domain/usecases/obtener_historial_tanda_usecase.dart';
+import 'package:tandea/features/tandas/domain/usecases/obtener_seguimiento_tanda_usecase.dart';
 import 'package:tandea/features/tandas/domain/usecases/obtener_tanda_por_codigo_usecase.dart';
 import 'package:tandea/features/tandas/domain/usecases/unirse_tanda_usecase.dart';
 import 'package:tandea/features/tandas/presentation/providers/crear_tanda_provider.dart';
+import 'package:tandea/core/routes/app_router.dart';
+import 'package:tandea/features/notificaciones/data/repositories/notificacion_repository_impl.dart';
+import 'package:tandea/features/notificaciones/data/services/push_service.dart';
+import 'package:tandea/features/notificaciones/domain/repositories/notificacion_repository.dart';
+import 'package:tandea/features/notificaciones/presentation/providers/notificacion_provider.dart';
+import 'package:tandea/features/tandas/presentation/providers/historial_tanda_provider.dart';
+import 'package:tandea/features/tandas/presentation/providers/seguimiento_tanda_provider.dart';
+import 'package:tandea/features/tandas/presentation/providers/tanda_detalle_provider.dart';
 import 'package:tandea/features/tandas/presentation/providers/tandas_provider.dart';
 import 'package:tandea/features/tandas/presentation/providers/unirse_tanda_provider.dart';
 
@@ -39,7 +67,10 @@ Future<void> initDependencies() async {
   // 2. Red y Cliente HTTP
   // ----------------------------------------------------
   sl.registerLazySingleton<ApiClient>(
-    () => ApiClient(storage: sl<FlutterSecureStorage>()),
+    () => ApiClient(
+      storage: sl<FlutterSecureStorage>(),
+      onUnauthorized: () => sl<AuthProvider>().handleUnauthorized(),
+    ),
   );
 
   // Instancia de Dio subyacente de ApiClient
@@ -61,6 +92,28 @@ Future<void> initDependencies() async {
   sl.registerLazySingleton<ShareService>(
     () => ShareServiceImpl(),
   );
+
+  // Servicios de captura, permisos y compresión de comprobantes (AP-04)
+  sl.registerLazySingleton<ImagePicker>(
+    () => ImagePicker(),
+  );
+
+  sl.registerLazySingleton<ImageCompressorService>(
+    () => FlutterImageCompressorServiceImpl(),
+  );
+
+  sl.registerLazySingleton<PermissionService>(
+    () => PermissionServiceImpl(),
+  );
+
+  sl.registerLazySingleton<ComprobanteService>(
+    () => ComprobanteServiceImpl(
+      imagePicker: sl<ImagePicker>(),
+      compressorService: sl<ImageCompressorService>(),
+      permissionService: sl<PermissionService>(),
+    ),
+  );
+
   // ----------------------------------------------------
   // 3. DataSources
   // ----------------------------------------------------
@@ -92,6 +145,30 @@ Future<void> initDependencies() async {
     ),
   );
 
+  sl.registerLazySingleton<HistorialTandaRepository>(
+    () => HistorialTandaRepositoryImpl(
+      remoteDataSource: sl<TandasRemoteDataSource>(),
+    ),
+  );
+
+  sl.registerLazySingleton<CalendarioTandaRepository>(
+    () => CalendarioTandaRepositoryImpl(
+      remoteDataSource: sl<TandasRemoteDataSource>(),
+    ),
+  );
+
+  sl.registerLazySingleton<PerfilRepository>(
+    () => PerfilRepositoryImpl(apiClient: sl<ApiClient>()),
+  );
+
+  sl.registerLazySingleton<EntregaRepository>(
+    () => EntregaRepositoryImpl(apiClient: sl<ApiClient>()),
+  );
+
+  sl.registerLazySingleton<NotificacionRepository>(
+    () => NotificacionRepositoryImpl(apiClient: sl<ApiClient>()),
+  );
+
   sl.registerLazySingleton<PagoRepository>(
     () => PagoRepositoryImpl(
       remoteDataSource: sl<PagoRemoteDataSource>(),
@@ -113,6 +190,18 @@ Future<void> initDependencies() async {
     () => UnirseTandaUseCase(repository: sl<TandasRepository>()),
   );
 
+  sl.registerLazySingleton<ObtenerSeguimientoTandaUseCase>(
+    () => ObtenerSeguimientoTandaUseCase(repository: sl<TandasRepository>()),
+  );
+
+  sl.registerLazySingleton<ObtenerHistorialTandaUseCase>(
+    () => ObtenerHistorialTandaUseCase(repository: sl<HistorialTandaRepository>()),
+  );
+
+  sl.registerLazySingleton<SeleccionarComprobanteUseCase>(
+    () => SeleccionarComprobanteUseCase(comprobanteService: sl<ComprobanteService>()),
+  );
+
   // ----------------------------------------------------
   // 6. Providers / State Management
   // ----------------------------------------------------
@@ -121,7 +210,7 @@ Future<void> initDependencies() async {
     () => AuthSessionProvider(),
   );
 
-  sl.registerFactory<AuthProvider>(
+  sl.registerLazySingleton<AuthProvider>(
     () => AuthProvider(
       authRepository: sl<AuthRepository>(),
       sessionProvider: sl<AuthSessionProvider>(),
@@ -130,6 +219,17 @@ Future<void> initDependencies() async {
 
   sl.registerFactory<TandasProvider>(
     () => TandasProvider(tandasRepository: sl<TandasRepository>()),
+  );
+
+  sl.registerFactory<PerfilProvider>(
+    () => PerfilProvider(perfilRepository: sl<PerfilRepository>()),
+  );
+
+  sl.registerFactory<TandaDetalleProvider>(
+    () => TandaDetalleProvider(
+      tandasRepository: sl<TandasRepository>(),
+      calendarioRepository: sl<CalendarioTandaRepository>(),
+    ),
   );
 
   sl.registerFactory<CrearTandaProvider>(
@@ -143,10 +243,52 @@ Future<void> initDependencies() async {
     ),
   );
 
-  sl.registerFactory<PagoProvider>(
-    () => PagoProvider(pagoRepository: sl<PagoRepository>()),
+  sl.registerFactory<HistorialTandaProvider>(
+    () => HistorialTandaProvider(
+      obtenerHistorialUseCase: sl<ObtenerHistorialTandaUseCase>(),
+    ),
   );
 
+  sl.registerFactory<SeguimientoTandaProvider>(
+    () => SeguimientoTandaProvider(
+      obtenerSeguimientoUseCase: sl<ObtenerSeguimientoTandaUseCase>(),
+    ),
+  );
+
+  // Recibe el pago ya conocido (si lo hay) para mostrarlo mientras se refresca.
+  sl.registerFactoryParam<RevisarPagoProvider, PagoEntity?, void>(
+    (pagoInicial, _) => RevisarPagoProvider(
+      pagoRepository: sl<PagoRepository>(),
+      pagoInicial: pagoInicial,
+    ),
+  );
+
+  sl.registerFactory<EntregaProvider>(
+    () => EntregaProvider(entregaRepository: sl<EntregaRepository>()),
+  );
+
+  // Singleton: la campana del AppBar y la bandeja comparten el contador de no leídas
+  sl.registerLazySingleton<NotificacionProvider>(
+    () => NotificacionProvider(notificacionRepository: sl<NotificacionRepository>()),
+  );
+
+  sl.registerLazySingleton<PushService>(
+    () => PushService(
+      router: AppRouter.router,
+      bandeja: sl<NotificacionProvider>(),
+      tokenSync: TokenFcmSync(
+        repositorio: sl<NotificacionRepository>(),
+        sesion: sl<AuthSessionProvider>(),
+      ),
+    ),
+  );
+
+  sl.registerFactory<PagoProvider>(
+    () => PagoProvider(
+      pagoRepository: sl<PagoRepository>(),
+      seleccionarComprobanteUseCase: sl<SeleccionarComprobanteUseCase>(),
+    ),
+  );
 }
 
 /// Alias para conveniencia

@@ -1,3 +1,4 @@
+import 'package:tandea/features/tandas/domain/entities/numero_tanda.dart';
 import 'package:tandea/features/tandas/domain/entities/tanda_entity.dart';
 
 /// Modelo DTO para la serialización y deserialización de tandas.
@@ -11,6 +12,7 @@ class TandaModel extends TandaEntity {
     required super.estado,
     super.inviteCode,
     super.startDate,
+    super.endDate,
     super.graceDays,
     super.hasDeadNumber,
     super.idTandaType,
@@ -18,34 +20,23 @@ class TandaModel extends TandaEntity {
     super.rolUsuario,
     super.idNumberUsuario,
     super.numeroTurnoUsuario,
+    super.numeros,
+    super.misNumeros,
+    super.numerosDisponibles,
   });
 
-  static IndicadorPago _parseIndicadorPago(dynamic raw, String id, String status) {
-    if (raw != null) {
-      final s = raw.toString().toLowerCase();
-      if (s.contains('pendiente') || s == 'pending' || s == 'unpaid') {
-        return IndicadorPago.pendiente;
-      }
-      if (s.contains('dia') || s == 'paid' || s == 'aldia') {
-        return IndicadorPago.alDia;
-      }
-    }
-    // Mock mientras no exista el endpoint de pagos:
-    if (status.toUpperCase() == 'FINALIZADA' || status.toUpperCase() == 'CANCELADA') {
-      return IndicadorPago.alDia;
-    }
-    final seed = (id.isNotEmpty ? id.hashCode : 0).abs();
-    return seed % 2 == 1 ? IndicadorPago.pendiente : IndicadorPago.alDia;
+  /// El backend manda `indicadorPago: 'al_dia' | 'pendiente'` en el listado de tandas.
+  static IndicadorPago _parseIndicadorPago(dynamic raw) {
+    final s = raw?.toString().toLowerCase() ?? '';
+    return s.contains('pendiente') || s == 'pending' || s == 'unpaid'
+        ? IndicadorPago.pendiente
+        : IndicadorPago.alDia;
   }
 
   factory TandaModel.fromJson(Map<String, dynamic> json) {
     final id = (json['id'] ?? json['idTanda'] ?? json['_id'] ?? '').toString();
     final estado = (json['estado'] ?? json['status'] ?? 'activa').toString();
-    final indicador = _parseIndicadorPago(
-      json['indicadorPago'] ?? json['estadoPago'],
-      id,
-      estado,
-    );
+    final indicador = _parseIndicadorPago(json['indicadorPago'] ?? json['estadoPago']);
     final miNumero = json['miNumero'];
 
     return TandaModel(
@@ -53,10 +44,11 @@ class TandaModel extends TandaEntity {
       nombre: (json['nombre'] ?? json['name'] ?? '').toString(),
       monto: ((json['monto'] ?? json['contributionAmount'] ?? json['amount'] ?? 0) as num).toDouble(),
       totalParticipantes: ((json['totalParticipantes'] ?? json['numParticipants'] ?? json['participantesCount'] ?? 0) as num).toInt(),
-      periodo: (json['periodo'] ?? json['period'] ?? 'quincenal').toString(),
+      periodo: (json['periodo'] ?? json['periodicity'] ?? json['period'] ?? 'quincenal').toString(),
       estado: estado,
       inviteCode: json['inviteCode']?.toString(),
       startDate: json['startDate']?.toString(),
+      endDate: json['endDate']?.toString(),
       graceDays: (json['graceDays'] as num?)?.toInt(),
       hasDeadNumber: json['hasDeadNumber'] as bool?,
       idTandaType: (json['idTandaType'] as num?)?.toInt(),
@@ -64,6 +56,11 @@ class TandaModel extends TandaEntity {
       rolUsuario: json['rolUsuario']?.toString(),
       idNumberUsuario: miNumero is Map ? (miNumero['idNumber'] as num?)?.toInt() : null,
       numeroTurnoUsuario: miNumero is Map ? (miNumero['numberValue'] as num?)?.toInt() : null,
+      numeros: NumeroTanda.listFromJson(json['participantes']),
+      misNumeros: NumeroTanda.listFromJson(json['misNumeros']),
+      numerosDisponibles: (json['numerosDisponibles'] as List?)
+          ?.map((n) => (n as num).toInt())
+          .toList(),
     );
   }
 

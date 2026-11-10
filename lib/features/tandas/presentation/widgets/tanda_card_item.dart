@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:provider/provider.dart';
 import 'package:tandea/core/constants/app_colors.dart';
 import 'package:tandea/core/routes/route_names.dart';
 import 'package:tandea/features/pagos/presentation/screens/registrar_pago_screen.dart';
 import 'package:tandea/features/tandas/domain/entities/tanda_entity.dart';
-import 'package:tandea/features/tandas/presentation/providers/tandas_provider.dart';
 
 /// Tarjeta optimizada de tanda para `ListView.builder`.
 ///
@@ -24,6 +22,15 @@ class TandaCardItem extends StatelessWidget {
   });
 
   bool get isOrganizador => rol == 'organizador' || rol == 'dueno';
+
+  void _navegarAccion(BuildContext context) {
+    if (onTap != null) {
+      onTap!();
+      return;
+    }
+    // El pago se hace desde el detalle, con el id_number real de cada número
+    context.push(RouteNames.tandaDetalle(tanda.id));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -47,12 +54,7 @@ class TandaCardItem extends StatelessWidget {
       color: AppColors.surfaceLight,
       child: InkWell(
         borderRadius: BorderRadius.circular(20),
-        onTap: onTap ??
-            () {
-              if (isOrganizador && (tanda.inviteCode != null && tanda.inviteCode!.isNotEmpty)) {
-                context.push(RouteNames.compartirCodigo, extra: tanda);
-              }
-            },
+        onTap: () => _navegarAccion(context),
         child: Padding(
           padding: const EdgeInsets.all(18.0),
           child: Column(
@@ -171,36 +173,46 @@ class TandaCardItem extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // Chip de Indicador de Pago (Mock mientras no exista el endpoint de pagos)
-                  GestureDetector(
-                    onTap: () {
-                      // Permite al usuario/evaluador alternar el mock de pago interactivamente
-                      context.read<TandasProvider>().toggleIndicadorPagoMock(tanda.id);
-                    },
-                    child: _buildIndicadorPagoChip(tanda.indicadorPago, tanda.id),
-                  ),
+                  // Chip de Indicador de Pago (calculado por el backend)
+                  _buildIndicadorPagoChip(tanda.indicadorPago, tanda.id),
 
                   // Botón de acción según el rol
                   if (isOrganizador)
-                    OutlinedButton.icon(
-                      key: Key('btn_compartir_${tanda.id}'),
-                      onPressed: () {
-                        context.push(RouteNames.compartirCodigo, extra: tanda);
-                      },
-                      icon: const Icon(Icons.share_rounded, size: 16),
-                      label: const Text('Compartir', style: TextStyle(fontSize: 12.5)),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.primary,
-                        side: const BorderSide(color: AppColors.primary),
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        minimumSize: Size.zero,
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          key: Key('btn_seguimiento_${tanda.id}'),
+                          tooltip: 'Seguimiento de pagos',
+                          onPressed: () {
+                            context.push(RouteNames.seguimientoTandaDe(tanda.id), extra: tanda);
+                          },
+                          icon: const Icon(Icons.fact_check_outlined, size: 20),
+                          color: AppColors.primary,
+                          visualDensity: VisualDensity.compact,
                         ),
-                      ),
+                        OutlinedButton.icon(
+                          key: Key('btn_compartir_${tanda.id}'),
+                          onPressed: () {
+                            context.push(RouteNames.compartirCodigo, extra: tanda);
+                          },
+                          icon: const Icon(Icons.share_rounded, size: 16),
+                          label: const Text('Compartir', style: TextStyle(fontSize: 12.5)),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.primary,
+                            side: const BorderSide(color: AppColors.primary),
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                        ),
+                      ],
                     )
-                  else if (tanda.idNumberUsuario != null)
+                  // Los pagos se habilitan cuando el organizador inicia la tanda
+                  else if (tanda.idNumberUsuario != null && tanda.esActiva)
                     // Acceso mínimo a "Registrar pago" mientras llega el detalle de la tanda (SP-3)
                     FilledButton.icon(
                       key: Key('btn_pagar_${tanda.id}'),
@@ -231,16 +243,7 @@ class TandaCardItem extends StatelessWidget {
                   else
                     TextButton.icon(
                       key: Key('btn_detalle_${tanda.id}'),
-                      onPressed: onTap ??
-                          () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('Tanda "${tanda.nombre}" seleccionada.'),
-                                duration: const Duration(seconds: 1),
-                                behavior: SnackBarBehavior.floating,
-                              ),
-                            );
-                          },
+                      onPressed: () => _navegarAccion(context),
                       icon: const Icon(Icons.visibility_outlined, size: 16),
                       label: const Text('Ver detalle', style: TextStyle(fontSize: 12.5)),
                       style: TextButton.styleFrom(
@@ -270,11 +273,11 @@ class TandaCardItem extends StatelessWidget {
             color: AppColors.textSecondaryLight,
           ),
         ),
-        const SizedBox(height: 2),
+        const SizedBox(height: 3),
         Text(
           value,
           style: TextStyle(
-            fontSize: 14,
+            fontSize: 13.5,
             fontWeight: FontWeight.bold,
             color: isHighlight ? AppColors.primary : AppColors.textPrimaryLight,
           ),

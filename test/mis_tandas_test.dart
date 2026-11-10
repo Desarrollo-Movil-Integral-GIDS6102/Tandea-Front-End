@@ -1,12 +1,16 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:tandea/core/errors/failures.dart';
+import 'package:tandea/core/routes/route_names.dart';
 import 'package:tandea/core/utils/result.dart';
 import 'package:tandea/features/auth/presentation/providers/auth_provider.dart';
 import 'package:tandea/features/pagos/presentation/screens/registrar_pago_screen.dart';
 import 'package:tandea/features/tandas/data/models/tanda_model.dart';
+import 'package:tandea/features/tandas/domain/entities/seguimiento_tanda.dart';
 import 'package:tandea/features/tandas/domain/entities/tanda_entity.dart';
 import 'package:tandea/features/tandas/domain/entities/unirse_tanda_result.dart';
 import 'package:tandea/features/tandas/domain/repositories/tandas_repository.dart';
@@ -16,6 +20,13 @@ import 'package:tandea/features/tandas/presentation/screens/mis_tandas_organizad
 import 'package:tandea/features/tandas/presentation/screens/mis_tandas_participante_screen.dart';
 import 'package:tandea/features/tandas/presentation/widgets/mis_tandas_list_view.dart';
 import 'package:tandea/features/tandas/presentation/widgets/tanda_card_item.dart';
+
+import 'package:tandea/features/notificaciones/presentation/providers/notificacion_provider.dart';
+import 'notificacion_repository_fake.dart';
+import 'tandas_repository_fake.dart';
+
+NotificacionProvider _notificaciones() =>
+    NotificacionProvider(notificacionRepository: NotificacionRepositoryFake());
 
 class MockTandasRepository implements TandasRepository {
   Result<List<TandaEntity>>? getMisTandasResult;
@@ -86,6 +97,9 @@ class MockTandasRepository implements TandasRepository {
       ));
 
   @override
+  Future<Result<TandaEntity>> iniciarTanda(String id) async => getTandaById(id);
+
+  @override
   Future<Result<UnirseTandaResult>> joinTanda(JoinTandaParams params) async =>
       const Success(UnirseTandaResult(
         tanda: TandaEntity(
@@ -98,6 +112,10 @@ class MockTandasRepository implements TandasRepository {
         ),
         numeroAsignado: 1,
       ));
+
+  @override
+  Future<Result<SeguimientoTanda>> getSeguimiento(String idTanda) async =>
+      const Error(ServerFailure('No implementado'));
 }
 
 void main() {
@@ -145,18 +163,6 @@ void main() {
       expect(provider.estado, equals(EstadoCarga.error));
       expect(provider.errorMessage, equals('Error al consultar mis tandas'));
       expect(provider.tandas, isEmpty);
-    });
-
-    test('toggleIndicadorPagoMock alterna interactivamente entre al día y pendiente', () async {
-      await provider.fetchMisTandas(rol: 'participante');
-
-      expect(provider.obtenerTandaEn(0).indicadorPago, equals(IndicadorPago.alDia));
-
-      provider.toggleIndicadorPagoMock('1');
-      expect(provider.obtenerTandaEn(0).indicadorPago, equals(IndicadorPago.pendiente));
-
-      provider.toggleIndicadorPagoMock('1');
-      expect(provider.obtenerTandaEn(0).indicadorPago, equals(IndicadorPago.alDia));
     });
 
     test('obtenerTandaEn lanza RangeError si el índice está fuera de rango', () {
@@ -357,8 +363,11 @@ void main() {
     testWidgets('MisTandasParticipanteScreen contiene FloatingActionButton para unirse', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
-          home: ChangeNotifierProvider<TandasProvider>.value(
-            value: provider,
+          home: MultiProvider(
+            providers: [
+              ChangeNotifierProvider<TandasProvider>.value(value: provider),
+              ChangeNotifierProvider(create: (_) => _notificaciones()),
+            ],
             child: const MisTandasParticipanteScreen(),
           ),
         ),
@@ -372,8 +381,11 @@ void main() {
     testWidgets('MisTandasOrganizadorScreen contiene FloatingActionButton para crear tanda', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
-          home: ChangeNotifierProvider<TandasProvider>.value(
-            value: provider,
+          home: MultiProvider(
+            providers: [
+              ChangeNotifierProvider<TandasProvider>.value(value: provider),
+              ChangeNotifierProvider(create: (_) => _notificaciones()),
+            ],
             child: const MisTandasOrganizadorScreen(),
           ),
         ),
@@ -382,6 +394,35 @@ void main() {
 
       expect(find.text('Mis tandas (organizador)'), findsOneWidget);
       expect(find.byKey(const Key('fab_nueva_tanda')), findsOneWidget);
+    });
+  });
+
+  group('BUG-A2 - Mis tandas se recarga al volver a la pantalla', () {
+    testWidgets('recarga la lista al regresar de otra pantalla', (tester) async {
+      final repo = TandasRepositoryFake();
+      final router = GoRouter(
+        initialLocation: RouteNames.tandasOrganizador,
+        routes: [
+          GoRoute(
+            path: RouteNames.tandasOrganizador,
+            builder: (_, _) => ChangeNotifierProvider(
+              create: (_) => TandasProvider(tandasRepository: repo),
+              child: const Scaffold(body: MisTandasListView(rol: 'organizador')),
+            ),
+          ),
+          GoRoute(path: RouteNames.crearTanda, builder: (_, _) => const Scaffold(body: Text('FORM'))),
+        ],
+      );
+      await tester.pumpWidget(MaterialApp.router(routerConfig: router));
+      await tester.pumpAndSettle();
+      expect(repo.llamadasMisTandas, 1);
+
+      unawaited(router.push(RouteNames.crearTanda));
+      await tester.pumpAndSettle();
+      router.pop();
+      await tester.pumpAndSettle();
+
+      expect(repo.llamadasMisTandas, 2);
     });
   });
 }

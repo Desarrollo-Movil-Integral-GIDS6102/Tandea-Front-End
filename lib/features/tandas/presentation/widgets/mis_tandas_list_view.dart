@@ -22,9 +22,44 @@ class MisTandasListView extends StatefulWidget {
 }
 
 class _MisTandasListViewState extends State<MisTandasListView> {
+  GoRouterDelegate? _routerDelegate;
+  bool _visible = true;
+
+  String get _miRuta => widget.rol == 'organizador' || widget.rol == 'dueno'
+      ? RouteNames.tandasOrganizador
+      : RouteNames.tandasParticipante;
+
   @override
   void initState() {
     super.initState();
+    _cargar();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // La pestaña sigue viva en el shell: se recarga cada vez que el usuario vuelve a ella
+    final delegate = GoRouter.maybeOf(context)?.routerDelegate;
+    if (delegate != _routerDelegate) {
+      _routerDelegate?.removeListener(_alCambiarRuta);
+      _routerDelegate = delegate?..addListener(_alCambiarRuta);
+    }
+  }
+
+  @override
+  void dispose() {
+    _routerDelegate?.removeListener(_alCambiarRuta);
+    super.dispose();
+  }
+
+  void _alCambiarRuta() {
+    // uri no cambia con push(); la última ruta coincidente sí
+    final visible = _routerDelegate?.currentConfiguration.lastOrNull?.matchedLocation == _miRuta;
+    if (visible && !_visible) _cargar();
+    _visible = visible;
+  }
+
+  void _cargar() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       try {
