@@ -106,16 +106,14 @@ class CalendarioTanda extends Equatable {
           esNumeroMuerto: esMuerto,
           nombreUsuario: esMuerto ? 'Número muerto (caja)' : registro?.userName,
           fechaCobro: _formatearIso(fecha),
-          montoAEsperar: esMuerto ? 0 : montoTurno,
+          montoAEsperar: montoTurno,
         ),
       );
     }
 
-    final inicioPagos = _sumarPeriodos(inicioBase, periodicidad, tieneMuerto ? 1 : 0);
-
     return CalendarioTanda(
       idTanda: tanda.id,
-      fechaInicioPagos: _formatearIso(inicioPagos),
+      fechaInicioPagos: _formatearIso(inicioBase),
       turnos: turnos,
     );
   }
