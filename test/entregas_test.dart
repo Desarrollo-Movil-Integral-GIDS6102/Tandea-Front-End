@@ -109,6 +109,57 @@ void main() {
       expect(find.textContaining('deben sumar'), findsOneWidget);
     });
 
+    testWidgets('con cuotas no confirmadas se entrega el monto descontado y se explica el descuento',
+        (tester) async {
+      const conDescuento = RegistrarEntregaArgs(
+        idNumber: 5,
+        numero: 1,
+        nombreReceptor: 'Ana',
+        total: 200,
+        totalTurno: 300,
+        cuotasNoConfirmadas: 1,
+      );
+      // Con error para no depender de GoRouter al cerrar la pantalla tras registrar
+      repo.resultado = const Error(ServerFailure('x', statusCode: 409));
+      provider.seleccionarEvidencia(evidencia);
+      await pump(tester, const RegistrarEntregaScreen(args: conDescuento));
+
+      expect(find.text('Monto a entregar: \$200.00'), findsOneWidget);
+      expect(find.byKey(const Key('entrega_descuento')), findsOneWidget);
+      expect(find.textContaining('1 cuota no confirmada'), findsOneWidget);
+      // El formulario ya viene con $200 y la suma es válida
+      expect(boton(tester).onPressed, isNotNull);
+
+      await tester.tap(find.byKey(const Key('btn_registrar_entrega')));
+      await tester.pumpAndSettle();
+
+      expect(repo.transferencia, 200);
+    });
+
+    testWidgets('sin descuento no se muestra la explicación', (tester) async {
+      await pump(tester, const RegistrarEntregaScreen(args: args));
+
+      expect(find.byKey(const Key('entrega_descuento')), findsNothing);
+      expect(find.byKey(const Key('entrega_bloqueada')), findsNothing);
+    });
+
+    testWidgets('un turno bloqueado muestra el motivo y no deja registrar', (tester) async {
+      const bloqueada = RegistrarEntregaArgs(
+        idNumber: 5,
+        numero: 1,
+        nombreReceptor: 'Ana',
+        total: 100,
+        totalTurno: 300,
+        cuotasNoConfirmadas: 2,
+        motivoBloqueo: 'El turno está en riesgo: faltan pagos por regularizar.',
+      );
+      provider.seleccionarEvidencia(evidencia);
+      await pump(tester, const RegistrarEntregaScreen(args: bloqueada));
+
+      expect(find.byKey(const Key('entrega_bloqueada')), findsOneWidget);
+      expect(boton(tester).onPressed, isNull);
+    });
+
     testWidgets('muestra el error del backend y conserva el formulario', (tester) async {
       repo.resultado = const Error(ServerFailure('Aún no es el turno del número #1', statusCode: 409));
       provider.seleccionarEvidencia(evidencia);
