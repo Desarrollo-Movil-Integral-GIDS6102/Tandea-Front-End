@@ -80,7 +80,7 @@ void main() {
     };
 
     test('lee el monto a entregar con el descuento por cuotas no confirmadas', () {
-      final modelo = SeguimientoTandaModel.fromJson({
+      final modelo = SeguimientoTandaModel.fromJson(const {
         ...base,
         'turnoVigente': {
           'idNumber': 7,
@@ -106,7 +106,7 @@ void main() {
     });
 
     test('un turno bloqueado explica por qué no se puede entregar', () {
-      final modelo = SeguimientoTandaModel.fromJson({
+      final modelo = SeguimientoTandaModel.fromJson(const {
         ...base,
         'turnoVigente': {
           'idNumber': 7,
@@ -121,7 +121,7 @@ void main() {
     });
 
     test('sin ningún pago confirmado no hay nada que entregar', () {
-      final modelo = SeguimientoTandaModel.fromJson({
+      final modelo = SeguimientoTandaModel.fromJson(const {
         ...base,
         'turnoVigente': {'idNumber': 7, 'numberValue': 1, 'totalTurno': 300, 'montoAEntregar': 0},
       });
@@ -131,7 +131,7 @@ void main() {
 
     test('si el backend no manda turnoVigente (o es null) queda en null', () {
       expect(SeguimientoTandaModel.fromJson(base).turnoVigente, isNull);
-      expect(SeguimientoTandaModel.fromJson({...base, 'turnoVigente': null}).turnoVigente, isNull);
+      expect(SeguimientoTandaModel.fromJson(const {...base, 'turnoVigente': null}).turnoVigente, isNull);
     });
   });
 
