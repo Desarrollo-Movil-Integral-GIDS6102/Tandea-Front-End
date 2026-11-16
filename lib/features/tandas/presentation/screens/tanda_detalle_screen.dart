@@ -49,13 +49,27 @@ class TandaDetalleScreen extends StatelessWidget {
   }
 
   Future<void> _registrarEntrega(BuildContext context, TandaEntity tanda, NumeroTanda numero) async {
+    final totalCompleto = tanda.monto * tanda.totalParticipantes;
+
+    // El backend descuenta las cuotas no confirmadas: se le pregunta cuánto se entrega hoy.
+    // Si el seguimiento no responde, se ofrece el total y el backend valida al enviar.
+    final seguimiento = await context.read<TandaDetalleProvider>().tandasRepository.getSeguimiento(idTanda);
+    final turno = seguimiento.when(
+      success: (s) => s.turnoVigente?.idNumber == numero.idNumber ? s.turnoVigente : null,
+      failure: (_) => null,
+    );
+    if (!context.mounted) return;
+
     await context.push(
       RouteNames.registrarEntrega,
       extra: RegistrarEntregaArgs(
         idNumber: numero.idNumber,
         numero: numero.numberValue,
         nombreReceptor: numero.userName ?? 'Participante',
-        total: tanda.monto * tanda.totalParticipantes,
+        total: turno?.montoAEntregar ?? totalCompleto,
+        totalTurno: turno?.totalTurno ?? totalCompleto,
+        cuotasNoConfirmadas: turno?.cuotasNoConfirmadas ?? 0,
+        motivoBloqueo: turno?.motivoBloqueo,
       ),
     );
     if (context.mounted) await _recargar(context);

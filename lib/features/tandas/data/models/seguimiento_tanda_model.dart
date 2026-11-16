@@ -12,6 +12,7 @@ class SeguimientoTandaModel extends SeguimientoTanda {
     required super.cuota,
     required super.participantes,
     super.totalVueltas,
+    super.turnoVigente,
   });
 
   static double _toDouble(dynamic raw) {
@@ -63,6 +64,21 @@ class SeguimientoTandaModel extends SeguimientoTanda {
     );
   }
 
+  /// `turnoVigente` de la respuesta; null si falta o no trae el monto a entregar.
+  static TurnoVigenteSeguimiento? turnoVigenteFromJson(dynamic raw) {
+    if (raw is! Map<String, dynamic> || raw['montoAEntregar'] == null) return null;
+    return TurnoVigenteSeguimiento(
+      idNumber: _toIntOrNull(raw['idNumber']) ?? 0,
+      numeroTurno: _toIntOrNull(raw['numberValue']) ?? 0,
+      estadoTurno: raw['estadoTurno']?.toString() ?? 'PENDIENTE',
+      totalTurno: _toDouble(raw['totalTurno']),
+      descuento: _toDouble(raw['descuento']),
+      montoAEntregar: _toDouble(raw['montoAEntregar']),
+      cuotasNoConfirmadas: _toIntOrNull(raw['cuotasNoConfirmadas']) ?? 0,
+      bloqueado: raw['bloqueado'] == true,
+    );
+  }
+
   factory SeguimientoTandaModel.fromJson(Map<String, dynamic> json) {
     final tanda = json['tanda'] is Map<String, dynamic> ? json['tanda'] as Map<String, dynamic> : json;
     final rawLista = json['participantes'] ?? json['numeros'] ?? json['numbers'];
@@ -79,6 +95,7 @@ class SeguimientoTandaModel extends SeguimientoTanda {
       totalVueltas: _toIntOrNull(json['totalVueltas'] ?? tanda['numRounds'] ?? tanda['num_rounds']),
       cuota: _toDouble(json['cuota'] ?? tanda['contributionAmount'] ?? tanda['contribution_amount']),
       participantes: participantes,
+      turnoVigente: turnoVigenteFromJson(json['turnoVigente']),
     );
   }
 }

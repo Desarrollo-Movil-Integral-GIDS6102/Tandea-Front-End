@@ -75,6 +75,64 @@ class ParticipanteSeguimiento extends Equatable {
       ];
 }
 
+/// El turno que se está cobrando y cuánto se le entregaría hoy a su dueño (AP-10).
+///
+/// El backend descuenta del total del turno las cuotas que no están confirmadas.
+class TurnoVigenteSeguimiento extends Equatable {
+  final int idNumber;
+  final int numeroTurno;
+
+  /// `PENDIENTE`, `EN_RIESGO`, `ENTREGA_PENDIENTE_CONFIRMACION` o `ENTREGADO`.
+  final String estadoTurno;
+
+  /// Lo que se juntaría si todos hubieran pagado.
+  final double totalTurno;
+
+  /// Lo que se descuenta por las cuotas no confirmadas.
+  final double descuento;
+
+  /// Lo que realmente se entrega: es el monto que el backend exige al registrar la entrega.
+  final double montoAEntregar;
+  final int cuotasNoConfirmadas;
+
+  /// true si la entrega no se puede registrar hasta regularizar los pagos que faltan.
+  final bool bloqueado;
+
+  const TurnoVigenteSeguimiento({
+    required this.idNumber,
+    required this.numeroTurno,
+    required this.totalTurno,
+    required this.montoAEntregar,
+    this.estadoTurno = 'PENDIENTE',
+    this.descuento = 0,
+    this.cuotasNoConfirmadas = 0,
+    this.bloqueado = false,
+  });
+
+  /// Mensaje para el organizador cuando la entrega no se puede registrar todavía; null si sí.
+  String? get motivoBloqueo {
+    if (bloqueado) {
+      return 'El turno está en riesgo: faltan pagos por regularizar antes de registrar la entrega.';
+    }
+    if (montoAEntregar <= 0) {
+      return 'Aún no hay pagos confirmados para entregar en este turno.';
+    }
+    return null;
+  }
+
+  @override
+  List<Object?> get props => [
+        idNumber,
+        numeroTurno,
+        estadoTurno,
+        totalTurno,
+        descuento,
+        montoAEntregar,
+        cuotasNoConfirmadas,
+        bloqueado,
+      ];
+}
+
 /// Respuesta de `GET /tandas/:id/seguimiento`: quién pagó y quién no en la vuelta actual.
 class SeguimientoTanda extends Equatable {
   final String idTanda;
@@ -84,6 +142,9 @@ class SeguimientoTanda extends Equatable {
   final double cuota;
   final List<ParticipanteSeguimiento> participantes;
 
+  /// null si ya se entregaron todos los turnos o si el backend no lo manda.
+  final TurnoVigenteSeguimiento? turnoVigente;
+
   const SeguimientoTanda({
     required this.idTanda,
     required this.nombreTanda,
@@ -91,6 +152,7 @@ class SeguimientoTanda extends Equatable {
     required this.cuota,
     required this.participantes,
     this.totalVueltas,
+    this.turnoVigente,
   });
 
   int contar(EstadoPagoSeguimiento estado) =>
@@ -109,5 +171,6 @@ class SeguimientoTanda extends Equatable {
         totalVueltas,
         cuota,
         participantes,
+        turnoVigente,
       ];
 }

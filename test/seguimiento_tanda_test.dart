@@ -71,6 +71,70 @@ SeguimientoTandaProvider crearProvider(FakeSeguimientoRepository repo) => Seguim
     );
 
 void main() {
+  group('SeguimientoTandaModel.fromJson: turnoVigente (AP-10)', () {
+    const base = <String, dynamic>{
+      'tanda': {'idTanda': 3, 'name': 'Oficina', 'numRounds': 1, 'contributionAmount': 100},
+      'vueltaActual': 1,
+      'cuota': 100,
+      'participantes': <dynamic>[],
+    };
+
+    test('lee el monto a entregar con el descuento por cuotas no confirmadas', () {
+      final modelo = SeguimientoTandaModel.fromJson(const {
+        ...base,
+        'turnoVigente': {
+          'idNumber': 7,
+          'numberValue': 1,
+          'estadoTurno': 'EN_RIESGO',
+          'totalTurno': 300,
+          'descuento': 100,
+          'montoAEntregar': 200,
+          'cuotasNoConfirmadas': 1,
+          'bloqueado': false,
+        },
+      });
+
+      final turno = modelo.turnoVigente!;
+      expect(turno.idNumber, 7);
+      expect(turno.numeroTurno, 1);
+      expect(turno.estadoTurno, 'EN_RIESGO');
+      expect(turno.totalTurno, 300);
+      expect(turno.descuento, 100);
+      expect(turno.montoAEntregar, 200);
+      expect(turno.cuotasNoConfirmadas, 1);
+      expect(turno.motivoBloqueo, isNull);
+    });
+
+    test('un turno bloqueado explica por qué no se puede entregar', () {
+      final modelo = SeguimientoTandaModel.fromJson(const {
+        ...base,
+        'turnoVigente': {
+          'idNumber': 7,
+          'numberValue': 1,
+          'totalTurno': 300,
+          'montoAEntregar': 100,
+          'bloqueado': true,
+        },
+      });
+
+      expect(modelo.turnoVigente!.motivoBloqueo, contains('en riesgo'));
+    });
+
+    test('sin ningún pago confirmado no hay nada que entregar', () {
+      final modelo = SeguimientoTandaModel.fromJson(const {
+        ...base,
+        'turnoVigente': {'idNumber': 7, 'numberValue': 1, 'totalTurno': 300, 'montoAEntregar': 0},
+      });
+
+      expect(modelo.turnoVigente!.motivoBloqueo, contains('Aún no hay pagos confirmados'));
+    });
+
+    test('si el backend no manda turnoVigente (o es null) queda en null', () {
+      expect(SeguimientoTandaModel.fromJson(base).turnoVigente, isNull);
+      expect(SeguimientoTandaModel.fromJson(const {...base, 'turnoVigente': null}).turnoVigente, isNull);
+    });
+  });
+
   group('SeguimientoTandaModel.fromJson', () {
     test('lee la vuelta actual y el estado de cada participante', () {
       final modelo = SeguimientoTandaModel.fromJson(const {
