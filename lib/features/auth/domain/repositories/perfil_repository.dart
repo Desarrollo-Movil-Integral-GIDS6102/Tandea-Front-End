@@ -21,6 +21,9 @@ abstract class PerfilRepository {
     required String nuevaPassword,
   });
 
+  /// Elimina definitivamente la cuenta del usuario autenticado (pide su contraseña).
+  Future<Result<String>> eliminarCuenta(String password);
+
   /// Olvidé mi contraseña (sin sesión): envía el código al correo si está registrado.
   Future<Result<String>> recuperarPassword(String email);
 
