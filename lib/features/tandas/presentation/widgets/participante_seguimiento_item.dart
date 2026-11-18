@@ -33,6 +33,108 @@ class ParticipanteSeguimientoItem extends StatelessWidget {
   }
 }
 
+/// Fila especial con tarjeta verde para el "Número Muerto" en el panel de seguimiento (AP-10).
+class TarjetaNumeroMuertoSeguimiento extends StatelessWidget {
+  final NumeroMuertoSeguimiento numeroMuerto;
+  final Key? cardKey;
+
+  const TarjetaNumeroMuertoSeguimiento({
+    super.key,
+    required this.numeroMuerto,
+    this.cardKey,
+  });
+
+  String get _detalle {
+    if (numeroMuerto.pagosCubiertos > 0) {
+      final etiquetaPagos = numeroMuerto.pagosCubiertos == 1 ? 'pago' : 'pagos';
+      return 'Cubrió ${numeroMuerto.pagosCubiertos} $etiquetaPagos · ${formatearMonedaMxn(numeroMuerto.montoCubierto)}';
+    }
+    return 'Fondo de respaldo · Se cobra al final de la vuelta';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    const colorVerde = AppColors.success;
+    const fondoVerde = Color(0xFFECFDF5);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
+      child: Material(
+        key: cardKey ?? const Key('fila_numero_muerto_seguimiento'),
+        color: fondoVerde,
+        elevation: 1.5,
+        shadowColor: Colors.black26,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(color: colorVerde.withValues(alpha: 0.45)),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Container(
+          decoration: const BoxDecoration(
+            border: Border(left: BorderSide(color: colorVerde, width: 5)),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+          child: Row(
+            children: [
+              CircleAvatar(
+                radius: 22,
+                backgroundColor: colorVerde.withValues(alpha: 0.16),
+                child: Text(
+                  '#${numeroMuerto.numeroTurno}',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 13.5,
+                    color: colorVerde,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Row(
+                      children: [
+                        Icon(Icons.shield_rounded, size: 16, color: colorVerde),
+                        SizedBox(width: 5),
+                        Flexible(
+                          child: Text(
+                            'Número Muerto',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w800,
+                              color: colorVerde,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      _detalle,
+                      style: const TextStyle(
+                        fontSize: 12.5,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              ChipEstadoTurno(
+                key: Key('chip_estado_turno_${numeroMuerto.idNumber}'),
+                estado: numeroMuerto.estadoTurnoChip,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _FilaParticipante extends StatelessWidget {
   final ParticipanteSeguimiento participante;
 
@@ -40,7 +142,12 @@ class _FilaParticipante extends StatelessWidget {
 
   String get _detalle {
     if (participante.isDeadNumber) {
-      return 'Número muerto';
+      return 'Número Muerto · Fondo de respaldo';
+    }
+    if (participante.cubiertoPorNumeroMuerto) {
+      return participante.montoPagado > 0
+          ? 'Cubierto por número muerto · ${formatearMonedaMxn(participante.montoPagado)}'
+          : 'Cubierto por número muerto';
     }
     if (participante.estadoPago == EstadoPagoSeguimiento.pagado) {
       final monto = participante.montoPagado > 0
@@ -76,18 +183,25 @@ class _FilaParticipante extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = colorEstadoPago(participante.estadoPago);
+    final esMuerto = participante.isDeadNumber;
+    final color = esMuerto
+        ? AppColors.success
+        : colorEstadoPago(participante.estadoPago);
+    final colorFondo = esMuerto ? const Color(0xFFECFDF5) : AppColors.surface;
+    final colorBorde = esMuerto
+        ? AppColors.success.withValues(alpha: 0.45)
+        : AppColors.border;
     final idPayment = participante.idPayment;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
       child: Material(
-        color: AppColors.surface,
+        color: colorFondo,
         elevation: 1.5,
         shadowColor: Colors.black26,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
-          side: const BorderSide(color: AppColors.border),
+          side: BorderSide(color: colorBorde),
         ),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
@@ -101,14 +215,14 @@ class _FilaParticipante extends StatelessWidget {
               border: Border(left: BorderSide(color: color, width: 5)),
             ),
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
-            child: _contenido(color, idPayment != null),
+            child: _contenido(color, idPayment != null, esMuerto),
           ),
         ),
       ),
     );
   }
 
-  Widget _contenido(Color color, bool revisable) {
+  Widget _contenido(Color color, bool revisable, bool esMuerto) {
     return Row(
       children: [
         CircleAvatar(
@@ -128,15 +242,31 @@ class _FilaParticipante extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                participante.nombre,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary,
-                ),
+              Row(
+                children: [
+                  if (esMuerto) ...[
+                    const Icon(
+                      Icons.shield_rounded,
+                      size: 16,
+                      color: AppColors.success,
+                    ),
+                    const SizedBox(width: 5),
+                  ],
+                  Flexible(
+                    child: Text(
+                      esMuerto ? 'Número Muerto' : participante.nombre,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: esMuerto
+                            ? AppColors.success
+                            : AppColors.textPrimary,
+                      ),
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 3),
               Text(
@@ -153,7 +283,14 @@ class _FilaParticipante extends StatelessWidget {
         Column(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            ChipEstadoPago(estado: participante.estadoPago),
+            if (!esMuerto) ...[
+              ChipEstadoPago(estado: participante.estadoPago),
+              const SizedBox(height: 4),
+            ],
+            ChipEstadoTurno(
+              key: Key('chip_estado_turno_${participante.idNumber}'),
+              estado: participante.estadoTurnoChip,
+            ),
             if (revisable) ...[
               const SizedBox(height: 4),
               const Text(
@@ -176,6 +313,12 @@ Color colorEstadoPago(EstadoPagoSeguimiento estado) => switch (estado) {
   EstadoPagoSeguimiento.pagado => AppColors.success,
   EstadoPagoSeguimiento.pendiente => AppColors.warning,
   EstadoPagoSeguimiento.atrasado => AppColors.error,
+};
+
+Color colorEstadoTurno(EstadoTurnoSeguimiento estado) => switch (estado) {
+  EstadoTurnoSeguimiento.alDia => AppColors.success,
+  EstadoTurnoSeguimiento.enRiesgo => AppColors.error,
+  EstadoTurnoSeguimiento.cubierto => AppColors.primary,
 };
 
 class ChipEstadoPago extends StatelessWidget {
@@ -208,6 +351,47 @@ class ChipEstadoPago extends StatelessWidget {
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Chip que muestra el estado del turno: `Al día`, `En riesgo` o `Cubierto` (AP-10).
+class ChipEstadoTurno extends StatelessWidget {
+  final EstadoTurnoSeguimiento estado;
+
+  const ChipEstadoTurno({super.key, required this.estado});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = colorEstadoTurno(estado);
+    final icono = switch (estado) {
+      EstadoTurnoSeguimiento.alDia => Icons.verified_rounded,
+      EstadoTurnoSeguimiento.enRiesgo => Icons.warning_amber_rounded,
+      EstadoTurnoSeguimiento.cubierto => Icons.shield_rounded,
+    };
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icono, size: 13, color: color),
+          const SizedBox(width: 4),
+          Text(
+            estado.etiqueta,
+            style: TextStyle(
+              fontSize: 11.5,
+              fontWeight: FontWeight.w700,
               color: color,
             ),
           ),

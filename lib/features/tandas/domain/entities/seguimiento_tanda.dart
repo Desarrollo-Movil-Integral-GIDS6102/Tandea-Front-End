@@ -34,7 +34,42 @@ enum EstadoPagoSeguimiento {
       };
 }
 
-/// Un turno (`number`) de la vuelta actual con su estado de pago.
+/// Estado del turno en el panel de seguimiento (AP-10):
+///  - `alDia`: turno al corriente (`PENDIENTE`, `ENTREGA_PENDIENTE_CONFIRMACION`, `ENTREGADO`, `AL_DIA`).
+///  - `enRiesgo`: faltan pagos tras la gracia y no hay número muerto disponible (`EN_RIESGO`).
+///  - `cubierto`: la cuota vencida fue cubierta por el número muerto (`cubiertoPorNumeroMuerto: true` o `CUBIERTO`).
+enum EstadoTurnoSeguimiento {
+  alDia,
+  enRiesgo,
+  cubierto;
+
+  static EstadoTurnoSeguimiento fromValores({
+    String? estadoTurno,
+    bool cubiertoPorNumeroMuerto = false,
+  }) {
+    if (cubiertoPorNumeroMuerto) {
+      return EstadoTurnoSeguimiento.cubierto;
+    }
+    switch (estadoTurno?.trim().toUpperCase()) {
+      case 'EN_RIESGO':
+      case 'RIESGO':
+        return EstadoTurnoSeguimiento.enRiesgo;
+      case 'CUBIERTO':
+      case 'CUBIERTO_POR_NUMERO_MUERTO':
+        return EstadoTurnoSeguimiento.cubierto;
+      default:
+        return EstadoTurnoSeguimiento.alDia;
+    }
+  }
+
+  String get etiqueta => switch (this) {
+        EstadoTurnoSeguimiento.alDia => 'Al día',
+        EstadoTurnoSeguimiento.enRiesgo => 'En riesgo',
+        EstadoTurnoSeguimiento.cubierto => 'Cubierto',
+      };
+}
+
+/// Un turno (`number`) de la vuelta actual con su estado de pago y estado de turno.
 class ParticipanteSeguimiento extends Equatable {
   final int idNumber;
 
@@ -43,6 +78,12 @@ class ParticipanteSeguimiento extends Equatable {
   final String nombre;
   final bool isDeadNumber;
   final EstadoPagoSeguimiento estadoPago;
+
+  /// Estado del turno en backend (`PENDIENTE`, `EN_RIESGO`, `ENTREGA_PENDIENTE_CONFIRMACION`, `ENTREGADO`).
+  final String estadoTurno;
+
+  /// true si su cuota la cubrió el número muerto porque no pagó a tiempo (AP-10).
+  final bool cubiertoPorNumeroMuerto;
 
   /// Pago registrado en la vuelta (para abrir "Revisar pago"); null si no hay.
   final int? idPayment;
@@ -57,10 +98,18 @@ class ParticipanteSeguimiento extends Equatable {
     required this.nombre,
     required this.estadoPago,
     this.isDeadNumber = false,
+    this.estadoTurno = 'PENDIENTE',
+    this.cubiertoPorNumeroMuerto = false,
     this.idPayment,
     this.montoPagado = 0,
     this.fechaPago,
   });
+
+  /// Chip de estado del turno (`Al día`, `En riesgo` o `Cubierto`).
+  EstadoTurnoSeguimiento get estadoTurnoChip => EstadoTurnoSeguimiento.fromValores(
+        estadoTurno: estadoTurno,
+        cubiertoPorNumeroMuerto: cubiertoPorNumeroMuerto,
+      );
 
   @override
   List<Object?> get props => [
@@ -69,9 +118,44 @@ class ParticipanteSeguimiento extends Equatable {
         nombre,
         isDeadNumber,
         estadoPago,
+        estadoTurno,
+        cubiertoPorNumeroMuerto,
         idPayment,
         montoPagado,
         fechaPago,
+      ];
+}
+
+/// El número muerto de la tanda: su estado y cuánto ha cubierto (AP-10).
+class NumeroMuertoSeguimiento extends Equatable {
+  final int idNumber;
+  final int numeroTurno;
+  final String estadoTurno;
+  final int pagosCubiertos;
+  final double montoCubierto;
+
+  const NumeroMuertoSeguimiento({
+    required this.idNumber,
+    this.numeroTurno = 0,
+    this.estadoTurno = 'PENDIENTE',
+    this.pagosCubiertos = 0,
+    this.montoCubierto = 0,
+  });
+
+  bool get fueUsado => pagosCubiertos > 0 || montoCubierto > 0;
+
+  EstadoTurnoSeguimiento get estadoTurnoChip => EstadoTurnoSeguimiento.fromValores(
+        estadoTurno: estadoTurno,
+        cubiertoPorNumeroMuerto: fueUsado,
+      );
+
+  @override
+  List<Object?> get props => [
+        idNumber,
+        numeroTurno,
+        estadoTurno,
+        pagosCubiertos,
+        montoCubierto,
       ];
 }
 
@@ -145,6 +229,9 @@ class SeguimientoTanda extends Equatable {
   /// null si ya se entregaron todos los turnos o si el backend no lo manda.
   final TurnoVigenteSeguimiento? turnoVigente;
 
+  /// null si la tanda no tiene número muerto.
+  final NumeroMuertoSeguimiento? numeroMuerto;
+
   const SeguimientoTanda({
     required this.idTanda,
     required this.nombreTanda,
@@ -153,6 +240,7 @@ class SeguimientoTanda extends Equatable {
     required this.participantes,
     this.totalVueltas,
     this.turnoVigente,
+    this.numeroMuerto,
   });
 
   int contar(EstadoPagoSeguimiento estado) =>
@@ -172,5 +260,6 @@ class SeguimientoTanda extends Equatable {
         cuota,
         participantes,
         turnoVigente,
+        numeroMuerto,
       ];
 }

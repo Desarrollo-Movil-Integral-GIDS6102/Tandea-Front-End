@@ -132,6 +132,12 @@ class _CuerpoSeguimiento extends StatelessWidget {
         physics: const AlwaysScrollableScrollPhysics(),
         slivers: [
           const SliverToBoxAdapter(child: _ProgresoVuelta()),
+          if (provider.seguimiento?.numeroMuerto != null)
+            SliverToBoxAdapter(
+              child: TarjetaNumeroMuertoSeguimiento(
+                numeroMuerto: provider.seguimiento!.numeroMuerto!,
+              ),
+            ),
           if (cantidad == 0)
             SliverFillRemaining(
               hasScrollBody: false,
