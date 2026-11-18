@@ -14,8 +14,31 @@ class PerfilProvider extends ChangeNotifier {
   bool _enviandoCodigo = false;
   bool _codigoEnviado = false;
   bool _cambiandoPassword = false;
+  bool _eliminando = false;
   String? _errorMessage;
   String? _mensaje;
+
+  bool get eliminando => _eliminando;
+
+  /// Elimina la cuenta con la contraseña indicada. El llamador cierra la sesión si es `true`.
+  Future<bool> eliminarCuenta(String password) async {
+    if (_eliminando) return false;
+    _eliminando = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    final result = await perfilRepository.eliminarCuenta(password);
+    final ok = result.when(
+      success: (_) => true,
+      failure: (f) {
+        _errorMessage = f.message;
+        return false;
+      },
+    );
+    _eliminando = false;
+    notifyListeners();
+    return ok;
+  }
 
   UserEntity? get perfil => _perfil;
   bool get cargando => _cargando;
