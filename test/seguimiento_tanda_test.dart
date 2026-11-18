@@ -133,6 +133,66 @@ void main() {
       expect(SeguimientoTandaModel.fromJson(base).turnoVigente, isNull);
       expect(SeguimientoTandaModel.fromJson(const {...base, 'turnoVigente': null}).turnoVigente, isNull);
     });
+
+    test('lee numeroMuerto, estadoTurno y cubiertoPorNumeroMuerto de cada participante', () {
+      final modelo = SeguimientoTandaModel.fromJson(const {
+        'tanda': {'idTanda': 3, 'name': 'Oficina', 'numRounds': 1, 'contributionAmount': 100},
+        'vueltaActual': 1,
+        'cuota': 100,
+        'numeroMuerto': {
+          'idNumber': 100,
+          'numberValue': 0,
+          'estadoTurno': 'PENDIENTE',
+          'pagosCubiertos': 1,
+          'montoCubierto': 100,
+        },
+        'participantes': [
+          {
+            'idNumber': 11,
+            'numberValue': 1,
+            'nombre': 'Ana',
+            'estadoPago': 'CONFIRMADO',
+            'estadoTurno': 'PENDIENTE',
+            'cubiertoPorNumeroMuerto': false,
+          },
+          {
+            'idNumber': 12,
+            'numberValue': 2,
+            'nombre': 'Beto',
+            'estadoPago': 'VENCIDO',
+            'estadoTurno': 'EN_RIESGO',
+            'cubiertoPorNumeroMuerto': false,
+          },
+          {
+            'idNumber': 13,
+            'numberValue': 3,
+            'nombre': 'Carla',
+            'estadoPago': 'CONFIRMADO',
+            'estadoTurno': 'PENDIENTE',
+            'cubiertoPorNumeroMuerto': true,
+            'montoPagado': 100,
+          },
+        ],
+      });
+
+      expect(modelo.numeroMuerto, isNotNull);
+      expect(modelo.numeroMuerto!.idNumber, 100);
+      expect(modelo.numeroMuerto!.numeroTurno, 0);
+      expect(modelo.numeroMuerto!.pagosCubiertos, 1);
+      expect(modelo.numeroMuerto!.montoCubierto, 100);
+      expect(modelo.numeroMuerto!.fueUsado, isTrue);
+
+      expect(modelo.participantes[0].estadoTurnoChip, EstadoTurnoSeguimiento.alDia);
+      expect(modelo.participantes[0].estadoTurnoChip.etiqueta, 'Al día');
+
+      expect(modelo.participantes[1].estadoTurno, 'EN_RIESGO');
+      expect(modelo.participantes[1].estadoTurnoChip, EstadoTurnoSeguimiento.enRiesgo);
+      expect(modelo.participantes[1].estadoTurnoChip.etiqueta, 'En riesgo');
+
+      expect(modelo.participantes[2].cubiertoPorNumeroMuerto, isTrue);
+      expect(modelo.participantes[2].estadoTurnoChip, EstadoTurnoSeguimiento.cubierto);
+      expect(modelo.participantes[2].estadoTurnoChip.etiqueta, 'Cubierto');
+    });
   });
 
   group('SeguimientoTandaModel.fromJson', () {
@@ -333,6 +393,66 @@ void main() {
 
       expect(repo.consultas, ['7', '7']);
       expect(find.text('2 de 5 pagos confirmados'), findsOneWidget);
+    });
+
+    testWidgets('muestra la tarjeta verde de Número Muerto y los chips de estado del turno (Al día, En riesgo, Cubierto)', (tester) async {
+      tester.view.physicalSize = const Size(800, 1600);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+
+      const seguimientoConMuerto = SeguimientoTanda(
+        idTanda: '7',
+        nombreTanda: 'Tanda con Respaldo',
+        vueltaActual: 1,
+        totalVueltas: 1,
+        cuota: 500,
+        numeroMuerto: NumeroMuertoSeguimiento(
+          idNumber: 100,
+          numeroTurno: 0,
+          estadoTurno: 'PENDIENTE',
+          pagosCubiertos: 1,
+          montoCubierto: 500,
+        ),
+        participantes: [
+          ParticipanteSeguimiento(
+            idNumber: 10,
+            numeroTurno: 1,
+            nombre: 'Ana López',
+            estadoPago: EstadoPagoSeguimiento.pagado,
+            estadoTurno: 'PENDIENTE',
+            montoPagado: 500,
+          ),
+          ParticipanteSeguimiento(
+            idNumber: 20,
+            numeroTurno: 2,
+            nombre: 'Beto Ruiz',
+            estadoPago: EstadoPagoSeguimiento.atrasado,
+            estadoTurno: 'EN_RIESGO',
+          ),
+          ParticipanteSeguimiento(
+            idNumber: 30,
+            numeroTurno: 3,
+            nombre: 'Carla Díaz',
+            estadoPago: EstadoPagoSeguimiento.pagado,
+            estadoTurno: 'PENDIENTE',
+            cubiertoPorNumeroMuerto: true,
+            montoPagado: 500,
+          ),
+        ],
+      );
+
+      await abrirPanel(tester, const Success(seguimientoConMuerto));
+
+      expect(find.byKey(const Key('fila_numero_muerto_seguimiento')), findsOneWidget);
+      expect(find.text('Número Muerto'), findsOneWidget);
+      expect(find.textContaining('Cubrió 1 pago'), findsOneWidget);
+
+      expect(find.byKey(const Key('chip_estado_turno_10')), findsOneWidget);
+      expect(find.byKey(const Key('chip_estado_turno_20')), findsOneWidget);
+      expect(find.byKey(const Key('chip_estado_turno_30')), findsOneWidget);
+      expect(find.text('Al día'), findsOneWidget);
+      expect(find.text('En riesgo'), findsOneWidget);
+      expect(find.text('Cubierto'), findsNWidgets(2));
     });
   });
 }
