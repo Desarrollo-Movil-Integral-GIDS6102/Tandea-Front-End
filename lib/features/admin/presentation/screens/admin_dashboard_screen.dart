@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:fl_chart/fl_chart.dart';
@@ -7,20 +8,53 @@ import 'package:provider/provider.dart';
 import 'package:tandea/core/constants/app_colors.dart';
 import 'package:tandea/core/routes/route_names.dart';
 import 'package:tandea/core/utils/formato_moneda.dart';
+import 'package:tandea/features/admin/domain/entities/admin_disputa_entity.dart';
 import 'package:tandea/features/admin/domain/entities/admin_metricas_entity.dart';
+import 'package:tandea/features/admin/domain/entities/admin_usuario_entity.dart';
 import 'package:tandea/features/admin/presentation/providers/admin_provider.dart';
 import 'package:tandea/features/auth/presentation/providers/auth_session_provider.dart';
+import 'package:tandea/features/tandas/domain/entities/tanda_entity.dart';
 import 'package:tandea/injection/injection.dart';
 
 class AdminDashboardScreen extends StatefulWidget {
-  const AdminDashboardScreen({super.key});
+  final void Function(AdminDisputaEntity disputa)? onDisputaSelected;
+
+  const AdminDashboardScreen({
+    super.key,
+    this.onDisputaSelected,
+  });
 
   @override
   State<AdminDashboardScreen> createState() => _AdminDashboardScreenState();
 }
 
-class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
+class _AdminDashboardScreenState extends State<AdminDashboardScreen>
+    with SingleTickerProviderStateMixin {
   bool _cargaInicialRealizada = false;
+  late final TabController _tabController;
+  final TextEditingController _searchController = TextEditingController();
+  Timer? _debounceTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 3, vsync: this);
+    _tabController.addListener(_onTabChanged);
+  }
+
+  void _onTabChanged() {
+    final adminProvider = _obtenerAdminProvider(context, listen: false);
+    adminProvider?.setActiveTabIndex(_tabController.index);
+  }
+
+  @override
+  void dispose() {
+    _debounceTimer?.cancel();
+    _tabController.removeListener(_onTabChanged);
+    _tabController.dispose();
+    _searchController.dispose();
+    super.dispose();
+  }
 
   AuthSessionProvider? _obtenerSesion(BuildContext context) {
     try {
@@ -49,16 +83,108 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       final sesion = _obtenerSesion(context);
       final esAdmin = sesion?.isAdminGlobal ?? false;
       final adminProvider = _obtenerAdminProvider(context, listen: false);
-      if (esAdmin &&
-          adminProvider != null &&
-          adminProvider.metricas == null &&
-          !adminProvider.isLoadingMetricas) {
+      if (esAdmin && adminProvider != null) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted) {
-            adminProvider.cargarMetricas();
+            adminProvider.cargarTodo();
           }
         });
       }
+    }
+  }
+
+  void _onSearchChanged(String value, AdminProvider provider) {
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(const Duration(milliseconds: 400), () {
+      if (mounted) {
+        provider.aplicarBusqueda(value);
+      }
+    });
+  }
+
+  Future<void> _mostrarDialogoSuspension(
+    BuildContext context,
+    AdminProvider provider,
+    AdminUsuarioEntity usuario,
+  ) async {
+    String motivoCapturado = '';
+    final confirmado = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          key: const Key('dialog_confirmar_suspension'),
+          title: const Text('Suspender usuario'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '¿Estás seguro de que deseas suspender a ${usuario.nombreCompleto} (${usuario.email})?',
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                key: const Key('input_motivo_suspension'),
+                onChanged: (value) => motivoCapturado = value,
+                decoration: const InputDecoration(
+                  labelText: 'Motivo de suspensión (opcional)',
+                  hintText: 'Ej. Impago reiterado o incumplimiento',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              key: const Key('btn_cancelar_suspension'),
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              key: const Key('btn_confirmar_suspension'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.error,
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('Confirmar suspensión'),
+            ),
+          ],
+        );
+      },
+    );
+
+    final motivo = motivoCapturado.trim();
+
+    if (confirmado == true && context.mounted) {
+      final exito = await provider.suspenderUsuario(
+        usuario.idUser,
+        motivo: motivo.isEmpty ? null : motivo,
+      );
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              exito
+                  ? 'Usuario ${usuario.nombreCompleto} suspendido correctamente.'
+                  : (provider.errorUsuarios ?? 'No se pudo suspender al usuario.'),
+            ),
+          ),
+        );
+      }
+    }
+  }
+
+  void _abrirDetalleDisputa(BuildContext context, AdminDisputaEntity disputa) {
+    if (widget.onDisputaSelected != null) {
+      widget.onDisputaSelected!(disputa);
+      return;
+    }
+    final router = GoRouter.maybeOf(context);
+    if (router != null) {
+      router.push(
+        RouteNames.adminDisputaDetalle(disputa.idDispute),
+        extra: disputa,
+      );
     }
   }
 
@@ -88,11 +214,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           if (adminProvider != null)
             IconButton(
               key: const Key('btn_admin_refrescar'),
-              tooltip: 'Refrescar métricas',
+              tooltip: 'Refrescar panel',
               icon: const Icon(Icons.refresh),
-              onPressed: adminProvider.isLoadingMetricas
+              onPressed: adminProvider.isLoading
                   ? null
-                  : () => adminProvider.cargarMetricas(),
+                  : () => adminProvider.cargarTodo(),
             ),
           IconButton(
             key: const Key('btn_admin_perfil'),
@@ -104,7 +230,20 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       ),
       body: adminProvider == null
           ? const _VistaResumenPlaceholder()
-          : _CuerpoMetricasGlobal(provider: adminProvider),
+          : _CuerpoPanelAdmin(
+              provider: adminProvider,
+              tabController: _tabController,
+              searchController: _searchController,
+              onSearchChanged: (val) => _onSearchChanged(val, adminProvider),
+              onClearSearch: () {
+                _debounceTimer?.cancel();
+                _searchController.clear();
+                adminProvider.aplicarBusqueda('');
+              },
+              onSuspenderUsuario: (u) =>
+                  _mostrarDialogoSuspension(context, adminProvider, u),
+              onSeleccionarDisputa: (d) => _abrirDetalleDisputa(context, d),
+            ),
     );
   }
 }
@@ -202,16 +341,34 @@ class _VistaResumenPlaceholder extends StatelessWidget {
   }
 }
 
-class _CuerpoMetricasGlobal extends StatelessWidget {
+class _CuerpoPanelAdmin extends StatelessWidget {
   final AdminProvider provider;
+  final TabController tabController;
+  final TextEditingController searchController;
+  final ValueChanged<String> onSearchChanged;
+  final VoidCallback onClearSearch;
+  final ValueChanged<AdminUsuarioEntity> onSuspenderUsuario;
+  final ValueChanged<AdminDisputaEntity> onSeleccionarDisputa;
 
-  const _CuerpoMetricasGlobal({required this.provider});
+  const _CuerpoPanelAdmin({
+    required this.provider,
+    required this.tabController,
+    required this.searchController,
+    required this.onSearchChanged,
+    required this.onClearSearch,
+    required this.onSuspenderUsuario,
+    required this.onSeleccionarDisputa,
+  });
 
   @override
   Widget build(BuildContext context) {
     final metricas = provider.metricas;
+    final sinDatosCargados = metricas == null &&
+        provider.usuarios.isEmpty &&
+        provider.tandas.isEmpty &&
+        provider.disputas.isEmpty;
 
-    if (provider.isLoadingMetricas && metricas == null) {
+    if (provider.isLoadingMetricas && sinDatosCargados) {
       return const Center(
         child: CircularProgressIndicator(
           key: Key('admin_metricas_loading'),
@@ -219,7 +376,7 @@ class _CuerpoMetricasGlobal extends StatelessWidget {
       );
     }
 
-    if (provider.errorMetricas != null && metricas == null) {
+    if (provider.errorMetricas != null && sinDatosCargados) {
       return Center(
         key: const Key('admin_metricas_error'),
         child: Padding(
@@ -241,7 +398,7 @@ class _CuerpoMetricasGlobal extends StatelessWidget {
               const SizedBox(height: 16),
               ElevatedButton.icon(
                 key: const Key('btn_reintentar_metricas'),
-                onPressed: provider.cargarMetricas,
+                onPressed: provider.cargarTodo,
                 icon: const Icon(Icons.refresh),
                 label: const Text('Reintentar'),
               ),
@@ -251,69 +408,35 @@ class _CuerpoMetricasGlobal extends StatelessWidget {
       );
     }
 
-    if (metricas == null) {
-      return const _VistaResumenPlaceholder();
-    }
-
     return RefreshIndicator(
-      onRefresh: provider.cargarMetricas,
-      child: ListView(
+      onRefresh: provider.cargarTodo,
+      child: SingleChildScrollView(
         key: const Key('admin_metricas_scroll'),
+        physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.all(16.0),
-        children: [
-          _EncabezadoMetricas(isLoading: provider.isLoadingMetricas),
-          const SizedBox(height: 16),
-          _GridKpisGlobal(metricas: metricas),
-          const SizedBox(height: 24),
-          _TarjetaGraficaMensual(montoPorMes: metricas.montoPorMes),
-        ],
-      ),
-    );
-  }
-}
-
-class _EncabezadoMetricas extends StatelessWidget {
-  final bool isLoading;
-
-  const _EncabezadoMetricas({required this.isLoading});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Row(
-      children: [
-        Icon(
-          Icons.analytics_outlined,
-          color: theme.colorScheme.primary,
-          size: 28,
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Métricas de Plataforma (AP-11)',
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              Text(
-                'Indicadores consolidados en tiempo real',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: AppColors.textSecondary,
-                ),
-              ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (metricas != null) ...[
+              _GridKpisGlobal(metricas: metricas),
+              const SizedBox(height: 16),
             ],
-          ),
+            _SeccionGestionAdmin(
+              provider: provider,
+              tabController: tabController,
+              searchController: searchController,
+              onSearchChanged: onSearchChanged,
+              onClearSearch: onClearSearch,
+              onSuspenderUsuario: onSuspenderUsuario,
+              onSeleccionarDisputa: onSeleccionarDisputa,
+            ),
+            if (metricas != null) ...[
+              const SizedBox(height: 20),
+              _TarjetaGraficaMensual(montoPorMes: metricas.montoPorMes),
+            ],
+          ],
         ),
-        if (isLoading)
-          const SizedBox(
-            width: 20,
-            height: 20,
-            child: CircularProgressIndicator(strokeWidth: 2),
-          ),
-      ],
+      ),
     );
   }
 }
@@ -333,7 +456,7 @@ class _GridKpisGlobal extends StatelessWidget {
             Expanded(
               child: _KpiCard(
                 cardKey: const Key('kpi_usuarios_card'),
-                titulo: 'Usuarios',
+                titulo: 'Total Usuarios',
                 valorPrincipal: '${metricas.usuarios.total}',
                 icono: Icons.people_alt_outlined,
                 colorIcono: AppColors.primary,
@@ -347,7 +470,7 @@ class _GridKpisGlobal extends StatelessWidget {
             Expanded(
               child: _KpiCard(
                 cardKey: const Key('kpi_tandas_card'),
-                titulo: 'Tandas',
+                titulo: 'Total Tandas',
                 valorPrincipal: '${metricas.tandas.total}',
                 icono: Icons.autorenew_rounded,
                 colorIcono: AppColors.info,
@@ -361,7 +484,7 @@ class _GridKpisGlobal extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 10),
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -418,30 +541,24 @@ class _KpiCard extends StatelessWidget {
     return Card(
       key: cardKey,
       elevation: 1,
+      margin: EdgeInsets.zero,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: const BorderSide(color: AppColors.border),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(14.0),
+        padding: const EdgeInsets.all(10.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: colorIcono.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(icono, color: colorIcono, size: 20),
-                ),
-                const SizedBox(width: 8),
+                Icon(icono, color: colorIcono, size: 18),
+                const SizedBox(width: 6),
                 Expanded(
                   child: Text(
                     titulo,
-                    style: theme.textTheme.labelLarge?.copyWith(
+                    style: theme.textTheme.labelMedium?.copyWith(
                       color: AppColors.textSecondary,
                       fontWeight: FontWeight.w600,
                     ),
@@ -449,26 +566,456 @@ class _KpiCard extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 6),
             Text(
               valorPrincipal,
-              style: theme.textTheme.headlineSmall?.copyWith(
+              style: theme.textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.bold,
                 color: AppColors.textPrimary,
               ),
             ),
-            const SizedBox(height: 8),
-            for (final detalle in detalles)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 2.0),
-                child: Text(
-                  detalle,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: AppColors.textSecondary,
+            const SizedBox(height: 4),
+            Wrap(
+              spacing: 8,
+              runSpacing: 2,
+              children: [
+                for (final detalle in detalles)
+                  Text(
+                    detalle,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: AppColors.textSecondary,
+                      fontSize: 11,
+                    ),
                   ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SeccionGestionAdmin extends StatelessWidget {
+  final AdminProvider provider;
+  final TabController tabController;
+  final TextEditingController searchController;
+  final ValueChanged<String> onSearchChanged;
+  final VoidCallback onClearSearch;
+  final ValueChanged<AdminUsuarioEntity> onSuspenderUsuario;
+  final ValueChanged<AdminDisputaEntity> onSeleccionarDisputa;
+
+  const _SeccionGestionAdmin({
+    required this.provider,
+    required this.tabController,
+    required this.searchController,
+    required this.onSearchChanged,
+    required this.onClearSearch,
+    required this.onSuspenderUsuario,
+    required this.onSeleccionarDisputa,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        TextField(
+          key: const Key('admin_search_bar'),
+          controller: searchController,
+          onChanged: onSearchChanged,
+          decoration: InputDecoration(
+            hintText: 'Buscar usuarios, tandas o casos reportados...',
+            prefixIcon: const Icon(Icons.search),
+            suffixIcon: searchController.text.isNotEmpty ||
+                    provider.searchQuery.isNotEmpty
+                ? IconButton(
+                    key: const Key('btn_clear_search'),
+                    icon: const Icon(Icons.clear),
+                    onPressed: onClearSearch,
+                  )
+                : null,
+            isDense: true,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        AnimatedBuilder(
+          animation: tabController,
+          builder: (context, _) {
+            return Container(
+              key: const Key('admin_tab_bar'),
+              decoration: const BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(color: AppColors.border),
                 ),
               ),
-          ],
+              child: Row(
+                children: [
+                  _TabBotonAdmin(
+                    tabKey: const Key('tab_admin_usuarios'),
+                    titulo: 'Usuarios',
+                    activo: tabController.index == 0,
+                    onTap: () => tabController.animateTo(0),
+                  ),
+                  _TabBotonAdmin(
+                    tabKey: const Key('tab_admin_tandas'),
+                    titulo: 'Tandas',
+                    activo: tabController.index == 1,
+                    onTap: () => tabController.animateTo(1),
+                  ),
+                  _TabBotonAdmin(
+                    tabKey: const Key('tab_admin_casos'),
+                    titulo: 'Casos',
+                    activo: tabController.index == 2,
+                    onTap: () => tabController.animateTo(2),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+        const SizedBox(height: 10),
+        AnimatedBuilder(
+          animation: tabController,
+          builder: (context, _) {
+            switch (tabController.index) {
+              case 0:
+                return _ListaUsuariosTab(
+                  usuarios: provider.usuariosFiltrados,
+                  isLoading: provider.isLoadingUsuarios,
+                  onSuspender: onSuspenderUsuario,
+                );
+              case 1:
+                return _ListaTandasTab(
+                  tandas: provider.tandasFiltradas,
+                  isLoading: provider.isLoadingTandas,
+                );
+              case 2:
+              default:
+                return _ListaCasosTab(
+                  disputas: provider.disputasFiltradas,
+                  isLoading: provider.isLoadingDisputas,
+                  onSeleccionarDisputa: onSeleccionarDisputa,
+                );
+            }
+          },
+        ),
+      ],
+    );
+  }
+}
+
+class _TabBotonAdmin extends StatelessWidget {
+  final Key tabKey;
+  final String titulo;
+  final bool activo;
+  final VoidCallback onTap;
+
+  const _TabBotonAdmin({
+    required this.tabKey,
+    required this.titulo,
+    required this.activo,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = activo ? AppColors.primary : AppColors.textSecondary;
+    return Expanded(
+      child: InkWell(
+        key: tabKey,
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            border: Border(
+              bottom: BorderSide(
+                color: activo ? AppColors.primary : Colors.transparent,
+                width: 2.5,
+              ),
+            ),
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            titulo,
+            style: TextStyle(
+              color: color,
+              fontWeight: activo ? FontWeight.bold : FontWeight.w500,
+              fontSize: 14,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ListaUsuariosTab extends StatelessWidget {
+  final List<AdminUsuarioEntity> usuarios;
+  final bool isLoading;
+  final ValueChanged<AdminUsuarioEntity> onSuspender;
+
+  const _ListaUsuariosTab({
+    required this.usuarios,
+    required this.isLoading,
+    required this.onSuspender,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (isLoading && usuarios.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.all(24.0),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (usuarios.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.all(24.0),
+        child: Center(
+          child: Text(
+            'No se encontraron usuarios',
+            key: Key('admin_usuarios_vacio'),
+          ),
+        ),
+      );
+    }
+
+    return Column(
+      key: const Key('admin_lista_usuarios'),
+      children: [
+        for (final usuario in usuarios)
+          Card(
+            key: Key('usuario_item_${usuario.idUser}'),
+            margin: const EdgeInsets.only(bottom: 8),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+              side: const BorderSide(color: AppColors.border),
+            ),
+            child: ListTile(
+              title: Text(
+                usuario.nombreCompleto,
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+              subtitle: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(usuario.email),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      _ChipEstado(
+                        etiqueta: usuario.active ? 'Activo' : 'Suspendido',
+                        color: usuario.active ? AppColors.success : AppColors.error,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Rol: ${usuario.role}',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              trailing: usuario.puedeSuspenderse
+                  ? OutlinedButton(
+                      key: Key('btn_suspender_usuario_${usuario.idUser}'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.error,
+                        side: const BorderSide(color: AppColors.error),
+                      ),
+                      onPressed: () => onSuspender(usuario),
+                      child: const Text('Suspender'),
+                    )
+                  : null,
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _ListaTandasTab extends StatelessWidget {
+  final List<TandaEntity> tandas;
+  final bool isLoading;
+
+  const _ListaTandasTab({
+    required this.tandas,
+    required this.isLoading,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (isLoading && tandas.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.all(24.0),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (tandas.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.all(24.0),
+        child: Center(
+          child: Text(
+            'No se encontraron tandas',
+            key: Key('admin_tandas_vacio'),
+          ),
+        ),
+      );
+    }
+
+    return Column(
+      key: const Key('admin_lista_tandas'),
+      children: [
+        for (final tanda in tandas)
+          Card(
+            key: Key('tanda_item_${tanda.id}'),
+            margin: const EdgeInsets.only(bottom: 8),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+              side: const BorderSide(color: AppColors.border),
+            ),
+            child: ListTile(
+              title: Text(
+                tanda.nombre,
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+              subtitle: Text(
+                '${formatearMonedaMxn(tanda.monto)} • ${tanda.totalParticipantes} participantes • ${tanda.periodo}'
+                '${tanda.inviteCode != null ? ' • Código: ${tanda.inviteCode}' : ''}',
+              ),
+              trailing: _ChipEstado(
+                etiqueta: tanda.estado.toUpperCase(),
+                color: tanda.esActiva
+                    ? AppColors.success
+                    : (tanda.esPendiente ? AppColors.warning : AppColors.textSecondary),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _ListaCasosTab extends StatelessWidget {
+  final List<AdminDisputaEntity> disputas;
+  final bool isLoading;
+  final ValueChanged<AdminDisputaEntity> onSeleccionarDisputa;
+
+  const _ListaCasosTab({
+    required this.disputas,
+    required this.isLoading,
+    required this.onSeleccionarDisputa,
+  });
+
+  Color _colorEstado(String status) {
+    switch (status.toUpperCase()) {
+      case 'ABIERTA':
+        return AppColors.error;
+      case 'EN_REVISION':
+        return AppColors.warning;
+      case 'RESUELTA':
+        return AppColors.success;
+      default:
+        return AppColors.textSecondary;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (isLoading && disputas.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.all(24.0),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (disputas.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.all(24.0),
+        child: Center(
+          child: Text(
+            'No se encontraron casos reportados',
+            key: Key('admin_casos_vacio'),
+          ),
+        ),
+      );
+    }
+
+    return Column(
+      key: const Key('admin_lista_casos'),
+      children: [
+        for (final disputa in disputas)
+          Card(
+            key: Key('disputa_item_${disputa.idDispute}'),
+            margin: const EdgeInsets.only(bottom: 8),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+              side: const BorderSide(color: AppColors.border),
+            ),
+            child: ListTile(
+              onTap: () => onSeleccionarDisputa(disputa),
+              title: Text(
+                'Caso #${disputa.idDispute} • ${disputa.nombreTanda}',
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+              subtitle: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(disputa.reason),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Reportado por: ${disputa.nombreReporter} (${disputa.emailReporter})',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+              trailing: _ChipEstado(
+                etiqueta: disputa.status,
+                color: _colorEstado(disputa.status),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _ChipEstado extends StatelessWidget {
+  final String etiqueta;
+  final Color color;
+
+  const _ChipEstado({
+    required this.etiqueta,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withValues(alpha: 0.4)),
+      ),
+      child: Text(
+        etiqueta,
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.bold,
+          color: color,
         ),
       ),
     );

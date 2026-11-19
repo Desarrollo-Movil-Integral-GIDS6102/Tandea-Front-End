@@ -5,12 +5,15 @@ import 'package:provider/provider.dart';
 import 'package:tandea/core/errors/failures.dart';
 import 'package:tandea/core/utils/result.dart';
 import 'package:tandea/features/admin/data/models/admin_metricas_model.dart';
+import 'package:tandea/features/admin/domain/entities/admin_disputa_entity.dart';
 import 'package:tandea/features/admin/domain/entities/admin_metricas_entity.dart';
+import 'package:tandea/features/admin/domain/entities/admin_usuario_entity.dart';
 import 'package:tandea/features/admin/domain/repositories/admin_repository.dart';
 import 'package:tandea/features/admin/presentation/providers/admin_provider.dart';
 import 'package:tandea/features/admin/presentation/screens/admin_dashboard_screen.dart';
 import 'package:tandea/features/auth/domain/entities/user_role.dart';
 import 'package:tandea/features/auth/presentation/providers/auth_session_provider.dart';
+import 'package:tandea/features/tandas/domain/entities/tanda_entity.dart';
 
 class FakeAdminRepository implements AdminRepository {
   Result<AdminMetricasEntity> metricasResult;
@@ -23,6 +26,34 @@ class FakeAdminRepository implements AdminRepository {
     llamadasMetricas++;
     return metricasResult;
   }
+
+  @override
+  Future<Result<List<AdminUsuarioEntity>>> buscarUsuarios({
+    String? q,
+    bool? active,
+  }) async =>
+      const Success([]);
+
+  @override
+  Future<Result<AdminUsuarioEntity>> suspenderUsuario(
+    int idUser, {
+    String? motivo,
+  }) async =>
+      const Error(ServerFailure('No implementado en este fake'));
+
+  @override
+  Future<Result<List<TandaEntity>>> listarTandasAdmin({
+    String? search,
+    String? status,
+  }) async =>
+      const Success([]);
+
+  @override
+  Future<Result<List<AdminDisputaEntity>>> listarDisputas({
+    String? status,
+    int? idTanda,
+  }) async =>
+      const Success([]);
 }
 
 AdminMetricasEntity _metricasDePrueba() {
@@ -160,10 +191,10 @@ void main() {
       expect(find.text('4'), findsOneWidget);
 
       // Verifica que la gráfica mensual de fl_chart está renderizada con etiquetas
-      await tester.scrollUntilVisible(
+      await tester.ensureVisible(
         find.byKey(const Key('admin_metricas_bar_chart')),
-        200,
       );
+      await tester.pumpAndSettle();
       expect(find.byType(BarChart), findsOneWidget);
       expect(find.text('Sep'), findsOneWidget);
       expect(find.text('Oct'), findsOneWidget);
