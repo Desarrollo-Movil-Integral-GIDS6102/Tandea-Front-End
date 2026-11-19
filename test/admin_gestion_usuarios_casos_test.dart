@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
+import 'package:tandea/core/errors/failures.dart';
 import 'package:tandea/core/utils/result.dart';
+import 'package:tandea/features/admin/domain/entities/admin_disputa_detalle_entity.dart';
 import 'package:tandea/features/admin/domain/entities/admin_disputa_entity.dart';
 import 'package:tandea/features/admin/domain/entities/admin_metricas_entity.dart';
 import 'package:tandea/features/admin/domain/entities/admin_usuario_entity.dart';
@@ -173,6 +175,20 @@ class FakeAdminGestionRepository implements AdminRepository {
   }) async {
     return Success(disputas);
   }
+
+  @override
+  Future<Result<AdminDisputaDetalleEntity>> obtenerDetalleDisputa(
+    int idDispute,
+  ) async =>
+      const Error(ServerFailure('No implementado en este fake'));
+
+  @override
+  Future<Result<AdminDisputaEntity>> resolverDisputa({
+    required int idDispute,
+    required String accion,
+    required String notas,
+  }) async =>
+      const Error(ServerFailure('No implementado en este fake'));
 }
 
 void main() {

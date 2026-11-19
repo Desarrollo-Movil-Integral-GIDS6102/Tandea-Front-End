@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:tandea/features/admin/domain/entities/admin_disputa_detalle_entity.dart';
 import 'package:tandea/features/admin/domain/entities/admin_disputa_entity.dart';
 import 'package:tandea/features/admin/domain/entities/admin_metricas_entity.dart';
 import 'package:tandea/features/admin/domain/entities/admin_usuario_entity.dart';
@@ -26,6 +27,13 @@ class AdminProvider extends ChangeNotifier {
   bool _isLoadingDisputas = false;
   String? _errorDisputas;
 
+  AdminDisputaDetalleEntity? _detalleDisputaActual;
+  bool _isLoadingDetalleDisputa = false;
+  bool _isResolviendoDisputa = false;
+  String? _errorDetalleDisputa;
+  String? _accionSeleccionada;
+  String _notasResolucion = '';
+
   String _searchQuery = '';
   int _activeTabIndex = 0;
 
@@ -51,6 +59,30 @@ class AdminProvider extends ChangeNotifier {
   List<AdminDisputaEntity> get disputas => _disputas;
   bool get isLoadingDisputas => _isLoadingDisputas;
   String? get errorDisputas => _errorDisputas;
+
+  AdminDisputaDetalleEntity? get detalleDisputaActual => _detalleDisputaActual;
+  bool get isLoadingDetalleDisputa => _isLoadingDetalleDisputa;
+  bool get isResolviendoDisputa => _isResolviendoDisputa;
+  String? get errorDetalleDisputa => _errorDetalleDisputa;
+  String? get accionSeleccionada => _accionSeleccionada;
+  String get notasResolucion => _notasResolucion;
+
+  /// Opciones válidas para resolver una disputa en el backend.
+  static const List<String> accionesResolucionValidas = [
+    'mantener',
+    'revertir',
+    'suspender',
+  ];
+
+  /// El botón de resolver solo se habilita si hay una opción válida seleccionada
+  /// (`mantener`, `revertir` o `suspender`) Y el comentario no está vacío.
+  bool get puedeConfirmarResolucion {
+    final accion = _accionSeleccionada?.trim().toLowerCase();
+    return accion != null &&
+        accionesResolucionValidas.contains(accion) &&
+        _notasResolucion.trim().isNotEmpty &&
+        !_isResolviendoDisputa;
+  }
 
   String get searchQuery => _searchQuery;
   int get activeTabIndex => _activeTabIndex;
@@ -252,5 +284,110 @@ class AdminProvider extends ChangeNotifier {
         return false;
       },
     );
+  }
+
+  /// Carga el detalle de una disputa con su línea de tiempo (`GET /admin/disputas/:id`).
+  Future<void> cargarDetalleDisputa(
+    int idDispute, {
+    bool reiniciarFormulario = true,
+  }) async {
+    _isLoadingDetalleDisputa = true;
+    _errorDetalleDisputa = null;
+    if (reiniciarFormulario) {
+      _accionSeleccionada = null;
+      _notasResolucion = '';
+    }
+    notifyListeners();
+
+    final result = await adminRepository.obtenerDetalleDisputa(idDispute);
+    result.when(
+      success: (detalle) {
+        _detalleDisputaActual = detalle;
+        _errorDetalleDisputa = null;
+      },
+      failure: (failure) {
+        _errorDetalleDisputa = failure.message;
+      },
+    );
+
+    _isLoadingDetalleDisputa = false;
+    notifyListeners();
+  }
+
+  void seleccionarAccionResolucion(String? accion) {
+    _accionSeleccionada = accion;
+    notifyListeners();
+  }
+
+  void actualizarNotasResolucion(String notas) {
+    _notasResolucion = notas;
+    notifyListeners();
+  }
+
+  /// Ejecuta la resolución del caso (`PATCH /admin/disputas/:id/resolver`).
+  Future<bool> resolverDisputa(
+    int idDispute, {
+    String? accion,
+    String? notas,
+  }) async {
+    final accionFinal = (accion ?? _accionSeleccionada ?? '').trim().toLowerCase();
+    final notasFinal = (notas ?? _notasResolucion).trim();
+
+    if (!accionesResolucionValidas.contains(accionFinal) || notasFinal.isEmpty) {
+      return false;
+    }
+
+    _isResolviendoDisputa = true;
+    _errorDetalleDisputa = null;
+    notifyListeners();
+
+    final result = await adminRepository.resolverDisputa(
+      idDispute: idDispute,
+      accion: accionFinal,
+      notas: notasFinal,
+    );
+
+    final exito = result.when(
+      success: (disputaResuelta) {
+        final actualizada = disputaResuelta.copyWith(
+          status: 'RESUELTA',
+          resolutionNotes: notasFinal,
+          resolvedAt: disputaResuelta.resolvedAt ?? DateTime.now(),
+        );
+
+        _disputas = _disputas.map((d) {
+          if (d.idDispute == idDispute) {
+            return actualizada;
+          }
+          return d;
+        }).toList();
+
+        if (_detalleDisputaActual != null &&
+            _detalleDisputaActual!.disputa.idDispute == idDispute) {
+          _detalleDisputaActual = _detalleDisputaActual!.copyWith(
+            disputa: actualizada,
+          );
+        }
+
+        if (_metricas != null && _metricas!.disputasPendientes > 0) {
+          _metricas = AdminMetricasEntity(
+            usuarios: _metricas!.usuarios,
+            tandas: _metricas!.tandas,
+            montoGestionado: _metricas!.montoGestionado,
+            disputasPendientes: _metricas!.disputasPendientes - 1,
+            montoPorMes: _metricas!.montoPorMes,
+          );
+        }
+        return true;
+      },
+      failure: (failure) {
+        _errorDetalleDisputa = failure.message;
+        return false;
+      },
+    );
+
+    _isResolviendoDisputa = false;
+    notifyListeners();
+    return exito;
   }
 }

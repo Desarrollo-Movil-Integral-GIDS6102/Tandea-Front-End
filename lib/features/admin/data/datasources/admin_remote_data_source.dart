@@ -3,9 +3,13 @@ import 'package:tandea/core/constants/api_constants.dart';
 import 'package:tandea/core/errors/exceptions.dart';
 import 'package:tandea/core/network/api_client.dart';
 import 'package:tandea/core/network/network_error_handler.dart';
+import 'package:tandea/features/admin/data/models/admin_disputa_detalle_model.dart';
 import 'package:tandea/features/admin/data/models/admin_disputa_model.dart';
 import 'package:tandea/features/admin/data/models/admin_metricas_model.dart';
 import 'package:tandea/features/admin/data/models/admin_usuario_model.dart';
+import 'package:tandea/features/entregas/domain/entities/entrega_entity.dart';
+import 'package:tandea/features/pagos/data/models/pago_model.dart';
+import 'package:tandea/features/pagos/domain/entities/pago_entity.dart';
 import 'package:tandea/features/tandas/data/models/tanda_model.dart';
 
 abstract class AdminRemoteDataSource {
@@ -29,6 +33,14 @@ abstract class AdminRemoteDataSource {
   Future<List<AdminDisputaModel>> listarDisputas({
     String? status,
     int? idTanda,
+  });
+
+  Future<AdminDisputaDetalleModel> obtenerDetalleDisputa(int idDispute);
+
+  Future<AdminDisputaModel> resolverDisputa({
+    required int idDispute,
+    required String accion,
+    required String notas,
   });
 }
 
@@ -174,6 +186,107 @@ class AdminRemoteDataSourceImpl implements AdminRemoteDataSource {
       NetworkErrorHandler.handleDioException(
         e,
         fallbackMessage: 'Error al consultar los casos y disputas',
+      );
+    }
+  }
+
+  @override
+  Future<AdminDisputaDetalleModel> obtenerDetalleDisputa(int idDispute) async {
+    try {
+      final response = await apiClient.get<dynamic>(
+        ApiConstants.adminDisputaDetalleEndpoint(idDispute),
+      );
+      final raw = response.data;
+      if (raw is! Map<String, dynamic>) {
+        throw const ServerException(
+          message: 'Formato de respuesta inválido al consultar la disputa.',
+        );
+      }
+
+      final payload = raw['data'] is Map<String, dynamic>
+          ? raw['data'] as Map<String, dynamic>
+          : raw;
+
+      final idPayment = (payload['idPayment'] as num?)?.toInt();
+      final idPayout = (payload['idPayout'] as num?)?.toInt();
+
+      PagoEntity? pago;
+      if (idPayment != null && idPayment > 0) {
+        try {
+          final pagoResp = await apiClient.get<dynamic>(
+            '${ApiConstants.pagosEndpoint}/$idPayment',
+          );
+          final pagoRaw = pagoResp.data;
+          if (pagoRaw is Map<String, dynamic>) {
+            final pagoData = pagoRaw['data'] is Map<String, dynamic>
+                ? pagoRaw['data'] as Map<String, dynamic>
+                : pagoRaw;
+            pago = PagoModel.fromJson(pagoData).toEntity();
+          }
+        } catch (_) {
+          // Si falla la carga secundaria del pago, se continúa con los datos de la disputa
+        }
+      }
+
+      EntregaEntity? entrega;
+      if (idPayout != null && idPayout > 0) {
+        try {
+          final entregaResp = await apiClient.get<dynamic>(
+            '${ApiConstants.entregasEndpoint}/$idPayout',
+          );
+          final entregaRaw = entregaResp.data;
+          if (entregaRaw is Map<String, dynamic>) {
+            final entregaData = entregaRaw['data'] is Map<String, dynamic>
+                ? entregaRaw['data'] as Map<String, dynamic>
+                : entregaRaw;
+            entrega = EntregaEntity.fromJson(entregaData);
+          }
+        } catch (_) {
+          // Si falla la carga secundaria de la entrega, se continúa con los datos de la disputa
+        }
+      }
+
+      return AdminDisputaDetalleModel.fromJson(
+        raw,
+        pago: pago,
+        entrega: entrega,
+      );
+    } on DioException catch (e) {
+      NetworkErrorHandler.handleDioException(
+        e,
+        fallbackMessage: 'Error al obtener el detalle del caso',
+      );
+    }
+  }
+
+  @override
+  Future<AdminDisputaModel> resolverDisputa({
+    required int idDispute,
+    required String accion,
+    required String notas,
+  }) async {
+    try {
+      final response = await apiClient.patch<dynamic>(
+        ApiConstants.adminResolverDisputaEndpoint(idDispute),
+        data: <String, dynamic>{
+          'accion': accion.trim().toLowerCase(),
+          'notas': notas.trim(),
+        },
+      );
+      final raw = response.data;
+      if (raw is Map<String, dynamic>) {
+        final data = raw['data'] is Map<String, dynamic>
+            ? raw['data'] as Map<String, dynamic>
+            : raw;
+        return AdminDisputaModel.fromJson(data);
+      }
+      throw const ServerException(
+        message: 'Formato de respuesta inválido al resolver la disputa.',
+      );
+    } on DioException catch (e) {
+      NetworkErrorHandler.handleDioException(
+        e,
+        fallbackMessage: 'Error al resolver el caso',
       );
     }
   }

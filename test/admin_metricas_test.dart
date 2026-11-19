@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:tandea/core/errors/failures.dart';
 import 'package:tandea/core/utils/result.dart';
 import 'package:tandea/features/admin/data/models/admin_metricas_model.dart';
+import 'package:tandea/features/admin/domain/entities/admin_disputa_detalle_entity.dart';
 import 'package:tandea/features/admin/domain/entities/admin_disputa_entity.dart';
 import 'package:tandea/features/admin/domain/entities/admin_metricas_entity.dart';
 import 'package:tandea/features/admin/domain/entities/admin_usuario_entity.dart';
@@ -54,6 +55,20 @@ class FakeAdminRepository implements AdminRepository {
     int? idTanda,
   }) async =>
       const Success([]);
+
+  @override
+  Future<Result<AdminDisputaDetalleEntity>> obtenerDetalleDisputa(
+    int idDispute,
+  ) async =>
+      const Error(ServerFailure('No implementado en este fake'));
+
+  @override
+  Future<Result<AdminDisputaEntity>> resolverDisputa({
+    required int idDispute,
+    required String accion,
+    required String notas,
+  }) async =>
+      const Error(ServerFailure('No implementado en este fake'));
 }
 
 AdminMetricasEntity _metricasDePrueba() {

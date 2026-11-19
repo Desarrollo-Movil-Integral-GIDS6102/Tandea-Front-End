@@ -2,6 +2,7 @@ import 'package:tandea/core/errors/exceptions.dart';
 import 'package:tandea/core/errors/failures.dart';
 import 'package:tandea/core/utils/result.dart';
 import 'package:tandea/features/admin/data/datasources/admin_remote_data_source.dart';
+import 'package:tandea/features/admin/domain/entities/admin_disputa_detalle_entity.dart';
 import 'package:tandea/features/admin/domain/entities/admin_disputa_entity.dart';
 import 'package:tandea/features/admin/domain/entities/admin_metricas_entity.dart';
 import 'package:tandea/features/admin/domain/entities/admin_usuario_entity.dart';
@@ -79,6 +80,32 @@ class AdminRepositoryImpl implements AdminRepository {
           return modelos.map((m) => m.toEntity()).toList();
         },
         'Error al listar las disputas reportadas',
+      );
+
+  @override
+  Future<Result<AdminDisputaDetalleEntity>> obtenerDetalleDisputa(
+    int idDispute,
+  ) =>
+      _ejecutar(
+        () async =>
+            (await remoteDataSource.obtenerDetalleDisputa(idDispute)).toEntity(),
+        'Error al consultar el detalle de la disputa',
+      );
+
+  @override
+  Future<Result<AdminDisputaEntity>> resolverDisputa({
+    required int idDispute,
+    required String accion,
+    required String notas,
+  }) =>
+      _ejecutar(
+        () async => (await remoteDataSource.resolverDisputa(
+          idDispute: idDispute,
+          accion: accion,
+          notas: notas,
+        ))
+            .toEntity(),
+        'Error al resolver la disputa',
       );
 
   Future<Result<T>> _ejecutar<T>(

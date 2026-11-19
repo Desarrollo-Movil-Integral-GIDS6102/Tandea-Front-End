@@ -1,4 +1,5 @@
 import 'package:tandea/core/utils/result.dart';
+import 'package:tandea/features/admin/domain/entities/admin_disputa_detalle_entity.dart';
 import 'package:tandea/features/admin/domain/entities/admin_disputa_entity.dart';
 import 'package:tandea/features/admin/domain/entities/admin_metricas_entity.dart';
 import 'package:tandea/features/admin/domain/entities/admin_usuario_entity.dart';
@@ -31,5 +32,17 @@ abstract class AdminRepository {
   Future<Result<List<AdminDisputaEntity>>> listarDisputas({
     String? status,
     int? idTanda,
+  });
+
+  /// Consulta el detalle de un caso/disputa junto con su pago, entrega y bitácora
+  /// (`GET /admin/disputas/:id` + `GET /pagos/:idPayment` / `GET /entregas/:idPayout`).
+  Future<Result<AdminDisputaDetalleEntity>> obtenerDetalleDisputa(int idDispute);
+
+  /// Resuelve un caso/disputa (`PATCH /admin/disputas/:id/resolver`).
+  /// [accion] debe ser `'mantener'`, `'revertir'` o `'suspender'`.
+  Future<Result<AdminDisputaEntity>> resolverDisputa({
+    required int idDispute,
+    required String accion,
+    required String notas,
   });
 }
