@@ -57,6 +57,13 @@ class ApiConstants {
   static const String fcmTokenEndpoint = '/users/me/fcm-token';
 
   // Admin endpoints
-  static const String adminUsersEndpoint = '/admin/users';
-  static const String adminTandasEndpoint = '/admin/tandas';
+  static const String adminMetricasEndpoint = '/admin/metricas';
+  static const String adminUsuariosEndpoint = '/admin/usuarios';
+  static const String adminDisputasEndpoint = '/admin/disputas';
+  static const String adminConfiguracionEndpoint = '/admin/configuracion';
+  static const String adminUsersEndpoint = '/admin/usuarios';
+  static const String adminTandasEndpoint = '/tandas';
+  static String adminSuspenderUsuarioEndpoint(int id) => '/admin/usuarios/$id/suspender';
+  static String adminDisputaDetalleEndpoint(int id) => '/admin/disputas/$id';
+  static String adminResolverDisputaEndpoint(int id) => '/admin/disputas/$id/resolver';
 }
