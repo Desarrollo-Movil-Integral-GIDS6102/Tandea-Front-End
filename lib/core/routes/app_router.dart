@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:tandea/core/routes/route_names.dart';
+import 'package:tandea/features/admin/domain/entities/admin_disputa_entity.dart';
+import 'package:tandea/features/admin/presentation/providers/admin_provider.dart';
+import 'package:tandea/features/admin/presentation/screens/admin_caso_detalle_screen.dart';
 import 'package:tandea/features/admin/presentation/screens/admin_dashboard_screen.dart';
 import 'package:tandea/features/auth/presentation/providers/auth_session_provider.dart';
 import 'package:tandea/features/auth/presentation/providers/perfil_provider.dart';
@@ -248,7 +251,32 @@ class AppRouter {
 
       GoRoute(
         path: RouteNames.admin,
-        builder: (context, state) => const AdminDashboardScreen(),
+        builder: (context, state) {
+          if (sl.isRegistered<AdminProvider>()) {
+            return ChangeNotifierProvider<AdminProvider>(
+              create: (_) => sl<AdminProvider>(),
+              child: const AdminDashboardScreen(),
+            );
+          }
+          return const AdminDashboardScreen();
+        },
+      ),
+
+      GoRoute(
+        path: RouteNames.adminDisputaDetail,
+        builder: (context, state) {
+          final idDispute =
+              int.tryParse(state.pathParameters['id'] ?? '') ?? 0;
+          final extra = state.extra;
+          final disputaInicial = extra is AdminDisputaEntity ? extra : null;
+          return ChangeNotifierProvider<AdminProvider>(
+            create: (_) => sl<AdminProvider>(),
+            child: AdminCasoDetalleScreen(
+              idDispute: idDispute,
+              disputaInicial: disputaInicial,
+            ),
+          );
+        },
       ),
 
       // Rutas de Autenticación

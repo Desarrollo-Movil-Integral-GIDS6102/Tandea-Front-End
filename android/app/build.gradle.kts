@@ -1,11 +1,29 @@
+﻿import java.util.Properties
+
 plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+val keystorePropertiesFile = rootProject.file("key.properties")
+val keystoreProperties = Properties().apply {
+    if (keystorePropertiesFile.exists()) {
+        keystorePropertiesFile.inputStream().use { load(it) }
+    }
+}
+
+val envStorePassword = System.getenv("KEYSTORE_PASSWORD")
+val envKeyAlias = System.getenv("KEY_ALIAS")
+val envKeyPassword = System.getenv("KEY_PASSWORD")
+val envStoreFile = System.getenv("KEYSTORE_FILE") ?: "upload-keystore.jks"
+val hasEnvSigning = !envStorePassword.isNullOrBlank() &&
+    !envKeyAlias.isNullOrBlank() &&
+    !envKeyPassword.isNullOrBlank()
+val hasReleaseSigning = keystorePropertiesFile.exists() || hasEnvSigning
+
 android {
-    namespace = "com.example.tandea"
+    namespace = "mx.tandea.app"
     compileSdk = 37
     ndkVersion = flutter.ndkVersion
 
@@ -15,8 +33,7 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.tandea"
+        applicationId = "mx.tandea.app"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
@@ -29,11 +46,33 @@ android {
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        // Llave de subida para Play Store: usa android/key.properties en local o variables de entorno en CI.
+        if (hasReleaseSigning) {
+            create("release") {
+                if (keystorePropertiesFile.exists()) {
+                    keyAlias = keystoreProperties.getProperty("keyAlias")
+                    keyPassword = keystoreProperties.getProperty("keyPassword")
+                    storeFile = file(keystoreProperties.getProperty("storeFile"))
+                    storePassword = keystoreProperties.getProperty("storePassword")
+                } else {
+                    keyAlias = envKeyAlias
+                    keyPassword = envKeyPassword
+                    storeFile = file(envStoreFile)
+                    storePassword = envStorePassword
+                }
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            // Sin key.properties ni variables de CI se firma con debug para que `flutter run --release` siga funcionando.
+            signingConfig = if (hasReleaseSigning) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
         }
     }
 }

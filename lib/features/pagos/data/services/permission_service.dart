@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+﻿import 'package:flutter/foundation.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 /// Contrato para la gestión de permisos del sistema operativo.
@@ -29,29 +29,8 @@ class PermissionServiceImpl implements PermissionService {
 
   @override
   Future<bool> solicitarPermisoGaleria() async {
-    // En Web o plataformas desktop la selección de archivos no requiere permisos móviles
-    if (kIsWeb ||
-        (defaultTargetPlatform != TargetPlatform.android &&
-            defaultTargetPlatform != TargetPlatform.iOS)) {
-      return true;
-    }
-
-    try {
-      // En iOS y Android moderno (API 33+) se utiliza Permission.photos
-      final photosStatus = await Permission.photos.request();
-      if (photosStatus.isGranted || photosStatus.isLimited) {
-        return true;
-      }
-
-      // En versiones anteriores de Android (<= API 32) el acceso es vía storage
-      final storageStatus = await Permission.storage.request();
-      if (storageStatus.isGranted || storageStatus.isLimited) {
-        return true;
-      }
-
-      return false;
-    } catch (_) {
-      return true;
-    }
+    // image_picker usa el selector de fotos del sistema: no requiere permisos de almacenamiento.
+    return true;
   }
 }
+

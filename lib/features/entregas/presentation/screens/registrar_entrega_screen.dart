@@ -13,14 +13,29 @@ class RegistrarEntregaArgs {
   final int idNumber;
   final int numero;
   final String nombreReceptor;
+
+  /// Lo que se entrega: el total del turno menos las cuotas no confirmadas (AP-10).
   final double total;
+
+  /// Total del turno si todos hubieran pagado; si es mayor que [total] se muestra el descuento.
+  final double? totalTurno;
+  final int cuotasNoConfirmadas;
+
+  /// Por qué la entrega no se puede registrar todavía; null si sí se puede.
+  final String? motivoBloqueo;
 
   const RegistrarEntregaArgs({
     required this.idNumber,
     required this.numero,
     required this.nombreReceptor,
     required this.total,
+    this.totalTurno,
+    this.cuotasNoConfirmadas = 0,
+    this.motivoBloqueo,
   });
+
+  /// Descuento por cuotas no confirmadas; 0 si no hay.
+  double get descuento => (totalTurno ?? total) > total ? (totalTurno ?? total) - total : 0;
 }
 
 /// El organizador registra la entrega del dinero del turno con foto de evidencia.
@@ -86,6 +101,24 @@ class _RegistrarEntregaScreenState extends State<RegistrarEntregaScreen> {
               key: const Key('entrega_total'),
               style: const TextStyle(color: AppColors.textSecondaryLight),
             ),
+            if (args.descuento > 0) ...[
+              const SizedBox(height: 4),
+              Text(
+                'Total del turno ${formatearMonedaMxn(args.totalTurno!)} − '
+                '${args.cuotasNoConfirmadas} ${args.cuotasNoConfirmadas == 1 ? 'cuota no confirmada' : 'cuotas no confirmadas'} '
+                '(${formatearMonedaMxn(args.descuento)})',
+                key: const Key('entrega_descuento'),
+                style: const TextStyle(color: AppColors.textSecondaryLight, fontSize: 13),
+              ),
+            ],
+            if (args.motivoBloqueo != null) ...[
+              const SizedBox(height: 12),
+              Text(
+                args.motivoBloqueo!,
+                key: const Key('entrega_bloqueada'),
+                style: const TextStyle(color: AppColors.error, fontWeight: FontWeight.w600),
+              ),
+            ],
             const SizedBox(height: 20),
             CamposMontoHibrido(
               transferenciaController: _transferencia,
@@ -117,7 +150,9 @@ class _RegistrarEntregaScreenState extends State<RegistrarEntregaScreen> {
               key: const Key('btn_registrar_entrega'),
               text: 'Registrar entrega',
               isLoading: provider.enviando,
-              onPressed: _sumaValida && provider.evidencia != null ? _registrar : null,
+              onPressed: _sumaValida && provider.evidencia != null && args.motivoBloqueo == null
+                  ? _registrar
+                  : null,
             ),
           ],
         ),

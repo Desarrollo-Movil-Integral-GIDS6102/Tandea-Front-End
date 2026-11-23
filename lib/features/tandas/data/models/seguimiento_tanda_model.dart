@@ -12,6 +12,8 @@ class SeguimientoTandaModel extends SeguimientoTanda {
     required super.cuota,
     required super.participantes,
     super.totalVueltas,
+    super.turnoVigente,
+    super.numeroMuerto,
   });
 
   static double _toDouble(dynamic raw) {
@@ -50,16 +52,52 @@ class SeguimientoTandaModel extends SeguimientoTanda {
         pagoMap['status'];
     final atrasado = json['atrasado'] == true || json['enMora'] == true;
     final fecha = json['fechaPago'] ?? json['fecha_pago'] ?? pagoMap['createdAt'];
+    final estadoTurno =
+        (json['estadoTurno'] ?? json['estado_turno'] ?? json['numberStatus'])?.toString() ??
+            'PENDIENTE';
+    final cubiertoPorNumeroMuerto =
+        (json['cubiertoPorNumeroMuerto'] ?? json['cubierto_por_numero_muerto']) == true;
 
     return ParticipanteSeguimiento(
       idNumber: _toIntOrNull(json['idNumber'] ?? json['id_number']) ?? 0,
       numeroTurno: _toIntOrNull(json['numeroTurno'] ?? json['numberValue'] ?? json['number_value']) ?? 0,
       nombre: nombre,
       isDeadNumber: isDeadNumber,
+      estadoTurno: estadoTurno,
+      cubiertoPorNumeroMuerto: cubiertoPorNumeroMuerto,
       idPayment: _toIntOrNull(json['idPayment'] ?? json['id_payment'] ?? pagoMap['idPayment']),
       estadoPago: atrasado ? EstadoPagoSeguimiento.atrasado : EstadoPagoSeguimiento.fromValor(rawEstado?.toString()),
       montoPagado: _toDouble(json['montoPagado'] ?? pagoMap['totalAmount']),
       fechaPago: fecha == null ? null : DateTime.tryParse(fecha.toString()),
+    );
+  }
+
+  /// `turnoVigente` de la respuesta; null si falta o no trae el monto a entregar.
+  static TurnoVigenteSeguimiento? turnoVigenteFromJson(dynamic raw) {
+    if (raw is! Map<String, dynamic> || raw['montoAEntregar'] == null) return null;
+    return TurnoVigenteSeguimiento(
+      idNumber: _toIntOrNull(raw['idNumber']) ?? 0,
+      numeroTurno: _toIntOrNull(raw['numberValue']) ?? 0,
+      estadoTurno: raw['estadoTurno']?.toString() ?? 'PENDIENTE',
+      totalTurno: _toDouble(raw['totalTurno']),
+      descuento: _toDouble(raw['descuento']),
+      montoAEntregar: _toDouble(raw['montoAEntregar']),
+      cuotasNoConfirmadas: _toIntOrNull(raw['cuotasNoConfirmadas']) ?? 0,
+      bloqueado: raw['bloqueado'] == true,
+    );
+  }
+
+  /// `numeroMuerto` de la respuesta; null si la tanda no tiene número muerto.
+  static NumeroMuertoSeguimiento? numeroMuertoFromJson(dynamic raw) {
+    if (raw is! Map<String, dynamic>) return null;
+    return NumeroMuertoSeguimiento(
+      idNumber: _toIntOrNull(raw['idNumber'] ?? raw['id_number']) ?? 0,
+      numeroTurno:
+          _toIntOrNull(raw['numeroTurno'] ?? raw['numberValue'] ?? raw['number_value']) ?? 0,
+      estadoTurno:
+          (raw['estadoTurno'] ?? raw['estado_turno'] ?? raw['status'])?.toString() ?? 'PENDIENTE',
+      pagosCubiertos: _toIntOrNull(raw['pagosCubiertos'] ?? raw['pagos_cubiertos']) ?? 0,
+      montoCubierto: _toDouble(raw['montoCubierto'] ?? raw['monto_cubierto']),
     );
   }
 
@@ -79,6 +117,8 @@ class SeguimientoTandaModel extends SeguimientoTanda {
       totalVueltas: _toIntOrNull(json['totalVueltas'] ?? tanda['numRounds'] ?? tanda['num_rounds']),
       cuota: _toDouble(json['cuota'] ?? tanda['contributionAmount'] ?? tanda['contribution_amount']),
       participantes: participantes,
+      turnoVigente: turnoVigenteFromJson(json['turnoVigente']),
+      numeroMuerto: numeroMuertoFromJson(json['numeroMuerto'] ?? json['numero_muerto']),
     );
   }
 }

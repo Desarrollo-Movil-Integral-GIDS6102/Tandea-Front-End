@@ -37,6 +37,31 @@ class PerfilScreen extends StatelessWidget {
     context.go(RouteNames.welcome);
   }
 
+  Future<void> _eliminarCuenta(BuildContext context) async {
+    final password = await showDialog<String>(
+      context: context,
+      builder: (_) => const _EliminarCuentaDialog(),
+    );
+    if (password == null || !context.mounted) return;
+
+    final provider = context.read<PerfilProvider>();
+    final ok = await provider.eliminarCuenta(password);
+    if (!context.mounted) return;
+    if (!ok) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(provider.errorMessage ?? 'No se pudo eliminar la cuenta'),
+        backgroundColor: AppColors.error,
+      ));
+      return;
+    }
+    final messenger = ScaffoldMessenger.of(context);
+    await context.read<AuthProvider>().logout();
+    if (!context.mounted) return;
+    context.read<NotificacionProvider>().limpiar();
+    context.go(RouteNames.welcome);
+    messenger.showSnackBar(const SnackBar(content: Text('Tu cuenta fue eliminada')));
+  }
+
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<PerfilProvider>();
@@ -96,9 +121,88 @@ class PerfilScreen extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(vertical: 14),
                     ),
                   ),
+                  if (perfil.rol != 'admin_global') ...[
+                    const SizedBox(height: 8),
+                    TextButton.icon(
+                      key: const Key('btn_eliminar_cuenta'),
+                      onPressed: () => _eliminarCuenta(context),
+                      icon: const Icon(Icons.delete_forever_rounded),
+                      label: const Text('Eliminar mi cuenta'),
+                      style: TextButton.styleFrom(foregroundColor: AppColors.error),
+                    ),
+                  ],
                 ],
               ),
       ),
+    );
+  }
+}
+
+/// Diálogo que advierte lo que se borra y pide la contraseña. Devuelve la contraseña o null.
+class _EliminarCuentaDialog extends StatefulWidget {
+  const _EliminarCuentaDialog();
+
+  @override
+  State<_EliminarCuentaDialog> createState() => _EliminarCuentaDialogState();
+}
+
+class _EliminarCuentaDialogState extends State<_EliminarCuentaDialog> {
+  final _password = TextEditingController();
+  bool _oculta = true;
+
+  @override
+  void dispose() {
+    _password.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('¿Eliminar tu cuenta?'),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Esta acción es permanente y no se puede deshacer:'),
+            const SizedBox(height: 8),
+            const Text('• Se borran tus datos personales y tus notificaciones.'),
+            const Text(
+                '• Las tandas que organizas se eliminan con todos sus turnos, pagos y '
+                'comprobantes, y se avisa a sus participantes.'),
+            const Text(
+                '• En las tandas donde solo participas, dejas de aparecer; si ya iniciaron, '
+                'sus registros quedan anónimos.'),
+            const SizedBox(height: 16),
+            TextField(
+              key: const Key('campo_eliminar_password'),
+              controller: _password,
+              obscureText: _oculta,
+              onChanged: (_) => setState(() {}),
+              decoration: InputDecoration(
+                labelText: 'Confirma con tu contraseña',
+                suffixIcon: IconButton(
+                  icon: Icon(_oculta ? Icons.visibility_rounded : Icons.visibility_off_rounded),
+                  onPressed: () => setState(() => _oculta = !_oculta),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
+        ElevatedButton(
+          key: const Key('btn_confirmar_eliminar_cuenta'),
+          onPressed: _password.text.isEmpty ? null : () => Navigator.pop(context, _password.text),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.error,
+            foregroundColor: Colors.white,
+          ),
+          child: const Text('Eliminar definitivamente'),
+        ),
+      ],
     );
   }
 }

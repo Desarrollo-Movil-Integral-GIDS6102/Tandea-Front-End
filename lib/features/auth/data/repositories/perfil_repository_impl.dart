@@ -103,6 +103,19 @@ class PerfilRepositoryImpl implements PerfilRepository {
         'Error al cambiar la contraseña',
       );
 
+  @override
+  Future<Result<String>> eliminarCuenta(String password) => _ejecutar(
+        () async => _mensaje(
+          (await apiClient.delete<dynamic>(
+            ApiConstants.perfilEndpoint,
+            data: {'password': password},
+          ))
+              .data,
+          'Tu cuenta fue eliminada',
+        ),
+        'Error al eliminar tu cuenta',
+      );
+
   static Map<String, dynamic> _mapa(dynamic raw) {
     if (raw is Map<String, dynamic>) return raw;
     throw const ServerException(message: 'Formato de respuesta inválido');

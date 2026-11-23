@@ -6,6 +6,10 @@ import 'package:tandea/core/network/api_client.dart';
 import 'package:tandea/core/network/dio_client.dart';
 import 'package:tandea/core/network/server_health_service.dart';
 import 'package:tandea/core/services/share_service.dart';
+import 'package:tandea/features/admin/data/datasources/admin_remote_data_source.dart';
+import 'package:tandea/features/admin/data/repositories/admin_repository_impl.dart';
+import 'package:tandea/features/admin/domain/repositories/admin_repository.dart';
+import 'package:tandea/features/admin/presentation/providers/admin_provider.dart';
 import 'package:tandea/features/auth/data/datasources/auth_remote_data_source.dart';
 import 'package:tandea/features/auth/data/repositories/auth_repository_impl.dart';
 import 'package:tandea/features/auth/data/repositories/perfil_repository_impl.dart';
@@ -129,6 +133,10 @@ Future<void> initDependencies() async {
     () => PagoRemoteDataSourceImpl(apiClient: sl<ApiClient>()),
   );
 
+  sl.registerLazySingleton<AdminRemoteDataSource>(
+    () => AdminRemoteDataSourceImpl(apiClient: sl<ApiClient>()),
+  );
+
   // ----------------------------------------------------
   // 4. Repositorios (Domain contracts -> Data implementations)
   // ----------------------------------------------------
@@ -172,6 +180,12 @@ Future<void> initDependencies() async {
   sl.registerLazySingleton<PagoRepository>(
     () => PagoRepositoryImpl(
       remoteDataSource: sl<PagoRemoteDataSource>(),
+    ),
+  );
+
+  sl.registerLazySingleton<AdminRepository>(
+    () => AdminRepositoryImpl(
+      remoteDataSource: sl<AdminRemoteDataSource>(),
     ),
   );
 
@@ -288,6 +302,10 @@ Future<void> initDependencies() async {
       pagoRepository: sl<PagoRepository>(),
       seleccionarComprobanteUseCase: sl<SeleccionarComprobanteUseCase>(),
     ),
+  );
+
+  sl.registerFactory<AdminProvider>(
+    () => AdminProvider(adminRepository: sl<AdminRepository>()),
   );
 }
 

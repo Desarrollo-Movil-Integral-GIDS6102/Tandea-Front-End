@@ -40,4 +40,6 @@ class RouteNames {
   static const String admin = '/admin';
   static const String adminUsuarios = '/admin/usuarios';
   static const String adminTandas = '/admin/tandas';
+  static const String adminDisputaDetail = '/admin/disputas/:id';
+  static String adminDisputaDetalle(int idDispute) => '/admin/disputas/$idDispute';
 }
