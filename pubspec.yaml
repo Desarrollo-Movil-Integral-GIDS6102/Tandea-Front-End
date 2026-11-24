@@ -1,7 +1,7 @@
-﻿name: tandea
+name: tandea
 description: "Aplicación de gestión de ahorro rotativo (tandas)."
 publish_to: 'none'
-version: 0.1.0+3
+version: 0.1.0+20
 
 environment:
   sdk: ^3.13.2

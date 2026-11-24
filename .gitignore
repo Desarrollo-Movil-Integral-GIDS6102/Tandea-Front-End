@@ -65,5 +65,5 @@ ios/Flutter/flutter_export_environment.sh
 # Widget Preview related
 .widget_preview/
 
-# Carpeta vacia generada por Flutter
-tandea/
+# Carpeta vacia generada por Flutter en la raiz
+/tandea/
